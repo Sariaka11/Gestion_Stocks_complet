@@ -94,7 +94,7 @@ function AdminLayout({ children, onLogout }) {
       <header className="admin-header">
         <div className="header-left">
           <button className="toggle-sidebar-btn" onClick={toggleSidebar}>
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            {sidebarOpen ? <Menu size={20} /> : <Menu size={20} />}
           </button>
           <div className="header-title">
             <h1>Gestion de Stock</h1>

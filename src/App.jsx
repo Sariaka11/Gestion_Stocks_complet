@@ -94,7 +94,7 @@ function App() {
           <MockDataProvider>
     <div className="app">
       <Routes>
-        <Route path="/" element={<LoginUser />} />
+        <Route path="/" element={<LoginAdmin />} />
 
         {/* Routes d'authentification */}
         <Route path="/auth/login-user" element={<LoginUser />} />

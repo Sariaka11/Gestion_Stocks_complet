@@ -7,22 +7,20 @@ import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAgences } from "../../../services/agenceServices"
 import { getBienAgences, createBienAgence, deleteBienAgence } from "../../../services/bienAgenceServices"
 import { useMockData } from "../../../../app/MockDataProvider"
+import { ToastContainer, toast } from 'react-toastify'; // Import de react-toastify
+import 'react-toastify/dist/ReactToastify.css'; // Import des styles
 
 function ImDispatche() {
-  // État pour le chargement et les erreurs
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // État pour les données
   const [immobiliers, setImmobiliers] = useState([])
   const [agences, setAgences] = useState([])
   const [affectations, setAffectations] = useState([])
 
-  // État pour les filtres
   const [filtreImmobilier, setFiltreImmobilier] = useState("")
   const [filtreAgence, setFiltreAgence] = useState("")
 
-  // État pour le modal
   const [modalOuvert, setModalOuvert] = useState(false)
   const [nouvelleAffectation, setNouvelleAffectation] = useState({
     idBien: "",
@@ -30,20 +28,16 @@ function ImDispatche() {
     dateAffectation: new Date().toISOString().split("T")[0],
   })
 
-  // Récupérer le contexte des données mockées
   const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
-  // Charger les données au démarrage
   useEffect(() => {
     chargerDonnees()
   }, [])
 
-  // Fonction pour charger toutes les données
   const chargerDonnees = async () => {
     setLoading(true)
     setError(null)
 
-    // Si nous utilisons des données mockées, utilisez-les directement
     if (useMock) {
       console.log("Utilisation des données mockées pour ImDispatche")
       setImmobiliers(mockData.immobiliers)
@@ -55,84 +49,54 @@ function ImDispatche() {
 
     try {
       // Charger les immobiliers
-      try {
-        const immobiliersRes = await getImmobiliers()
-        console.log("Données immobiliers brutes:", immobiliersRes.data)
+      const immobiliersRes = await getImmobiliers()
+      let immobiliersData = immobiliersRes.data
 
-        // Déterminer le format des données
-        let immobiliersData = immobiliersRes.data
-
-        // Vérifier si les données sont dans un format spécifique (comme $values)
-        if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
-          immobiliersData = immobiliersRes.data.$values
-        }
-
-        // S'assurer que immobiliersData est un tableau
-        if (!Array.isArray(immobiliersData)) {
-          console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
-          immobiliersData = []
-        }
-
-        setImmobiliers(immobiliersData)
-      } catch (error) {
-        console.error("Erreur lors du chargement des immobiliers:", error)
-        throw new Error(`Erreur lors du chargement des immobiliers: ${error.message}`)
+      if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
+        immobiliersData = immobiliersRes.data.$values
       }
+
+      if (!Array.isArray(immobiliersData)) {
+        console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
+        immobiliersData = []
+      }
+
+      setImmobiliers(immobiliersData)
 
       // Charger les agences
-      try {
-        const agencesRes = await getAgences()
-        console.log("Données agences brutes:", agencesRes.data)
+      const agencesRes = await getAgences()
+      let agencesData = agencesRes.data
 
-        // Déterminer le format des données
-        let agencesData = agencesRes.data
-
-        // Vérifier si les données sont dans un format spécifique (comme $values)
-        if (agencesRes.data && typeof agencesRes.data === "object" && "$values" in agencesRes.data) {
-          agencesData = agencesRes.data.$values
-        }
-
-        // S'assurer que agencesData est un tableau
-        if (!Array.isArray(agencesData)) {
-          console.warn("Les données agences reçues ne sont pas un tableau:", agencesData)
-          agencesData = []
-        }
-
-        setAgences(agencesData)
-      } catch (error) {
-        console.error("Erreur lors du chargement des agences:", error)
-        throw new Error(`Erreur lors du chargement des agences: ${error.message}`)
+      if (agencesRes.data && typeof agencesRes.data === "object" && "$values" in agencesRes.data) {
+        agencesData = agencesRes.data.$values
       }
+
+      if (!Array.isArray(agencesData)) {
+        console.warn("Les données agences reçues ne sont pas un tableau:", agencesData)
+        agencesData = []
+      }
+
+      setAgences(agencesData)
 
       // Charger les affectations
-      try {
-        const affectationsRes = await getBienAgences()
-        console.log("Données affectations brutes:", affectationsRes.data)
+      const affectationsRes = await getBienAgences()
+      let affectationsData = affectationsRes.data
 
-        // Déterminer le format des données
-        let affectationsData = affectationsRes.data
-
-        // Vérifier si les données sont dans un format spécifique (comme $values)
-        if (affectationsRes.data && typeof affectationsRes.data === "object" && "$values" in affectationsRes.data) {
-          affectationsData = affectationsRes.data.$values
-        }
-
-        // S'assurer que affectationsData est un tableau
-        if (!Array.isArray(affectationsData)) {
-          console.warn("Les données affectations reçues ne sont pas un tableau:", affectationsData)
-          affectationsData = []
-        }
-
-        setAffectations(affectationsData)
-      } catch (error) {
-        console.error("Erreur lors du chargement des affectations:", error)
-        throw new Error(`Erreur lors du chargement des affectations: ${error.message}`)
+      if (affectationsRes.data && typeof affectationsRes.data === "object" && "$values" in affectationsRes.data) {
+        affectationsData = affectationsRes.data.$values
       }
+
+      if (!Array.isArray(affectationsData)) {
+        console.warn("Les données affectations reçues ne sont pas un tableau:", affectationsData)
+        affectationsData = []
+      }
+
+      setAffectations(affectationsData)
+
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err)
       setError(`Impossible de charger les données: ${err.message}`)
 
-      // Si l'API échoue, basculez vers les données mockées
       if (!useMock) {
         console.log("Basculement vers les données mockées après échec de l'API")
         setImmobiliers(mockData.immobiliers)
@@ -144,62 +108,14 @@ function ImDispatche() {
     }
   }
 
-  // Fonction pour afficher un message
   const afficherMessage = (texte, type) => {
-    const messageElement = document.createElement("div")
-    messageElement.className = `alerte-flottante alerte-${type}`
-    messageElement.innerHTML = `
-      <div class="icone-alerte">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-      </div>
-      <div class="texte-alerte">${texte}</div>
-      <button class="fermer-alerte">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    `
-
-    document.body.appendChild(messageElement)
-
-    // Ajouter l'animation d'entrée
-    setTimeout(() => {
-      messageElement.classList.add("visible")
-    }, 10)
-
-    // Ajouter l'événement pour fermer l'alerte
-    const boutonFermer = messageElement.querySelector(".fermer-alerte")
-    if (boutonFermer) {
-      boutonFermer.addEventListener("click", () => {
-        messageElement.classList.remove("visible")
-        messageElement.classList.add("disparition")
-        setTimeout(() => {
-          if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement)
-          }
-        }, 300)
-      })
+    if (type === "succes") {
+      toast.success(texte);
+    } else {
+      toast.error(texte);
     }
+  };
 
-    // Supprimer l'alerte après 5 secondes
-    setTimeout(() => {
-      if (messageElement.parentNode) {
-        messageElement.classList.remove("visible")
-        messageElement.classList.add("disparition")
-        setTimeout(() => {
-          if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement)
-          }
-        }, 300)
-      }
-    }, 5000)
-  }
-
-  // Ouvrir le modal pour ajouter une nouvelle affectation
   const ouvrirModal = () => {
     setNouvelleAffectation({
       idBien: "",
@@ -209,12 +125,10 @@ function ImDispatche() {
     setModalOuvert(true)
   }
 
-  // Fermer le modal
   const fermerModal = () => {
     setModalOuvert(false)
   }
 
-  // Mettre à jour les champs du formulaire
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setNouvelleAffectation({
@@ -223,7 +137,6 @@ function ImDispatche() {
     })
   }
 
-  // Ajouter une nouvelle affectation
   const sauvegarderAffectation = async () => {
     if (!nouvelleAffectation.idBien || !nouvelleAffectation.idAgence) {
       afficherMessage("Veuillez sélectionner un bien et une agence", "erreur")
@@ -233,7 +146,6 @@ function ImDispatche() {
     setLoading(true)
     try {
       if (useMock) {
-        // Simuler l'ajout d'une affectation en mode mock
         const nouvelleAff = {
           idBien: Number.parseInt(nouvelleAffectation.idBien, 10),
           idAgence: Number.parseInt(nouvelleAffectation.idAgence, 10),
@@ -262,14 +174,12 @@ function ImDispatche() {
     }
   }
 
-  // Supprimer une affectation
   const supprimerAffectation = async (idBien, idAgence, dateAffectation) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette affectation ?")) return
 
     setLoading(true)
     try {
       if (useMock) {
-        // Simuler la suppression d'une affectation en mode mock
         setAffectations((prev) =>
           prev.filter(
             (aff) => !(aff.idBien === idBien && aff.idAgence === idAgence && aff.dateAffectation === dateAffectation),
@@ -289,19 +199,16 @@ function ImDispatche() {
     }
   }
 
-  // Obtenir le nom d'un bien par son ID
   const getNomBien = (idBien) => {
     const bien = immobiliers.find((b) => b.idBien === idBien)
     return bien ? bien.nomBien : `Bien #${idBien}`
   }
 
-  // Obtenir le nom d'une agence par son ID
   const getNomAgence = (idAgence) => {
     const agence = agences.find((a) => a.id === idAgence)
     return agence ? agence.nom : `Agence #${idAgence}`
   }
 
-  // Filtrer les affectations
   const affectationsFiltrees = affectations.filter((aff) => {
     const bienNom = getNomBien(aff.idBien).toLowerCase()
     const agenceNom = getNomAgence(aff.idAgence).toLowerCase()
@@ -487,6 +394,9 @@ function ImDispatche() {
           </div>
         </div>
       )}
+
+      {/* Conteneur pour les Toasts */}
+      <ToastContainer />
     </div>
   )
 }

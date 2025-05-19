@@ -366,8 +366,8 @@
   background-color: #f9fafb;
 }
 
-/* Alerte de confirmation */
-.alerte-confirmation {
+Alerte de confirmation
+/* .alerte-confirmation {
   position: fixed;
   top: 0;
   left: 0;
@@ -447,7 +447,7 @@
   background-color: #dc2626;
 }
 
-/* Alerte flottante */
+/* Alerte flottante 
 .alerte-flottante {
   position: fixed;
   top: 20px;
@@ -504,6 +504,37 @@
   display: flex;
   align-items: center;
   justify-content: center;
+} */
+
+.snackbar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #323232;
+  color: white;
+  padding: 16px;
+  border-radius: 4px;
+  transition: opacity 0.5s ease;
+  opacity: 0.9;
+  z-index: 1000;
+}
+
+.snackbar-success {
+  background-color: #4CAF50; /* Vert */
+}
+
+.snackbar-error {
+  background-color: #f44336; /* Rouge */
+}
+
+.snackbar-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  margin-left: 15px;
+  font-size: 18px;
 }
 
 /* Loading overlay */

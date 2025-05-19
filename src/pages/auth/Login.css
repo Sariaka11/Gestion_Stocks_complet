@@ -5,17 +5,23 @@
   justify-content: center;
   align-items: center;
   background-color: #f5f5f5;
-  padding: 1rem;
+  padding: 0;
   width: 100%;
 }
 
 .auth-container {
   width: 100%;
-  max-width: 1000px;
+  max-width: 900px;
+  height: 600px;
   display: flex;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .auth-left {
@@ -83,7 +89,7 @@
 }
 
 .auth-form-container {
-  max-width: 400px;
+  max-width: 350px;
   margin: 0 auto;
   width: 100%;
 }
@@ -100,12 +106,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  width: 100%;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .form-group label {
@@ -116,14 +124,16 @@
 
 .input-with-icon {
   position: relative;
+  width: 100%;
 }
 
 .input-icon {
   position: absolute;
-  left: 1rem;
+  left: 25px;
   top: 50%;
   transform: translateY(-50%);
   color: #aaa;
+  z-index: 1;
 }
 
 .input-with-icon input {
@@ -134,6 +144,8 @@
   font-size: 0.875rem;
   transition: border-color 0.3s;
   background-color: #f9f9f9;
+  box-sizing: border-box;
+  margin-left: 25px;
 }
 
 .input-with-icon input:focus {
@@ -147,6 +159,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.8125rem;
+  width: 100%;
 }
 
 .checkbox-container {
@@ -204,6 +217,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
+  width: 100%;
 }
 
 .btn-connect:hover {
@@ -269,6 +283,12 @@
   .auth-container {
     flex-direction: column;
     max-width: 450px;
+    height: auto;
+    position: relative;
+    top: 0;
+    left: 0;
+    transform: none;
+    margin: 1rem auto;
   }
 
   .auth-left,

@@ -47,7 +47,7 @@ function LoginAdmin() {
             </h1>
             <p className="auth-description">Système de gestion de stock et d'inventaire</p>
             <div className="auth-logo">
-              <img src="/src/assets/stock.png" alt="CEM Logo" className="logo-large" />
+              <img src="../../../assets/stock.jpg" alt="CEM Logo" className="logo-large" />
             </div>
           </div>
         </div>
@@ -91,24 +91,12 @@ function LoginAdmin() {
                   <span className="checkmark"></span>
                   Se souvenir de moi
                 </label>
-                <Link to="/auth/forgot-password" className="forgot-password">
-                  Mot de passe oublié?
-                </Link>
               </div>
 
               <button type="submit" className="btn-connect">
                 Se Connecter
               </button>
             </form>
-
-            {/* <div className="auth-switch">
-              <p>Connexion en tant qu'utilisateur?</p>
-              <div className="auth-actions">
-                <Link to="/auth/login-user" className="btn-signup">
-                  Utilisateur
-                </Link>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
