@@ -487,3 +487,136 @@
     opacity: 1;
   }
 }
+.section-categorie {
+  margin-top: 3rem;
+  border-top: 1px solid #ddd;
+  padding-top: 2rem;
+}
+
+.section-categorie h2 {
+  color: #990000;
+}
+
+.formulaire-categorie {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.formulaire-categorie input {
+  padding: 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.formulaire-categorie button {
+  background-color: #990000;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+}
+
+.table-categorie {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-categorie th, .table-categorie td {
+  border: 1px solid #ddd;
+  padding: 0.6rem;
+  text-align: left;
+}
+/* Ajoutez ce style si ce n'est pas déjà présent */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff3f3;
+  border: 1px solid #ffcaca;
+  color: #e53e3e;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.error-message button {
+  margin-left: auto;
+  background-color: #e53e3e;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.error-message button:hover {
+  background-color: #c53030;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Assurez-vous que ces styles existent pour les alertes flottantes */
+.alerte-flottante {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 400px;
+  z-index: 1000;
+  transform: translateY(-100px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.alerte-flottante.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.alerte-flottante.disparition {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+.alerte-succes {
+  background-color: #f0fff4;
+  border-left: 4px solid #48bb78;
+  color: #2f855a;
+}
+
+.alerte-erreur {
+  background-color: #fff5f5;
+  border-left: 4px solid #f56565;
+  color: #c53030;
+}
+
+.icone-alerte {
+  flex-shrink: 0;
+}
+
+.texte-alerte {
+  flex-grow: 1;
+}
+
+.fermer-alerte {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

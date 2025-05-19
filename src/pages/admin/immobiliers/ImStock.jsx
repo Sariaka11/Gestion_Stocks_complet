@@ -1,112 +1,267 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Edit, Trash, Search, Save, Barcode } from "lucide-react"
+import { Plus, Search, Save, AlertCircle, RefreshCw } from "lucide-react"
 import "./css/ImStock.css"
+import { getImmobiliers, createImmobilier, deleteImmobilier } from "../../../services/immobilierServices"
+import { getCategories, createCategorie, updateCategorie, deleteCategorie } from "../../../services/categorieServices"
+import { useMockData } from "../../../../app/MockDataProvider"
 
 function ImStock() {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [filtreDesignation, setFiltreDesignation] = useState("")
   const [modalOuvert, setModalOuvert] = useState(false)
   const [immobilierEnEdition, setImmobilierEnEdition] = useState(null)
-  const [nouvelImmobilier, setNouvelImmobilier] = useState({
+  const objetVideImmobilier = {
+    idBien: 0,
     codeArticle: "",
-    designation: "",
+    nomBien: "",
     codeBarre: "",
-    prixAchat: "",
-    typeImmobilier: "",
+    valeurAcquisition: 0,
+    tauxAmortissement: 0,
+    quantite: 1,
+    statut: "actif",
+    idCategorie: "",
     dateAcquisition: new Date().toISOString().split("T")[0],
-    quantite: "1", // Ajout du champ quantité
+  }
+  const [nouvelImmobilier, setNouvelImmobilier] = useState(objetVideImmobilier)
+
+  const [categories, setCategories] = useState([])
+  const [nouvelleCategorie, setNouvelleCategorie] = useState({
+    nomCategorie: "",
+    dureeAmortissement: "",
   })
+  const [categorieEnEdition, setCategorieEnEdition] = useState(null)
+  const [alerteCategorie, setAlerteCategorie] = useState(null)
 
   // Tableau vide pour les immobiliers (à remplir avec des données réelles)
   const [immobilierItems, setImmobilierItems] = useState([])
 
-  // Simuler un chargement lors du montage du composant
-  useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+  // Récupérer le contexte des données mockées
+  const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
-    // Appliquer des styles supplémentaires pour améliorer l'alignement
-    const style = document.createElement("style")
-    style.textContent = `
-      .imstock-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      }
-      
-      .imstock-table th,
-      .imstock-table td {
-        padding: 12px 16px;
-        text-align: left;
-        border-bottom: 1px solid #e0e0e0;
-      }
-      
-      .imstock-table th {
-        background-color: #f5f5f5;
-        font-weight: 600;
-        color: #333;
-      }
-      
-      .imstock-table tr:last-child td {
-        border-bottom: none;
-      }
-      
-      .imstock-table tr:hover {
-        background-color: #f9f9f9;
-      }
-      
-      .code-barre-cell {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      
-      .code-barre-value {
-        font-family: monospace;
-      }
-
-      /* Amélioration du scroll */
-      .imstock-table-container {
-        overflow-x: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
-        border-radius: 8px;
-      }
-      
-      .imstock-table-container::-webkit-scrollbar {
-        height: 8px;
-        width: 8px;
-      }
-      
-      .imstock-table-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-      }
-      
-      .imstock-table-container::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.3);
-        border-radius: 10px;
-        border: 2px solid #f1f1f1;
-      }
-      
-      .imstock-table-container::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(0, 0, 0, 0.5);
-      }
-    `
-    document.head.appendChild(style)
-
-    return () => {
-      document.head.removeChild(style)
+  // Fonction pour vérifier la connexion à l'API
+  const verifierConnexionApi = async () => {
+    try {
+      // Vérifiez si le serveur est accessible avec un simple fetch
+      const response = await fetch("http://localhost:5000/api/Categories", {
+        method: "GET",
+        mode: "cors",
+      })
+      console.log("Test de connexion API:", response)
+      return response.ok
+    } catch (error) {
+      console.error("Erreur de connexion à l'API:", error)
+      setError(
+        `Impossible de se connecter au serveur API. Vérifiez que votre serveur backend est en cours d'exécution sur http://localhost:5000. Erreur: ${error.message}`,
+      )
+      return false
     }
+  }
+
+  // Fonction pour charger les immobiliers
+  const chargerImmobiliers = () => {
+    setLoading(true)
+    setError(null)
+
+    // Si nous utilisons des données mockées, utilisez-les directement
+    if (useMock) {
+      console.log("Utilisation des données mockées pour les immobiliers")
+
+      const items = mockData.immobiliers.map((item) => ({
+        id: item.idBien,
+        nomBien: item.nomBien || "",
+        dateAcquisition: item.dateAcquisition || "",
+        valeurAcquisition: item.valeurAcquisition || 0,
+        tauxAmortissement: item.tauxAmortissement || 0,
+        statut: item.statut || "actif",
+        categorie:
+          item.categorie?.nomCategorie ||
+          mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
+          `Catégorie #${item.idCategorie}`,
+        codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+        codeBarre: item.codeBarre || "0000000000000",
+        quantite: item.quantite || 1,
+        idCategorie: item.idCategorie,
+      }))
+
+      setImmobilierItems(items)
+      setLoading(false)
+      return
+    }
+
+    // Sinon, essayez de charger depuis l'API
+    getImmobiliers()
+      .then((res) => {
+        console.log("Données immobiliers brutes:", res.data)
+
+        // Déterminer le format des données
+        let immRaw = res.data
+
+        // Vérifier si les données sont dans un format spécifique (comme $values)
+        if (res.data && typeof res.data === "object" && "$values" in res.data) {
+          immRaw = res.data.$values
+        }
+
+        // S'assurer que immRaw est un tableau
+        if (!Array.isArray(immRaw)) {
+          console.warn("Les données reçues ne sont pas un tableau:", immRaw)
+          immRaw = []
+        }
+
+        const items = immRaw.map((item) => ({
+          id: item.idBien,
+          nomBien: item.nomBien || "",
+          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          valeurAcquisition: item.valeurAcquisition ?? 0,
+          tauxAmortissement: item.tauxAmortissement ?? 0,
+          statut: item.statut || "actif",
+          categorie: item.categorie?.nomCategorie || `Catégorie #${item.idCategorie}`,
+          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          codeBarre: item.codeBarre || "0000000000000",
+          quantite: item.quantite ?? 1,
+          idCategorie: item.idCategorie,
+        }))
+
+        console.log("Données immobiliers transformées:", items)
+        setImmobilierItems(items)
+      })
+      .catch((err) => {
+        console.error("Erreur chargement immobiliers:", err)
+        setError(
+          `Impossible de charger les immobiliers: ${err.message}. Vérifiez que votre serveur API est en cours d'exécution.`,
+        )
+
+        // Si l'API échoue, basculez vers les données mockées
+        if (!useMock) {
+          console.log("Basculement vers les données mockées après échec de l'API")
+          const items = mockData.immobiliers.map((item) => ({
+            id: item.idBien,
+            nomBien: item.nomBien || "",
+            dateAcquisition: item.dateAcquisition || "",
+            valeurAcquisition: item.valeurAcquisition || 0,
+            tauxAmortissement: item.tauxAmortissement || 0,
+            statut: item.statut || "actif",
+            categorie:
+              item.categorie?.nomCategorie ||
+              mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
+              `Catégorie #${item.idCategorie}`,
+            codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+            codeBarre: item.codeBarre || "0000000000000",
+            quantite: item.quantite || 1,
+            idCategorie: item.idCategorie,
+          }))
+          setImmobilierItems(items)
+        }
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
+  // Fonction pour charger les catégories
+  const chargerCategories = () => {
+    // Si nous utilisons des données mockées, utilisez-les directement
+    if (useMock) {
+      console.log("Utilisation des données mockées pour les catégories")
+      setCategories(mockData.categories)
+      return
+    }
+
+    // Sinon, essayez de charger depuis l'API
+    getCategories()
+      .then((res) => {
+        console.log("Données catégories brutes:", res.data)
+
+        // Déterminer le format des données
+        let catRaw = res.data
+
+        // Vérifier si les données sont dans un format spécifique (comme $values)
+        if (res.data && typeof res.data === "object" && "$values" in res.data) {
+          catRaw = res.data.$values
+        }
+
+        // S'assurer que catRaw est un tableau
+        if (!Array.isArray(catRaw)) {
+          console.warn("Les données reçues ne sont pas un tableau:", catRaw)
+          catRaw = []
+        }
+
+        setCategories(catRaw)
+      })
+      .catch((err) => {
+        console.error("Erreur chargement catégories:", err)
+        setAlerteCategorie("Impossible de charger les catégories")
+
+        // Si l'API échoue, basculez vers les données mockées
+        if (!useMock) {
+          console.log("Basculement vers les données mockées après échec de l'API")
+          setCategories(mockData.categories)
+        }
+      })
+  }
+
+  // Charger les données au démarrage
+  useEffect(() => {
+    chargerImmobiliers()
+    chargerCategories()
   }, [])
+
+  const sauvegarderCategorie = () => {
+    const nom = nouvelleCategorie.nomCategorie?.trim()
+    const duree = nouvelleCategorie.dureeAmortissement
+
+    if (!nom || !duree) {
+      setAlerteCategorie("Tous les champs sont obligatoires.")
+      return
+    }
+
+    const data = {
+      nomCategorie: nouvelleCategorie.nomCategorie.trim(),
+      dureeAmortissement: Number.parseInt(nouvelleCategorie.dureeAmortissement, 10),
+    }
+
+    if (categorieEnEdition) {
+      updateCategorie(categorieEnEdition.idCategorie, {
+        ...data,
+        idCategorie: categorieEnEdition.idCategorie,
+      })
+        .then(() => {
+          setAlerteCategorie("Catégorie modifiée !")
+          setCategorieEnEdition(null)
+          setNouvelleCategorie({ nomCategorie: "", dureeAmortissement: "" })
+          chargerCategories()
+        })
+        .catch(() => setAlerteCategorie("Erreur modification"))
+    } else {
+      createCategorie(data)
+        .then(() => {
+          setAlerteCategorie("Catégorie créée !")
+          setNouvelleCategorie({ nomCategorie: "", dureeAmortissement: "" })
+          chargerCategories()
+        })
+        .catch(() => setAlerteCategorie("Erreur création"))
+    }
+  }
+
+  const supprimerCategorie = (id) => {
+    if (!window.confirm("Confirmer la suppression ?")) return
+    deleteCategorie(id)
+      .then(() => {
+        setAlerteCategorie("Catégorie supprimée !")
+        chargerCategories()
+      })
+      .catch(() => setAlerteCategorie("Impossible de supprimer"))
+  }
+
+  const lancerEditionCategorie = (cat) => {
+    setCategorieEnEdition(cat)
+    setNouvelleCategorie({
+      nomCategorie: cat.nomCategorie || "",
+      dureeAmortissement: cat.dureeAmortissement || "",
+    })
+  }
 
   // Générer un code barre EAN-13
   const genererCodeBarre = () => {
@@ -130,13 +285,10 @@ function ImStock() {
   const ouvrirModalAjout = () => {
     setImmobilierEnEdition(null)
     setNouvelImmobilier({
+      ...objetVideImmobilier,
       codeArticle: `IMM-${String(immobilierItems.length + 1).padStart(3, "0")}`,
-      designation: "",
       codeBarre: genererCodeBarre(),
-      prixAchat: "",
-      typeImmobilier: "",
       dateAcquisition: new Date().toISOString().split("T")[0],
-      quantite: "1", // Valeur par défaut
     })
     setModalOuvert(true)
   }
@@ -146,12 +298,14 @@ function ImStock() {
     setImmobilierEnEdition(immobilier)
     setNouvelImmobilier({
       codeArticle: immobilier.codeArticle,
-      designation: immobilier.designation,
+      nomBien: immobilier.nomBien,
       codeBarre: immobilier.codeBarre,
-      prixAchat: immobilier.prixAchat.toString(),
-      typeImmobilier: immobilier.typeImmobilier,
+      valeurAcquisition: immobilier.valeurAcquisition.toString(),
+      tauxAmortissement: immobilier.tauxAmortissement,
       dateAcquisition: immobilier.dateAcquisition,
       quantite: immobilier.quantite.toString(),
+      idCategorie: immobilier.idCategorie,
+      statut: immobilier.statut,
     })
     setModalOuvert(true)
   }
@@ -161,64 +315,64 @@ function ImStock() {
     setModalOuvert(false)
   }
 
-  // Mettre à jour les champs du formulaire
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setNouvelImmobilier({
-      ...nouvelImmobilier,
-      [name]: value,
-    })
-  }
-
-  // Régénérer le code barre
-  const regenererCodeBarre = () => {
-    setNouvelImmobilier({
-      ...nouvelImmobilier,
-      codeBarre: genererCodeBarre(),
-    })
-  }
-
-  // Sauvegarder l'immobilier
   const sauvegarderImmobilier = () => {
-    if (immobilierEnEdition) {
-      // Mise à jour d'un immobilier existant
-      const immobiliersModifies = immobilierItems.map((item) => {
-        if (item.id === immobilierEnEdition.id) {
-          return {
-            ...item,
-            codeArticle: nouvelImmobilier.codeArticle,
-            designation: nouvelImmobilier.designation,
-            codeBarre: nouvelImmobilier.codeBarre,
-            prixAchat: Number.parseFloat(nouvelImmobilier.prixAchat),
-            typeImmobilier: nouvelImmobilier.typeImmobilier,
-            dateAcquisition: nouvelImmobilier.dateAcquisition,
-            quantite: Number.parseInt(nouvelImmobilier.quantite),
-          }
-        }
-        return item
-      })
-
-      setImmobilierItems(immobiliersModifies)
-      afficherMessage("Immobilier modifié avec succès!", "succes")
-    } else {
-      // Ajout d'un nouvel immobilier
-      const nouvelImmobilierComplet = {
-        id: Date.now(),
-        codeArticle: nouvelImmobilier.codeArticle,
-        designation: nouvelImmobilier.designation,
-        codeBarre: nouvelImmobilier.codeBarre,
-        prixAchat: Number.parseFloat(nouvelImmobilier.prixAchat),
-        typeImmobilier: nouvelImmobilier.typeImmobilier,
-        dateAcquisition: nouvelImmobilier.dateAcquisition,
-        quantite: Number.parseInt(nouvelImmobilier.quantite),
-        etat: "Bon", // Par défaut
-      }
-
-      setImmobilierItems([...immobilierItems, nouvelImmobilierComplet])
-      afficherMessage("Immobilier ajouté avec succès!", "succes")
+    // Vérification simple
+    if (
+      !nouvelImmobilier.nomBien ||
+      !nouvelImmobilier.valeurAcquisition ||
+      !nouvelImmobilier.tauxAmortissement ||
+      !nouvelImmobilier.quantite ||
+      !nouvelImmobilier.idCategorie
+    ) {
+      alert("Veuillez remplir tous les champs obligatoires.")
+      return
     }
 
-    fermerModal()
+    const data = {
+      nomBien: nouvelImmobilier.nomBien,
+      valeurAcquisition: Number.parseFloat(nouvelImmobilier.valeurAcquisition),
+      tauxAmortissement: Number.parseFloat(nouvelImmobilier.tauxAmortissement),
+      quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
+      statut: nouvelImmobilier.statut,
+      idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
+      dateAcquisition: nouvelImmobilier.dateAcquisition,
+      codeBarre: nouvelImmobilier.codeBarre,
+    }
+
+    setLoading(true)
+    createImmobilier(data)
+      .then((res) => {
+        afficherMessage("Immobilier enregistré avec succès!", "succes")
+        setNouvelImmobilier(objetVideImmobilier)
+        setModalOuvert(false)
+        // Recharger les immobiliers après création
+        setTimeout(() => chargerImmobiliers(), 500)
+      })
+      .catch((err) => {
+        console.error("Erreur création immobilier:", err)
+        afficherMessage("Erreur lors de l'enregistrement.", "erreur")
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
+  const supprimerImmobilier = (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet immobilier ?")) return
+
+    setLoading(true)
+    deleteImmobilier(id)
+      .then(() => {
+        setImmobilierItems((prev) => prev.filter((item) => item.id !== id))
+        afficherMessage("Immobilier supprimé avec succès!", "succes")
+      })
+      .catch((err) => {
+        console.error("Erreur suppression:", err)
+        afficherMessage("Erreur lors de la suppression", "erreur")
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
   // Fonction pour afficher un message
@@ -276,65 +430,13 @@ function ImStock() {
     }, 5000)
   }
 
-  // Supprimer un immobilier
-  const supprimerImmobilier = (id) => {
-    // Créer l'alerte de confirmation
-    const alerteElement = document.createElement("div")
-    alerteElement.className = "alerte-confirmation"
-    alerteElement.innerHTML = `
-      <div class="alerte-contenu">
-        <div class="alerte-titre">Confirmer la suppression</div>
-        <div class="alerte-message">Êtes-vous sûr de vouloir supprimer cet immobilier ?</div>
-        <div class="alerte-actions">
-          <button class="bouton-annuler-alerte">Annuler</button>
-          <button class="bouton-confirmer-alerte">Supprimer</button>
-        </div>
-      </div>
-    `
-    document.body.appendChild(alerteElement)
-
-    // Animation d'entrée
-    setTimeout(() => {
-      alerteElement.classList.add("visible")
-    }, 10)
-
-    // Gérer les actions
-    const boutonAnnuler = alerteElement.querySelector(".bouton-annuler-alerte")
-    const boutonConfirmer = alerteElement.querySelector(".bouton-confirmer-alerte")
-
-    boutonAnnuler.addEventListener("click", () => {
-      // Animation de sortie
-      alerteElement.classList.remove("visible")
-      setTimeout(() => {
-        document.body.removeChild(alerteElement)
-      }, 300)
-    })
-
-    boutonConfirmer.addEventListener("click", () => {
-      // Supprimer l'immobilier
-      setImmobilierItems(immobilierItems.filter((item) => item.id !== id))
-
-      // Animation de sortie
-      alerteElement.classList.remove("visible")
-      setTimeout(() => {
-        document.body.removeChild(alerteElement)
-        afficherMessage("Immobilier supprimé avec succès!", "succes")
-      }, 300)
-    })
-  }
-
   // Filtrer les immobiliers
   const immobiliersFiltres = immobilierItems.filter(
     (item) =>
-      item.designation.toLowerCase().includes(filtreDesignation.toLowerCase()) ||
-      item.codeArticle.toLowerCase().includes(filtreDesignation.toLowerCase()) ||
-      item.typeImmobilier.toLowerCase().includes(filtreDesignation.toLowerCase()),
+      (item.nomBien || "").toLowerCase().includes(filtreDesignation.toLowerCase()) ||
+      (item.codeArticle || "").toLowerCase().includes(filtreDesignation.toLowerCase()) ||
+      (item.categorie || "").toLowerCase().includes(filtreDesignation.toLowerCase()),
   )
-
-  // Formater le prix
-  const formaterPrix = (prix) => {
-    return prix.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")
-  }
 
   return (
     <div className="imstock-container">
@@ -346,6 +448,28 @@ function ImStock() {
       )}
 
       <h2 className="page-title">Gestion du stock des immobiliers</h2>
+
+      {apiStatus !== "available" && (
+        <div className="api-status-warning">
+          <AlertCircle size={20} />
+          <span>
+            {apiStatus === "checking"
+              ? "Vérification de la connexion à l'API..."
+              : "Mode hors ligne: utilisation de données de démonstration. L'API n'est pas accessible."}
+          </span>
+          <button onClick={toggleMockData}>{useMock ? "Essayer l'API" : "Utiliser les données de démo"}</button>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          <AlertCircle size={20} />
+          <span>{error}</span>
+          <button onClick={chargerImmobiliers}>
+            <RefreshCw size={16} /> Réessayer
+          </button>
+        </div>
+      )}
 
       <div className="imstock-header">
         <div className="imstock-actions">
@@ -364,18 +488,96 @@ function ImStock() {
         </div>
       </div>
 
+      <div className="section-categorie">
+        <h2>Gestion des catégories</h2>
+
+        {alerteCategorie && <div className="message">{alerteCategorie}</div>}
+
+        <div className="formulaire-categorie">
+          <input
+            type="text"
+            placeholder="Nom de la catégorie"
+            value={nouvelleCategorie.nomCategorie}
+            onChange={(e) =>
+              setNouvelleCategorie((prev) => ({
+                ...prev,
+                nomCategorie: e.target.value,
+              }))
+            }
+          />
+          <input
+            type="number"
+            placeholder="Durée d'amortissement"
+            min="1"
+            value={nouvelleCategorie.dureeAmortissement}
+            onChange={(e) =>
+              setNouvelleCategorie((prev) => ({
+                ...prev,
+                dureeAmortissement: Number.parseInt(e.target.value, 10) || "",
+              }))
+            }
+          />
+          <button onClick={sauvegarderCategorie}>{categorieEnEdition ? "Modifier" : "Créer"}</button>
+          {categorieEnEdition && (
+            <button
+              onClick={() => {
+                setCategorieEnEdition(null)
+                setNouvelleCategorie({
+                  nomCategorie: "",
+                  dureeAmortissement: "",
+                })
+              }}
+            >
+              Annuler
+            </button>
+          )}
+        </div>
+
+        <table className="table-categorie">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nom</th>
+              <th>Durée d'amortissement</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.length > 0 ? (
+              categories.map((cat, index) => (
+                <tr key={cat.idCategorie}>
+                  <td>{index + 1}</td>
+                  <td>{cat.nomCategorie}</td>
+                  <td>{cat.dureeAmortissement} ans</td>
+                  <td>
+                    <button onClick={() => lancerEditionCategorie(cat)}>✏️</button>
+                    <button onClick={() => supprimerCategorie(cat.idCategorie)}>🗑️</button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="4" className="no-data">
+                  Aucune catégorie trouvée
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
       <div className="imstock-table-container">
         <table className="imstock-table">
           <thead>
             <tr>
               <th>Code Article</th>
               <th>Désignation</th>
-              <th>Code Barre</th>
-              <th>Prix d'achat</th>
-              <th>Type d'immobilier</th>
               <th>Date d'acquisition</th>
-              <th>Quantité</th> {/* Nouvelle colonne */}
-              <th>État</th>
+              <th>Catégorie</th>
+              <th>Valeur d'acquisition</th>
+              <th>Taux d'amortissement</th>
+              <th>Quantité</th>
+              <th>Statut</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -384,32 +586,23 @@ function ImStock() {
               immobiliersFiltres.map((item) => (
                 <tr key={item.id}>
                   <td>{item.codeArticle}</td>
-                  <td>{item.designation}</td>
-                  <td className="code-barre-cell">
-                    <span className="code-barre-value">{item.codeBarre}</span>
-                    <Barcode size={16} className="code-barre-icon" />
-                  </td>
-                  <td>{formaterPrix(item.prixAchat)} Ar</td>
-                  <td>{item.typeImmobilier}</td>
+                  <td>{item.nomBien}</td>
                   <td>{item.dateAcquisition}</td>
-                  <td>{item.quantite || 1}</td> {/* Affichage de la quantité */}
-                  <td>
-                    <span className={`etat-badge etat-${item.etat.toLowerCase()}`}>{item.etat}</span>
-                  </td>
-                  <td className="actions-cell">
-                    <button className="btn-edit" onClick={() => ouvrirModalEdition(item)}>
-                      <Edit size={16} />
-                    </button>
-                    <button className="btn-delete" onClick={() => supprimerImmobilier(item.id)}>
-                      <Trash size={16} />
-                    </button>
+                  <td>{item.categorie}</td>
+                  <td>{item.valeurAcquisition.toLocaleString()} Ar</td>
+                  <td>{item.tauxAmortissement}%</td>
+                  <td>{item.quantite}</td>
+                  <td>{item.statut}</td>
+                  <td className="actions">
+                    <button onClick={() => ouvrirModalEdition(item)}>✏️</button>
+                    <button onClick={() => supprimerImmobilier(item.id)}>🗑️</button>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td colSpan="9" className="no-data">
-                  Aucun immobilier trouvé. Utilisez le bouton "Ajouter un bien" pour en créer un.
+                  {loading ? "Chargement..." : "Aucun bien immobilier trouvé"}
                 </td>
               </tr>
             )}
@@ -423,123 +616,143 @@ function ImStock() {
           <div className="modal-contenu">
             <h2>{immobilierEnEdition ? "Modifier" : "Ajouter"} un immobilier</h2>
 
-            <div className="formulaire-modal">
-              <div className="groupe-champ">
-                <label htmlFor="codeArticle">Code Article</label>
-                <input
-                  id="codeArticle"
-                  name="codeArticle"
-                  type="text"
-                  value={nouvelImmobilier.codeArticle}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            {/* Désignation */}
+            <div className="groupe-champ">
+              <label htmlFor="nomBien">Désignation</label>
+              <input
+                id="nomBien"
+                name="nomBien"
+                type="text"
+                value={nouvelImmobilier.nomBien || ""}
+                onChange={(e) => setNouvelImmobilier({ ...nouvelImmobilier, nomBien: e.target.value || "" })}
+                required
+              />
+            </div>
 
-              <div className="groupe-champ">
-                <label htmlFor="designation">Désignation</label>
-                <input
-                  id="designation"
-                  name="designation"
-                  type="text"
-                  value={nouvelImmobilier.designation}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            {/* Prix d'achat */}
+            <div className="groupe-champ">
+              <label htmlFor="valeurAcquisition">Valeur d'acquisition (Ar)</label>
+              <input
+                id="valeurAcquisition"
+                name="valeurAcquisition"
+                type="number"
+                min="0"
+                value={nouvelImmobilier.valeurAcquisition}
+                onChange={(e) =>
+                  setNouvelImmobilier({
+                    ...nouvelImmobilier,
+                    valeurAcquisition: Number.parseFloat(e.target.value) || 0,
+                  })
+                }
+                required
+              />
+            </div>
 
-              <div className="groupe-champ">
-                <label htmlFor="codeBarre">Code Barre</label>
-                <div className="input-with-button">
-                  <input
-                    id="codeBarre"
-                    name="codeBarre"
-                    type="text"
-                    value={nouvelImmobilier.codeBarre}
-                    onChange={handleInputChange}
-                    readOnly
-                  />
-                  <button type="button" className="btn-regenerate" onClick={regenererCodeBarre}>
-                    <Barcode size={16} /> Générer
-                  </button>
-                </div>
-              </div>
+            <div className="groupe-champ">
+              <label htmlFor="categorie">Catégorie</label>
+              <select
+                id="categorie"
+                value={nouvelImmobilier.idCategorie || ""}
+                onChange={(e) =>
+                  setNouvelImmobilier({
+                    ...nouvelImmobilier,
+                    idCategorie: Number.parseInt(e.target.value, 10) || null,
+                  })
+                }
+                required
+              >
+                <option value="">-- Sélectionner une catégorie --</option>
+                {categories.map((cat) => (
+                  <option key={cat.idCategorie} value={cat.idCategorie}>
+                    {cat.nomCategorie}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="groupe-champ">
-                <label htmlFor="prixAchat">Prix d'achat (Ar)</label>
-                <input
-                  id="prixAchat"
-                  name="prixAchat"
-                  type="number"
-                  value={nouvelImmobilier.prixAchat}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            {/* Date d'acquisition */}
+            <div className="groupe-champ">
+              <label htmlFor="dateAcquisition">Date d'acquisition</label>
+              <input
+                id="dateAcquisition"
+                name="dateAcquisition"
+                type="date"
+                value={nouvelImmobilier.dateAcquisition}
+                onChange={(e) =>
+                  setNouvelImmobilier({
+                    ...nouvelImmobilier,
+                    dateAcquisition: e.target.value,
+                  })
+                }
+                required
+              />
+            </div>
 
-              <div className="groupe-champ">
-                <label htmlFor="typeImmobilier">Type d'immobilier</label>
-                <select
-                  id="typeImmobilier"
-                  name="typeImmobilier"
-                  value={nouvelImmobilier.typeImmobilier}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Sélectionner un type</option>
-                  <option value="Informatique">Informatique</option>
-                  <option value="Mobilier">Mobilier</option>
-                  <option value="Véhicule">Véhicule</option>
-                  <option value="Bâtiment">Bâtiment</option>
-                  <option value="Équipement">Équipement</option>
-                </select>
-              </div>
+            {/* Quantité */}
+            <div className="groupe-champ">
+              <label htmlFor="quantite">Quantité</label>
+              <input
+                id="quantite"
+                name="quantite"
+                type="number"
+                min="1"
+                value={nouvelImmobilier.quantite}
+                onChange={(e) =>
+                  setNouvelImmobilier({
+                    ...nouvelImmobilier,
+                    quantite: Number.parseInt(e.target.value, 10) || 1,
+                  })
+                }
+                required
+              />
+            </div>
 
-              <div className="groupe-champ">
-                <label htmlFor="dateAcquisition">Date d'acquisition</label>
-                <input
-                  id="dateAcquisition"
-                  name="dateAcquisition"
-                  type="date"
-                  value={nouvelImmobilier.dateAcquisition}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            {/* Taux d'amortissement */}
+            <div className="groupe-champ">
+              <label htmlFor="taux">Taux d'amortissement (%)</label>
+              <input
+                id="taux"
+                name="tauxAmortissement"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={nouvelImmobilier.tauxAmortissement}
+                onChange={(e) =>
+                  setNouvelImmobilier({
+                    ...nouvelImmobilier,
+                    tauxAmortissement: Number.parseFloat(e.target.value) || 0,
+                  })
+                }
+                required
+              />
+            </div>
 
-              <div className="groupe-champ">
-                <label htmlFor="quantite">Quantité</label>
-                <input
-                  id="quantite"
-                  name="quantite"
-                  type="number"
-                  min="1"
-                  value={nouvelImmobilier.quantite}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            {/* Statut */}
+            <div className="groupe-champ">
+              <label htmlFor="statut">Statut</label>
+              <select
+                id="statut"
+                value={nouvelImmobilier.statut}
+                onChange={(e) =>
+                  setNouvelImmobilier({
+                    ...nouvelImmobilier,
+                    statut: e.target.value || "actif",
+                  })
+                }
+                required
+              >
+                <option value="actif">Actif</option>
+                <option value="amorti">Amorti</option>
+              </select>
+            </div>
 
-              <div className="actions-modal">
-                <button className="bouton-annuler" onClick={fermerModal}>
-                  Annuler
-                </button>
-                <button
-                  className="bouton-sauvegarder"
-                  onClick={sauvegarderImmobilier}
-                  disabled={
-                    !nouvelImmobilier.codeArticle ||
-                    !nouvelImmobilier.designation ||
-                    !nouvelImmobilier.codeBarre ||
-                    !nouvelImmobilier.prixAchat ||
-                    !nouvelImmobilier.typeImmobilier ||
-                    !nouvelImmobilier.dateAcquisition ||
-                    !nouvelImmobilier.quantite
-                  }
-                >
-                  <Save size={16} /> Sauvegarder
-                </button>
-              </div>
+            <div className="actions-modal">
+              <button className="bouton-annuler" onClick={fermerModal}>
+                Annuler
+              </button>
+              <button type="button" className="bouton-sauvegarder" onClick={sauvegarderImmobilier}>
+                <Save size={16} /> Sauvegarder
+              </button>
             </div>
           </div>
         </div>

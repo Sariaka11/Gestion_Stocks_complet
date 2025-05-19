@@ -1,35 +1,235 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Filter, FileDown, Calculator } from "lucide-react"
+import { Search, Filter, FileDown, Calculator, RefreshCw, AlertCircle } from "lucide-react"
 import "./css/Amortissements.css"
+import { getImmobiliers } from "../../../services/immobilierServices"
+import { getAmortissements, calculerTableauAmortissement } from "../../../services/amortissementServices"
+import { useMockData } from "../../../../app/MockDataProvider"
 
 function Amortissements() {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [filtreDesignation, setFiltreDesignation] = useState("")
   const [filtreType, setFiltreType] = useState("")
   const [modalOuvert, setModalOuvert] = useState(false)
   const [immobilierSelectionne, setImmobilierSelectionne] = useState(null)
+  const [immobiliers, setImmobiliers] = useState([])
+  const [amortissements, setAmortissements] = useState([])
 
-  // Tableau vide pour les immobiliers (à remplir avec des données réelles)
-  const immobiliers = []
+  // Récupérer le contexte des données mockées
+  const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
-  // Simuler un chargement lors du montage du composant
+  // Charger les données au démarrage
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+    chargerDonnees()
+    
   }, [])
 
-  // Filtrer les immobiliers
-  const immobiliersFiltres = immobiliers.filter((item) => {
-    const matchDesignation =
-      item.designation.toLowerCase().includes(filtreDesignation.toLowerCase()) ||
-      item.codeArticle.toLowerCase().includes(filtreDesignation.toLowerCase())
-    const matchType = filtreType === "" || item.typeImmobilier === filtreType
-    return matchDesignation && matchType
-  })
+  // Fonction pour charger toutes les données
+  const chargerDonnees = async () => {
+    setLoading(true)
+    setError(null)
+
+    // Si nous utilisons des données mockées, utilisez-les directement
+    if (useMock) {
+      console.log("Utilisation des données mockées pour Amortissements")
+
+      // Transformer les données mockées pour l'affichage
+      const immobiliersTransformes = mockData.immobiliers.map((item) => ({
+        id: item.idBien,
+        codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+        designation: item.nomBien || "",
+        typeImmobilier:
+          item.categorie?.nomCategorie ||
+          mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
+          "Non catégorisé",
+        dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+        prixAchat: item.valeurAcquisition || 0,
+        dureeAmortissement:
+          item.categorie?.dureeAmortissement ||
+          mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.dureeAmortissement ||
+          Math.ceil(100 / (item.tauxAmortissement || 1)),
+        tauxAmortissement: item.tauxAmortissement || 0,
+        statut: item.statut || "actif",
+        amortissements: [], // Sera rempli plus tard
+      }))
+
+      setImmobiliers(immobiliersTransformes)
+      setAmortissements(mockData.amortissements)
+
+      // Associer les amortissements aux immobiliers
+      const immobiliersAvecAmortissements = immobiliersTransformes.map((immobilier) => {
+        const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === immobilier.id)
+
+        // Si aucun amortissement n'existe, calculer un tableau d'amortissement théorique
+        const tableauAmortissement =
+          amortissementsBien.length > 0
+            ? amortissementsBien.map((a) => ({
+                annee: a.annee,
+                baseAmortissable: immobilier.prixAchat,
+                dotation: a.montant,
+                valeurNetteComptable: a.valeurResiduelle,
+              }))
+            : calculerTableauAmortissement(immobilier)
+
+        return {
+          ...immobilier,
+          amortissements: tableauAmortissement,
+        }
+      })
+
+      setImmobiliers(immobiliersAvecAmortissements)
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Charger les immobiliers
+      try {
+        const immobiliersRes = await getImmobiliers()
+        console.log("Données immobiliers brutes:", immobiliersRes.data)
+
+        // Déterminer le format des données
+        let immobiliersData = immobiliersRes.data
+
+        // Vérifier si les données sont dans un format spécifique (comme $values)
+        if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
+          immobiliersData = immobiliersRes.data.$values
+        }
+
+        // S'assurer que immobiliersData est un tableau
+        if (!Array.isArray(immobiliersData)) {
+          console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
+          immobiliersData = []
+        }
+
+        // Transformer les données pour l'affichage
+        const immobiliersTransformes = immobiliersData.map((item) => ({
+          id: item.idBien,
+          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          designation: item.nomBien || "",
+          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
+          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          prixAchat: item.valeurAcquisition || 0,
+          dureeAmortissement: item.categorie?.dureeAmortissement || Math.ceil(100 / (item.tauxAmortissement || 1)),
+          tauxAmortissement: item.tauxAmortissement || 0,
+          statut: item.statut || "actif",
+          amortissements: [], // Sera rempli plus tard
+        }))
+
+        setImmobiliers(immobiliersTransformes)
+      } catch (error) {
+        console.error("Erreur lors du chargement des immobiliers:", error)
+        throw new Error(`Erreur lors du chargement des immobiliers: ${error.message}`)
+      }
+
+      // Charger les amortissements
+      try {
+        const amortissementsRes = await getAmortissements()
+        console.log("Données amortissements brutes:", amortissementsRes.data)
+
+        // Déterminer le format des données
+        let amortissementsData = amortissementsRes.data
+
+        // Vérifier si les données sont dans un format spécifique (comme $values)
+        if (
+          amortissementsRes.data &&
+          typeof amortissementsRes.data === "object" &&
+          "$values" in amortissementsRes.data
+        ) {
+          amortissementsData = amortissementsRes.data.$values
+        }
+
+        // S'assurer que amortissementsData est un tableau
+        if (!Array.isArray(amortissementsData)) {
+          console.warn("Les données amortissements reçues ne sont pas un tableau:", amortissementsData)
+          amortissementsData = []
+        }
+
+        setAmortissements(amortissementsData)
+      } catch (error) {
+        console.error("Erreur lors du chargement des amortissements:", error)
+        throw new Error(`Erreur lors du chargement des amortissements: ${error.message}`)
+      }
+
+      // Associer les amortissements aux immobiliers
+      const immobiliersAvecAmortissements = immobiliers.map((immobilier) => {
+        const amortissementsBien = amortissements.filter((a) => a.idBien === immobilier.id)
+
+        // Si aucun amortissement n'existe, calculer un tableau d'amortissement théorique
+        const tableauAmortissement =
+          amortissementsBien.length > 0
+            ? amortissementsBien.map((a) => ({
+                annee: a.annee,
+                baseAmortissable: immobilier.prixAchat,
+                dotation: a.montant,
+                valeurNetteComptable: a.valeurResiduelle,
+              }))
+            : calculerTableauAmortissement(immobilier)
+
+        return {
+          ...immobilier,
+          amortissements: tableauAmortissement,
+        }
+      })
+
+      setImmobiliers(immobiliersAvecAmortissements)
+    } catch (err) {
+      console.error("Erreur lors du chargement des données:", err)
+      setError("Impossible de charger les données. Veuillez réessayer plus tard.")
+
+      // Si l'API échoue, basculez vers les données mockées
+      if (!useMock) {
+        console.log("Basculement vers les données mockées après échec de l'API")
+
+        // Transformer les données mockées pour l'affichage
+        const immobiliersTransformes = mockData.immobiliers.map((item) => ({
+          id: item.idBien,
+          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          designation: item.nomBien || "",
+          typeImmobilier:
+            item.categorie?.nomCategorie ||
+            mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
+            "Non catégorisé",
+          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          prixAchat: item.valeurAcquisition || 0,
+          dureeAmortissement:
+            item.categorie?.dureeAmortissement ||
+            mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.dureeAmortissement ||
+            Math.ceil(100 / (item.tauxAmortissement || 1)),
+          tauxAmortissement: item.tauxAmortissement || 0,
+          statut: item.statut || "actif",
+          amortissements: [], // Sera rempli plus tard
+        }))
+
+        // Associer les amortissements aux immobiliers
+        const immobiliersAvecAmortissements = immobiliersTransformes.map((immobilier) => {
+          const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === immobilier.id)
+
+          // Si aucun amortissement n'existe, calculer un tableau d'amortissement théorique
+          const tableauAmortissement =
+            amortissementsBien.length > 0
+              ? amortissementsBien.map((a) => ({
+                  annee: a.annee,
+                  baseAmortissable: immobilier.prixAchat,
+                  dotation: a.montant,
+                  valeurNetteComptable: a.valeurResiduelle,
+                }))
+              : calculerTableauAmortissement(immobilier)
+
+          return {
+            ...immobilier,
+            amortissements: tableauAmortissement,
+          }
+        })
+
+        setImmobiliers(immobiliersAvecAmortissements)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Ouvrir le modal de détail d'amortissement
   const ouvrirModalDetail = (immobilier) => {
@@ -53,6 +253,15 @@ function Amortissements() {
     alert("Exportation des données initiée. Le fichier sera téléchargé dans quelques instants.")
   }
 
+  // Filtrer les immobiliers
+  const immobiliersFiltres = immobiliers.filter((item) => {
+    const matchDesignation =
+      (item.designation || "").toLowerCase().includes(filtreDesignation.toLowerCase()) ||
+      (item.codeArticle || "").toLowerCase().includes(filtreDesignation.toLowerCase())
+    const matchType = filtreType === "" || (item.typeImmobilier || "").toLowerCase() === filtreType.toLowerCase()
+    return matchDesignation && matchType
+  })
+
   return (
     <div className="amortissements-container">
       {loading && (
@@ -63,6 +272,28 @@ function Amortissements() {
       )}
 
       <h2 className="page-title">Amortissements des immobilisations</h2>
+
+      {apiStatus !== "available" && (
+        <div className="api-status-warning">
+          <AlertCircle size={20} />
+          <span>
+            {apiStatus === "checking"
+              ? "Vérification de la connexion à l'API..."
+              : "Mode hors ligne: utilisation de données de démonstration. L'API n'est pas accessible."}
+          </span>
+          <button onClick={toggleMockData}>{useMock ? "Essayer l'API" : "Utiliser les données de démo"}</button>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          <AlertCircle size={20} />
+          <span>{error}</span>
+          <button onClick={chargerDonnees}>
+            <RefreshCw size={16} /> Réessayer
+          </button>
+        </div>
+      )}
 
       <div className="amortissements-filters">
         <div className="filter-group">
@@ -146,7 +377,7 @@ function Amortissements() {
             ) : (
               <tr>
                 <td colSpan="9" className="no-data">
-                  Aucun immobilier trouvé pour les critères sélectionnés.
+                  {loading ? "Chargement..." : "Aucun immobilier trouvé pour les critères sélectionnés."}
                 </td>
               </tr>
             )}

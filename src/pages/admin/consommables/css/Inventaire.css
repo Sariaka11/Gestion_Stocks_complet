@@ -1,332 +1,137 @@
-.inventaire-container {
-  padding: 1.5rem;
-  animation: fadeIn 0.5s ease;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+/* ✅ Inventaire.css — Thème rouge mat personnalisé */
+
+.page-inventaire {
+  padding: 2rem;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #fff;
+  color: #333;
 }
 
-.inventaire-container h2 {
+.titre-page {
+  font-size: 2rem;
   margin-bottom: 1.5rem;
-  color: #333;
-  font-size: 1.5rem;
+  color: #990000; /* rouge mat */
 }
 
-.inventaire-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.section-stock,
+.section-dispatch {
+  margin-bottom: 3rem;
 }
 
-.inventaire-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.btn-primary {
-  background-color: #cc0000;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.btn-primary:hover {
-  background-color: #a00000;
-}
-
-.btn-secondary {
-  background-color: #0099cc;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background-color: #007aa3;
-}
-
-.inventaire-info {
-  background-color: #f5f5f5;
-  padding: 1rem;
-  border-radius: 4px;
-}
-
-.inventaire-info p {
-  margin-bottom: 0.5rem;
-}
-
-.inventaire-info p:last-child {
-  margin-bottom: 0;
-}
-
-.inventaire-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 1rem;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-}
-
-.stat-card h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #cc0000;
-  margin-bottom: 0.5rem;
-}
-
-.stat-card p {
-  font-size: 0.875rem;
-  color: #777;
-}
-
-.section-inventaire {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  margin-top: 1.5rem;
-}
-
-.entete-excel {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.excel-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.section-stock h2,
+.section-dispatch h2 {
+  color: #990000;
+  font-size: 1.4rem;
   margin-bottom: 1rem;
 }
 
-.excel-date {
-  font-weight: 600;
-  font-size: 1rem;
-  color: #333;
-}
-
-.excel-category {
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: #666;
-}
-
-.filtres-et-export {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.filtres-inventaire {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.filtres-date {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.groupe-filtre {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.groupe-filtre label {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  color: #666;
-}
-
-.select-filtre {
-  padding: 0.5rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.bouton-exporter {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #0099cc;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.bouton-exporter:hover {
-  background-color: #007aa3;
-}
-
-.tableau-inventaire-wrapper {
-  overflow: hidden;
-}
-
-.tableau-inventaire-scroll {
-  overflow-x: auto;
-  max-width: 100%;
-}
-
-.tableau-inventaire-excel {
+.table-inventaire {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.75rem;
+  font-size: 0.95rem;
 }
 
-.tableau-inventaire-excel th,
-.tableau-inventaire-excel td {
-  padding: 0.5rem;
-  text-align: center;
-  border: 1px solid #e0e0e0;
-}
-
-.tableau-inventaire-excel th {
-  background-color: #f5f5f5;
-  font-weight: 600;
-  color: #333;
-  white-space: nowrap;
-}
-
-.th-designation {
+.table-inventaire th,
+.table-inventaire td {
+  border: 1px solid #ddd;
+  padding: 0.6rem 0.75rem;
   text-align: left;
-  min-width: 200px;
 }
 
-.td-designation {
-  text-align: left;
-  font-weight: 500;
+.table-inventaire th {
+  background-color: #990000; /* rouge mat */
+  color: white; /* texte blanc */
 }
 
-.th-group {
-  background-color: #e0e0e0;
-}
-
-.th-subgroup {
-  background-color: #f0f0f0;
-}
-
-.th-quantite {
-  background-color: #f5f5f5;
-}
-
-.consommation-agence {
-  background-color: #f0f8ff;
-}
-
-.consommation-wu {
-  background-color: #fff0f5;
-}
-
-.consommation-dir {
-  background-color: #f0fff0;
-}
-
-.total-consommation {
-  background-color: #fffaf0;
-}
-
-.stock-final {
-  background-color: #f5f5f5;
-}
-
-/* Styles pour l'historique */
-.historique-inventaires {
+.table-inventaire tbody tr:nth-child(even) {
   background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 1.5rem;
 }
 
-.historique-inventaires h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #333;
+.table-inventaire tbody tr:hover {
+  background-color: #ffe5e5;
 }
 
-.table-historique {
-  width: 100%;
-  border-collapse: collapse;
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
 
-.table-historique th,
-.table-historique td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #ccc;
+  border-top: 5px solid #990000;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
 }
 
-.table-historique th {
-  background-color: #f0f0f0;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #333;
-}
-
-.btn-view {
-  background-color: #0099cc;
-  color: white;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-view:hover {
-  background-color: #007aa3;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+@keyframes spin {
   to {
-    opacity: 1;
+    transform: rotate(360deg);
   }
 }
 
-@media (max-width: 768px) {
-  .filtres-et-export {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .filtres-inventaire {
-    width: 100%;
-  }
-
-  .champ-recherche-wrapper {
-    width: 100%;
-  }
-
-  .champ-filtre {
-    width: 100%;
-  }
+/* ✅ Barre de filtre et bouton export */
+.filtre-barre {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
+
+.filtre-barre label {
+  font-weight: bold;
+  color: #990000;
+}
+
+.filtre-barre input[type="date"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #990000;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #990000;
+  outline: none;
+  box-shadow: 0 0 4px rgba(153, 0, 0, 0.2);
+  transition: box-shadow 0.2s ease;
+}
+
+.filtre-barre input[type="date"]:focus {
+  box-shadow: 0 0 6px rgba(153, 0, 0, 0.4);
+}
+
+.bouton-export-pdf {
+  background-color: #990000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.bouton-export-pdf:hover {
+  background-color: #cc0000;
+}
+
+/* ✅ En-tête de tableau style rouge mat */
+.table-inventaire thead tr:first-child th {
+  background-color: #990000;
+  color: white;
+  font-weight: bold;
+}
+.table-inventaire tbody tr.selected {
+  background-color: #fddcdc;
+  font-weight: bold;
+}
+

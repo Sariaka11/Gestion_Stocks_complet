@@ -301,10 +301,9 @@
 }
 
 .actions-modal {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+   display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
 }
 
 .bouton-annuler {

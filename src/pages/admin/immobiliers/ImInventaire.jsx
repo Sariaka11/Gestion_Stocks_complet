@@ -1,8 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, FileDown } from "lucide-react"
+import { Search, FileDown, RefreshCw, AlertCircle } from "lucide-react"
 import "./css/ImInventaire.css"
+import { getImmobiliers } from "../../../services/immobilierServices"
+import { getAmortissements } from "../../../services/amortissementServices"
+import { getBienAgences } from "../../../services/bienAgenceServices"
+import { useMockData } from "../../../../app/MockDataProvider"
 
 function ImInventaire() {
   const [filtreDesignation, setFiltreDesignation] = useState("")
@@ -11,10 +15,11 @@ function ImInventaire() {
   const [filtreStatut, setFiltreStatut] = useState("")
   const [showHistorique, setShowHistorique] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [agences, setAgences] = useState([])
-  const [westernUnions, setWesternUnions] = useState([])
-  const [directions, setDirections] = useState([])
+  const [error, setError] = useState(null)
   const [inventaireData, setInventaireData] = useState([])
+
+  // Récupérer le contexte des données mockées
+  const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
   // Générer les options pour les années
   const genererOptionsAnnees = () => {
@@ -26,40 +31,176 @@ function ImInventaire() {
     return annees.reverse()
   }
 
-  // Simuler un chargement lors du montage du composant
+  // Charger les données au démarrage
   useEffect(() => {
+    chargerDonnees()
+  }, [])
+
+  // Fonction pour charger toutes les données
+  const chargerDonnees = async () => {
     setLoading(true)
+    setError(null)
 
-    // Simuler la récupération des données depuis l'API
-    setTimeout(() => {
-      // Récupérer les agences, Western Union et directions depuis le dispatche
-      // Dans une implémentation réelle, cela serait un appel API
-      setAgences([])
-      setWesternUnions([])
-      setDirections([])
-      setInventaireData([])
+    // Si nous utilisons des données mockées, utilisez-les directement
+    if (useMock) {
+      console.log("Utilisation des données mockées pour ImInventaire")
+
+      // Transformer les données mockées pour l'inventaire
+      const inventaireItems = mockData.immobiliers.map((item) => {
+        // Trouver les amortissements associés à cet immobilier
+        const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === item.idBien)
+
+        // Trouver les affectations associées à cet immobilier
+        const affectationsBien = mockData.affectations.filter((a) => a.idBien === item.idBien)
+
+        // Déterminer le statut d'amortissement
+        const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
+
+        return {
+          id: item.idBien,
+          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          designation: item.nomBien || "",
+          codeBarre: item.codeBarre || "0000000000000",
+          prixAchat: item.valeurAcquisition || 0,
+          typeImmobilier:
+            item.categorie?.nomCategorie ||
+            mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
+            "Non catégorisé",
+          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          quantite: item.quantite || 1,
+          statut: estAmorti ? "amorti" : item.statut || "actif",
+          affectations: affectationsBien,
+        }
+      })
+
+      setInventaireData(inventaireItems)
       setLoading(false)
-    }, 1000)
-  }, [])
+      return
+    }
 
-  // Écouter les événements de synchronisation avec le dispatche
-  useEffect(() => {
-    const handleAgenceAjoutee = (event) => {
-      if (event.detail && event.detail.type === "agence") {
-        setAgences((prev) => [...prev, event.detail])
-      } else if (event.detail && event.detail.type === "wu") {
-        setWesternUnions((prev) => [...prev, event.detail])
-      } else if (event.detail && event.detail.type === "direction") {
-        setDirections((prev) => [...prev, event.detail])
+    try {
+      // Charger les immobiliers
+      const immobiliersRes = await getImmobiliers()
+      console.log("Données immobiliers brutes:", immobiliersRes.data)
+
+      // Déterminer le format des données
+      let immobiliersData = immobiliersRes.data
+
+      // Vérifier si les données sont dans un format spécifique (comme $values)
+      if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
+        immobiliersData = immobiliersRes.data.$values
       }
-    }
 
-    window.addEventListener("dispatche:agence-ajoutee", handleAgenceAjoutee)
+      // S'assurer que immobiliersData est un tableau
+      if (!Array.isArray(immobiliersData)) {
+        console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
+        immobiliersData = []
+      }
 
-    return () => {
-      window.removeEventListener("dispatche:agence-ajoutee", handleAgenceAjoutee)
+      // Charger les amortissements
+      const amortissementsRes = await getAmortissements()
+      console.log("Données amortissements brutes:", amortissementsRes.data)
+
+      // Déterminer le format des données
+      let amortissementsData = amortissementsRes.data
+
+      // Vérifier si les données sont dans un format spécifique (comme $values)
+      if (amortissementsRes.data && typeof amortissementsRes.data === "object" && "$values" in amortissementsRes.data) {
+        amortissementsData = amortissementsRes.data.$values
+      }
+
+      // S'assurer que amortissementsData est un tableau
+      if (!Array.isArray(amortissementsData)) {
+        console.warn("Les données amortissements reçues ne sont pas un tableau:", amortissementsData)
+        amortissementsData = []
+      }
+
+      // Charger les affectations
+      const affectationsRes = await getBienAgences()
+      console.log("Données affectations brutes:", affectationsRes.data)
+
+      // Déterminer le format des données
+      let affectationsData = affectationsRes.data
+
+      // Vérifier si les données sont dans un format spécifique (comme $values)
+      if (affectationsRes.data && typeof affectationsRes.data === "object" && "$values" in affectationsRes.data) {
+        affectationsData = affectationsRes.data.$values
+      }
+
+      // S'assurer que affectationsData est un tableau
+      if (!Array.isArray(affectationsData)) {
+        console.warn("Les données affectations reçues ne sont pas un tableau:", affectationsData)
+        affectationsData = []
+      }
+
+      // Transformer les données pour l'inventaire
+      const inventaireItems = immobiliersData.map((item) => {
+        // Trouver les amortissements associés à cet immobilier
+        const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.idBien)
+
+        // Trouver les affectations associées à cet immobilier
+        const affectationsBien = affectationsData.filter((a) => a.idBien === item.idBien)
+
+        // Déterminer le statut d'amortissement
+        const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
+
+        return {
+          id: item.idBien,
+          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          designation: item.nomBien || "",
+          codeBarre: item.codeBarre || "0000000000000",
+          prixAchat: item.valeurAcquisition || 0,
+          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
+          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          quantite: item.quantite || 1,
+          statut: estAmorti ? "amorti" : item.statut || "actif",
+          affectations: affectationsBien,
+        }
+      })
+
+      setInventaireData(inventaireItems)
+    } catch (err) {
+      console.error("Erreur lors du chargement des données:", err)
+      setError("Impossible de charger les données. Veuillez réessayer plus tard.")
+
+      // Si l'API échoue, basculez vers les données mockées
+      if (!useMock) {
+        console.log("Basculement vers les données mockées après échec de l'API")
+
+        // Transformer les données mockées pour l'inventaire
+        const inventaireItems = mockData.immobiliers.map((item) => {
+          // Trouver les amortissements associés à cet immobilier
+          const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === item.idBien)
+
+          // Trouver les affectations associées à cet immobilier
+          const affectationsBien = mockData.affectations.filter((a) => a.idBien === item.idBien)
+
+          // Déterminer le statut d'amortissement
+          const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
+
+          return {
+            id: item.idBien,
+            codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+            designation: item.nomBien || "",
+            codeBarre: item.codeBarre || "0000000000000",
+            prixAchat: item.valeurAcquisition || 0,
+            typeImmobilier:
+              item.categorie?.nomCategorie ||
+              mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
+              "Non catégorisé",
+            dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+            quantite: item.quantite || 1,
+            statut: estAmorti ? "amorti" : item.statut || "actif",
+            affectations: affectationsBien,
+          }
+        })
+
+        setInventaireData(inventaireItems)
+      }
+    } finally {
+      setLoading(false)
     }
-  }, [])
+  }
 
   // Fonction pour exporter en Excel
   const exporterEnExcel = () => {
@@ -123,9 +264,24 @@ function ImInventaire() {
 
   // Filtrer les données d'inventaire
   const filteredInventaire = inventaireData.filter((item) => {
-    const matchDesignation = item.designation.toLowerCase().includes(filtreDesignation.toLowerCase())
+    const matchDesignation = (item.designation || "").toLowerCase().includes(filtreDesignation.toLowerCase())
     const matchStatut = filtreStatut === "" || item.statut === filtreStatut
-    return matchDesignation && matchStatut
+
+    // Filtrer par mois si spécifié
+    let matchMois = true
+    if (filtreMois !== "") {
+      const moisAcquisition = new Date(item.dateAcquisition).getMonth() + 1
+      matchMois = moisAcquisition.toString() === filtreMois
+    }
+
+    // Filtrer par année si spécifiée
+    let matchAnnee = true
+    if (filtreAnnee !== "") {
+      const anneeAcquisition = new Date(item.dateAcquisition).getFullYear().toString()
+      matchAnnee = anneeAcquisition === filtreAnnee
+    }
+
+    return matchDesignation && matchStatut && matchMois && matchAnnee
   })
 
   return (
@@ -148,6 +304,28 @@ function ImInventaire() {
           </button>
         </div>
       </div>
+
+      {apiStatus !== "available" && (
+        <div className="api-status-warning">
+          <AlertCircle size={20} />
+          <span>
+            {apiStatus === "checking"
+              ? "Vérification de la connexion à l'API..."
+              : "Mode hors ligne: utilisation de données de démonstration. L'API n'est pas accessible."}
+          </span>
+          <button onClick={toggleMockData}>{useMock ? "Essayer l'API" : "Utiliser les données de démo"}</button>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          <AlertCircle size={20} />
+          <span>{error}</span>
+          <button onClick={chargerDonnees}>
+            <RefreshCw size={16} /> Réessayer
+          </button>
+        </div>
+      )}
 
       {showHistorique ? (
         <div className="historique-inventaires">
@@ -258,7 +436,7 @@ function ImInventaire() {
                   <th>Prix d'achat</th>
                   <th>Type d'immobilier</th>
                   <th>Date d'acquisition</th>
-                  <th>Quantité</th> 
+                  <th>Quantité</th>
                   <th>Statut</th>
                   <th>Actions</th>
                 </tr>
@@ -270,10 +448,10 @@ function ImInventaire() {
                       <td>{item.codeArticle}</td>
                       <td>{item.designation}</td>
                       <td>{item.codeBarre}</td>
-                      <td>{item.prixAchat.toLocaleString()} FCFA</td>
+                      <td>{item.prixAchat.toLocaleString()} Ar</td>
                       <td>{item.typeImmobilier}</td>
                       <td>{item.dateAcquisition}</td>
-                      <td>{item.quantite || 1}</td> 
+                      <td>{item.quantite}</td>
                       <td>
                         <span className={`statut-badge ${item.statut}`}>
                           {item.statut === "actif" ? "Actif" : "Amorti"}
@@ -335,7 +513,9 @@ function ImInventaire() {
                 ) : (
                   <tr>
                     <td colSpan="9" className="no-data">
-                      Aucun article trouvé. Utilisez la page "Stock" pour ajouter des articles.
+                      {loading
+                        ? "Chargement..."
+                        : 'Aucun article trouvé. Utilisez la page "Stock" pour ajouter des articles.'}
                     </td>
                   </tr>
                 )}

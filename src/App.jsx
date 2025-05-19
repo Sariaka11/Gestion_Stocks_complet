@@ -28,6 +28,7 @@ import UserImStock from "./pages/user/Immobiliers/UserImStock"
 import UserImConsommation from "./pages/user/Immobiliers/UserImConsommation"
 import UserImDemande from "./pages/user/Immobiliers/UserImDemande"
 import Profile from "./pages/user/Profil/Profile"
+import { MockDataProvider} from "../app/MockDataProvider"; // ✅ corrige le chemin si nécessaire
 
 import "./App.css"
 
@@ -90,6 +91,7 @@ function App() {
   }
 
   return (
+          <MockDataProvider>
     <div className="app">
       <Routes>
         <Route path="/" element={<LoginUser />} />
@@ -120,6 +122,7 @@ function App() {
         />
       </Routes>
     </div>
+    </MockDataProvider>
   )
 }
 
