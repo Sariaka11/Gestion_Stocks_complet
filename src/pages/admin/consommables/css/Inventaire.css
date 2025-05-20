@@ -1,63 +1,235 @@
-/* ✅ Inventaire.css — Thème rouge mat personnalisé */
+/* Inventaire.css — Style avec fond de tableau gris clair et texte noir gras */
+
+:root {
+  --color-red: #c00000;
+  --color-red-dark: #a00000;
+  --color-red-light: #ff0000;
+  --color-white: #ffffff;
+  --color-gray-light: #f5f5f5;
+  --color-gray: #e0e0e0;
+  --color-gray-dark: #666666;
+  --color-black: #333333;
+  --color-yellow: #ffc107;
+  --color-yellow-dark: #e6a800;
+  --color-table-bg: #f0f0f0; /* Fond gris clair pour le tableau */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background-color: #f0f0f0;
+  color: var(--color-black);
+}
 
 .page-inventaire {
-  padding: 2rem;
-  font-family: "Segoe UI", sans-serif;
-  background-color: #fff;
-  color: #333;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.header-container {
+  background-color: var(--color-red);
+  color: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .titre-page {
-  font-size: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Content */
+.content-container {
+  padding: 1.5rem;
+  flex: 1;
+}
+
+/* Actions Bar */
+.actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
-  color: #990000; /* rouge mat */
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.section-stock,
-.section-dispatch {
-  margin-bottom: 3rem;
+.search-container {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
-.section-stock h2,
-.section-dispatch h2 {
-  color: #990000;
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
+.search-input-wrapper,
+.date-filter-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.table-inventaire {
+.search-icon,
+.calendar-icon {
+  color: var(--color-gray-dark);
+  margin-right: 0.5rem;
+}
+
+.search-input,
+.date-input {
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  background: transparent;
+  min-width: 150px;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-red);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.export-btn:hover {
+  background-color: var(--color-red-dark);
+}
+
+/* Sections */
+.stock-section,
+.dispatch-section {
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: var(--color-red);
+  color: white;
+  padding: 0.75rem 1rem;
+}
+
+.section-title h2 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Tables */
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  background-color: var(--color-table-bg); /* Fond gris clair pour le tableau */
+}
+
+.data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  font-weight: bold; /* Texte en gras */
 }
 
-.table-inventaire th,
-.table-inventaire td {
-  border: 1px solid #ddd;
-  padding: 0.6rem 0.75rem;
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
   text-align: left;
+  border: 1px solid var(--color-gray);
+  color: var(--color-black); /* Texte en noir */
 }
 
-.table-inventaire th {
-  background-color: #990000; /* rouge mat */
-  color: white; /* texte blanc */
+.data-table thead tr {
+  background-color: var(--color-red);
+  color: white;
 }
 
-.table-inventaire tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
+.data-table thead tr.sub-header {
+  background-color: var(--color-red-dark);
 }
 
-.table-inventaire tbody tr:hover {
-  background-color: #ffe5e5;
+.data-table tbody tr.row-even,
+.data-table tbody tr.row-odd {
+  background-color: var(--color-table-bg); /* Toutes les lignes avec fond gris clair */
 }
 
+.data-table tbody tr:hover {
+  background-color: #e5e5e5; /* Légèrement plus foncé au survol */
+}
+
+.no-data {
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--color-gray-dark);
+  font-style: italic;
+}
+
+/* Action Buttons */
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn {
+  background-color: var(--color-yellow);
+  color: var(--color-black);
+}
+
+.edit-btn:hover {
+  background-color: var(--color-yellow-dark);
+}
+
+.delete-btn {
+  background-color: var(--color-red);
+  color: white;
+  padding: 0.4rem;
+}
+
+.delete-btn:hover {
+  background-color: var(--color-red-dark);
+}
+
+/* Loading */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   z-index: 999;
   display: flex;
   align-items: center;
@@ -66,13 +238,9 @@
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #ccc;
-  border-top: 5px solid #990000;
-  border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 10px;
+  color: var(--color-red);
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -81,57 +249,131 @@
   }
 }
 
-/* ✅ Barre de filtre et bouton export */
-.filtre-barre {
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+  background-color: white;
+  border-left: 4px solid;
+}
+
+.toast-succes {
+  border-left-color: var(--color-red);
+}
+
+.toast-erreur {
+  border-left-color: var(--color-red-light);
+}
+
+.toast-icon {
+  margin-right: 12px;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  justify-content: center;
+  color: var(--color-red);
 }
 
-.filtre-barre label {
-  font-weight: bold;
-  color: #990000;
+.toast-content {
+  flex: 1;
 }
 
-.filtre-barre input[type="date"] {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #990000;
-  border-radius: 6px;
-  font-size: 1rem;
-  color: #990000;
-  outline: none;
-  box-shadow: 0 0 4px rgba(153, 0, 0, 0.2);
-  transition: box-shadow 0.2s ease;
+.toast-content p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-black);
 }
 
-.filtre-barre input[type="date"]:focus {
-  box-shadow: 0 0 6px rgba(153, 0, 0, 0.4);
-}
-
-.bouton-export-pdf {
-  background-color: #990000;
-  color: white;
+.toast-close {
+  background: none;
   border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  color: var(--color-gray-dark);
+  padding: 0;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
 }
 
-.bouton-export-pdf:hover {
-  background-color: #cc0000;
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
-/* ✅ En-tête de tableau style rouge mat */
-.table-inventaire thead tr:first-child th {
-  background-color: #990000;
-  color: white;
-  font-weight: bold;
-}
-.table-inventaire tbody tr.selected {
-  background-color: #fddcdc;
-  font-weight: bold;
+/* Responsive design */
+@media (max-width: 992px) {
+  .actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-container {
+    flex-direction: column;
+  }
+
+  .search-input-wrapper,
+  .date-filter-wrapper {
+    width: 100%;
+  }
+
+  .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .action-btn span {
+    display: none;
+  }
 }
 
+@media (max-width: 768px) {
+  .header-container {
+    padding: 1rem;
+  }
+
+  .content-container {
+    padding: 1rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  
+  .section-title h2 {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .data-table {
+    font-size: 0.8rem;
+  }
+
+  .actions-cell {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}

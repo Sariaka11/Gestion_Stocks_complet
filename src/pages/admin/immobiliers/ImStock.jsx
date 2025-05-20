@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Search, Save, AlertCircle, RefreshCw } from "lucide-react"
+import { Plus, Search, Save, AlertCircle, RefreshCw, Trash2, Edit, X, CheckCircle, AlertTriangle } from "lucide-react"
 import "./css/ImStock.css"
 import { getImmobiliers, createImmobilier, deleteImmobilier } from "../../../services/immobilierServices"
 import { getCategories, createCategorie, updateCategorie, deleteCategorie } from "../../../services/categorieServices"
@@ -13,6 +13,7 @@ function ImStock() {
   const [filtreDesignation, setFiltreDesignation] = useState("")
   const [modalOuvert, setModalOuvert] = useState(false)
   const [immobilierEnEdition, setImmobilierEnEdition] = useState(null)
+  const [toasts, setToasts] = useState([])
   const objetVideImmobilier = {
     idBien: 0,
     codeArticle: "",
@@ -192,7 +193,7 @@ function ImStock() {
       })
       .catch((err) => {
         console.error("Erreur chargement catégories:", err)
-        setAlerteCategorie("Impossible de charger les catégories")
+        afficherToast("Impossible de charger les catégories", "erreur")
 
         // Si l'API échoue, basculez vers les données mockées
         if (!useMock) {
@@ -213,7 +214,7 @@ function ImStock() {
     const duree = nouvelleCategorie.dureeAmortissement
 
     if (!nom || !duree) {
-      setAlerteCategorie("Tous les champs sont obligatoires.")
+      afficherToast("Tous les champs sont obligatoires.", "erreur")
       return
     }
 
@@ -228,31 +229,32 @@ function ImStock() {
         idCategorie: categorieEnEdition.idCategorie,
       })
         .then(() => {
-          setAlerteCategorie("Catégorie modifiée !")
+          afficherToast("Catégorie modifiée avec succès !", "succes")
           setCategorieEnEdition(null)
           setNouvelleCategorie({ nomCategorie: "", dureeAmortissement: "" })
           chargerCategories()
         })
-        .catch(() => setAlerteCategorie("Erreur modification"))
+        .catch(() => afficherToast("Erreur lors de la modification", "erreur"))
     } else {
       createCategorie(data)
         .then(() => {
-          setAlerteCategorie("Catégorie créée !")
+          afficherToast("Catégorie créée avec succès !", "succes")
           setNouvelleCategorie({ nomCategorie: "", dureeAmortissement: "" })
           chargerCategories()
         })
-        .catch(() => setAlerteCategorie("Erreur création"))
+        .catch(() => afficherToast("Erreur lors de la création", "erreur"))
     }
   }
 
   const supprimerCategorie = (id) => {
-    if (!window.confirm("Confirmer la suppression ?")) return
-    deleteCategorie(id)
-      .then(() => {
-        setAlerteCategorie("Catégorie supprimée !")
-        chargerCategories()
-      })
-      .catch(() => setAlerteCategorie("Impossible de supprimer"))
+    afficherConfirmation("Êtes-vous sûr de vouloir supprimer cette catégorie ?", () => {
+      deleteCategorie(id)
+        .then(() => {
+          afficherToast("Catégorie supprimée avec succès !", "succes")
+          chargerCategories()
+        })
+        .catch(() => afficherToast("Impossible de supprimer cette catégorie", "erreur"))
+    })
   }
 
   const lancerEditionCategorie = (cat) => {
@@ -324,7 +326,7 @@ function ImStock() {
       !nouvelImmobilier.quantite ||
       !nouvelImmobilier.idCategorie
     ) {
-      alert("Veuillez remplir tous les champs obligatoires.")
+      afficherToast("Veuillez remplir tous les champs obligatoires.", "erreur")
       return
     }
 
@@ -342,7 +344,7 @@ function ImStock() {
     setLoading(true)
     createImmobilier(data)
       .then((res) => {
-        afficherMessage("Immobilier enregistré avec succès!", "succes")
+        afficherToast("Immobilier enregistré avec succès!", "succes")
         setNouvelImmobilier(objetVideImmobilier)
         setModalOuvert(false)
         // Recharger les immobiliers après création
@@ -350,7 +352,7 @@ function ImStock() {
       })
       .catch((err) => {
         console.error("Erreur création immobilier:", err)
-        afficherMessage("Erreur lors de l'enregistrement.", "erreur")
+        afficherToast("Erreur lors de l'enregistrement.", "erreur")
       })
       .finally(() => {
         setLoading(false)
@@ -358,76 +360,58 @@ function ImStock() {
   }
 
   const supprimerImmobilier = (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet immobilier ?")) return
-
-    setLoading(true)
-    deleteImmobilier(id)
-      .then(() => {
-        setImmobilierItems((prev) => prev.filter((item) => item.id !== id))
-        afficherMessage("Immobilier supprimé avec succès!", "succes")
-      })
-      .catch((err) => {
-        console.error("Erreur suppression:", err)
-        afficherMessage("Erreur lors de la suppression", "erreur")
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+    afficherConfirmation("Êtes-vous sûr de vouloir supprimer cet immobilier ?", () => {
+      setLoading(true)
+      deleteImmobilier(id)
+        .then(() => {
+          setImmobilierItems((prev) => prev.filter((item) => item.id !== id))
+          afficherToast("Immobilier supprimé avec succès!", "succes")
+        })
+        .catch((err) => {
+          console.error("Erreur suppression:", err)
+          afficherToast("Erreur lors de la suppression", "erreur")
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    })
   }
 
-  // Fonction pour afficher un message
-  const afficherMessage = (texte, type) => {
-    const messageElement = document.createElement("div")
-    messageElement.className = `alerte-flottante alerte-${type}`
-    messageElement.innerHTML = `
-      <div class="icone-alerte">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-      </div>
-      <div class="texte-alerte">${texte}</div>
-      <button class="fermer-alerte">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    `
-
-    document.body.appendChild(messageElement)
-
-    // Ajouter l'animation d'entrée
-    setTimeout(() => {
-      messageElement.classList.add("visible")
-    }, 10)
-
-    // Ajouter l'événement pour fermer l'alerte
-    const boutonFermer = messageElement.querySelector(".fermer-alerte")
-    if (boutonFermer) {
-      boutonFermer.addEventListener("click", () => {
-        messageElement.classList.remove("visible")
-        messageElement.classList.add("disparition")
-        setTimeout(() => {
-          if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement)
-          }
-        }, 300)
-      })
+  // Fonction pour afficher une boîte de dialogue de confirmation moderne
+  const afficherConfirmation = (message, onConfirm) => {
+    const confirmationId = Date.now()
+    const confirmation = {
+      id: confirmationId,
+      message,
+      onConfirm,
+      onCancel: () => {
+        setToasts((prev) => prev.filter((t) => t.id !== confirmationId))
+      },
     }
 
-    // Supprimer l'alerte après 5 secondes
+    setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
+  }
+
+  // Fonction pour afficher un toast
+  const afficherToast = (message, type) => {
+    const id = Date.now()
+    const nouveauToast = {
+      id,
+      message,
+      type,
+    }
+
+    setToasts((prev) => [...prev, nouveauToast])
+
+    // Supprimer le toast après 5 secondes
     setTimeout(() => {
-      if (messageElement.parentNode) {
-        messageElement.classList.remove("visible")
-        messageElement.classList.add("disparition")
-        setTimeout(() => {
-          if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement)
-          }
-        }, 300)
-      }
+      setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 5000)
+  }
+
+  // Supprimer un toast spécifique
+  const supprimerToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
   // Filtrer les immobiliers
@@ -550,8 +534,12 @@ function ImStock() {
                   <td>{cat.nomCategorie}</td>
                   <td>{cat.dureeAmortissement} ans</td>
                   <td>
-                    <button onClick={() => lancerEditionCategorie(cat)}>✏️</button>
-                    <button onClick={() => supprimerCategorie(cat.idCategorie)}>🗑️</button>
+                    <button onClick={() => lancerEditionCategorie(cat)} className="btn-icon">
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => supprimerCategorie(cat.idCategorie)} className="btn-icon">
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -594,8 +582,12 @@ function ImStock() {
                   <td>{item.quantite}</td>
                   <td>{item.statut}</td>
                   <td className="actions">
-                    <button onClick={() => ouvrirModalEdition(item)}>✏️</button>
-                    <button onClick={() => supprimerImmobilier(item.id)}>🗑️</button>
+                    <button onClick={() => ouvrirModalEdition(item)} className="btn-icon">
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => supprimerImmobilier(item.id)} className="btn-icon">
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -757,6 +749,57 @@ function ImStock() {
           </div>
         </div>
       )}
+
+      {/* Système de toast notifications */}
+      <div className="toast-container">
+        {toasts.map((toast) =>
+          toast.type === "confirmation" ? (
+            <div key={toast.id} className="toast toast-confirmation">
+              <div className="toast-icon">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="toast-content">
+                <p>{toast.message}</p>
+                <div className="toast-actions">
+                  <button
+                    onClick={() => {
+                      toast.onConfirm()
+                      supprimerToast(toast.id)
+                    }}
+                    className="toast-btn confirm"
+                  >
+                    Confirmer
+                  </button>
+                  <button
+                    onClick={() => {
+                      toast.onCancel()
+                      supprimerToast(toast.id)
+                    }}
+                    className="toast-btn cancel"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div key={toast.id} className={`toast toast-${toast.type}`}>
+              <div className="toast-icon">
+                {toast.type === "succes" ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+              </div>
+              <div className="toast-content">
+                <p>{toast.message}</p>
+              </div>
+              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
+                <X size={16} />
+              </button>
+            </div>
+          ),
+        )}
+      </div>
     </div>
   )
 }

@@ -1,14 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Trash, Save, AlertCircle, RefreshCw } from "lucide-react"
+import { Search, Plus, Trash, Save, AlertCircle, RefreshCw, X, CheckCircle, AlertTriangle } from "lucide-react"
 import "./css/ImDispatche.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAgences } from "../../../services/agenceServices"
 import { getBienAgences, createBienAgence, deleteBienAgence } from "../../../services/bienAgenceServices"
 import { useMockData } from "../../../../app/MockDataProvider"
-import { ToastContainer, toast } from 'react-toastify'; // Import de react-toastify
-import 'react-toastify/dist/ReactToastify.css'; // Import des styles
 
 function ImDispatche() {
   const [loading, setLoading] = useState(false)
@@ -27,6 +25,9 @@ function ImDispatche() {
     idAgence: "",
     dateAffectation: new Date().toISOString().split("T")[0],
   })
+
+  // État pour gérer les toasts
+  const [toasts, setToasts] = useState([])
 
   const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
@@ -48,7 +49,6 @@ function ImDispatche() {
     }
 
     try {
-      // Charger les immobiliers
       const immobiliersRes = await getImmobiliers()
       let immobiliersData = immobiliersRes.data
 
@@ -63,7 +63,6 @@ function ImDispatche() {
 
       setImmobiliers(immobiliersData)
 
-      // Charger les agences
       const agencesRes = await getAgences()
       let agencesData = agencesRes.data
 
@@ -78,7 +77,6 @@ function ImDispatche() {
 
       setAgences(agencesData)
 
-      // Charger les affectations
       const affectationsRes = await getBienAgences()
       let affectationsData = affectationsRes.data
 
@@ -92,7 +90,6 @@ function ImDispatche() {
       }
 
       setAffectations(affectationsData)
-
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err)
       setError(`Impossible de charger les données: ${err.message}`)
@@ -108,13 +105,42 @@ function ImDispatche() {
     }
   }
 
-  const afficherMessage = (texte, type) => {
-    if (type === "succes") {
-      toast.success(texte);
-    } else {
-      toast.error(texte);
+  // Fonction pour afficher un toast
+  const afficherToast = (message, type) => {
+    const id = Date.now()
+    const nouveauToast = {
+      id,
+      message,
+      type,
     }
-  };
+
+    setToasts((prev) => [...prev, nouveauToast])
+
+    // Supprimer le toast après 5 secondes
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id))
+    }, 5000)
+  }
+
+  // Fonction pour afficher une boîte de dialogue de confirmation moderne
+  const afficherConfirmation = (message, onConfirm) => {
+    const confirmationId = Date.now()
+    const confirmation = {
+      id: confirmationId,
+      message,
+      onConfirm,
+      onCancel: () => {
+        setToasts((prev) => prev.filter((t) => t.id !== confirmationId))
+      },
+    }
+
+    setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
+  }
+
+  // Supprimer un toast spécifique
+  const supprimerToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
 
   const ouvrirModal = () => {
     setNouvelleAffectation({
@@ -139,7 +165,7 @@ function ImDispatche() {
 
   const sauvegarderAffectation = async () => {
     if (!nouvelleAffectation.idBien || !nouvelleAffectation.idAgence) {
-      afficherMessage("Veuillez sélectionner un bien et une agence", "erreur")
+      afficherToast("Veuillez sélectionner un bien et une agence", "erreur")
       return
     }
 
@@ -153,7 +179,7 @@ function ImDispatche() {
         }
 
         setAffectations((prev) => [...prev, nouvelleAff])
-        afficherMessage("Affectation créée avec succès (mode démo)!", "succes")
+        afficherToast("Affectation créée avec succès (mode démo)!", "succes")
         fermerModal()
       } else {
         await createBienAgence({
@@ -162,41 +188,41 @@ function ImDispatche() {
           dateAffectation: nouvelleAffectation.dateAffectation,
         })
 
-        afficherMessage("Affectation créée avec succès!", "succes")
+        afficherToast("Affectation créée avec succès!", "succes")
         fermerModal()
         chargerDonnees()
       }
     } catch (err) {
       console.error("Erreur lors de la création de l'affectation:", err)
-      afficherMessage("Erreur lors de la création de l'affectation", "erreur")
+      afficherToast("Erreur lors de la création de l'affectation", "erreur")
     } finally {
       setLoading(false)
     }
   }
 
-  const supprimerAffectation = async (idBien, idAgence, dateAffectation) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette affectation ?")) return
-
-    setLoading(true)
-    try {
-      if (useMock) {
-        setAffectations((prev) =>
-          prev.filter(
-            (aff) => !(aff.idBien === idBien && aff.idAgence === idAgence && aff.dateAffectation === dateAffectation),
-          ),
-        )
-        afficherMessage("Affectation supprimée avec succès (mode démo)!", "succes")
-      } else {
-        await deleteBienAgence(idBien, idAgence, new Date(dateAffectation))
-        afficherMessage("Affectation supprimée avec succès!", "succes")
-        chargerDonnees()
+  const supprimerAffectation = (idBien, idAgence, dateAffectation) => {
+    afficherConfirmation("Êtes-vous sûr de vouloir supprimer cette affectation ?", async () => {
+      setLoading(true)
+      try {
+        if (useMock) {
+          setAffectations((prev) =>
+            prev.filter(
+              (aff) => !(aff.idBien === idBien && aff.idAgence === idAgence && aff.dateAffectation === dateAffectation),
+            ),
+          )
+          afficherToast("Affectation supprimée avec succès (mode démo)!", "succes")
+        } else {
+          await deleteBienAgence(idBien, idAgence, new Date(dateAffectation))
+          afficherToast("Affectation supprimée avec succès!", "succes")
+          chargerDonnees()
+        }
+      } catch (err) {
+        console.error("Erreur lors de la suppression de l'affectation:", err)
+        afficherToast("Erreur lors de la suppression de l'affectation", "erreur")
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error("Erreur lors de la suppression de l'affectation:", err)
-      afficherMessage("Erreur lors de la suppression de l'affectation", "erreur")
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   const getNomBien = (idBien) => {
@@ -395,8 +421,56 @@ function ImDispatche() {
         </div>
       )}
 
-      {/* Conteneur pour les Toasts */}
-      <ToastContainer />
+      {/* Système de toast notifications */}
+      <div className="toast-container">
+        {toasts.map((toast) =>
+          toast.type === "confirmation" ? (
+            <div key={toast.id} className="toast toast-confirmation">
+              <div className="toast-icon">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="toast-content">
+                <p>{toast.message}</p>
+                <div className="toast-actions">
+                  <button
+                    onClick={() => {
+                      toast.onConfirm()
+                      supprimerToast(toast.id)
+                    }}
+                    className="toast-btn confirm"
+                  >
+                    Confirmer
+                  </button>
+                  <button
+                    onClick={() => {
+                      toast.onCancel()
+                      supprimerToast(toast.id)
+                    }}
+                    className="toast-btn cancel"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div key={toast.id} className={`toast toast-${toast.type}`}>
+              <div className="toast-icon">
+                {toast.type === "succes" ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+              </div>
+              <div className="toast-content">
+                <p>{toast.message}</p>
+              </div>
+              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
+                <X size={16} />
+              </button>
+            </div>
+          ),
+        )}
+      </div>
     </div>
   )
 }
