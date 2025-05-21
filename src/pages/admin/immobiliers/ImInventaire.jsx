@@ -281,10 +281,10 @@ function ImInventaire() {
       <div className="inventaire-header">
         <h2>Inventaire des immobiliers</h2>
         <div className="inventaire-actions">
-          <button className="btn-secondary" onClick={() => setShowHistorique(!showHistorique)}>
+          <button className="btn-hist" onClick={() => setShowHistorique(!showHistorique)}>
             {showHistorique ? "Masquer l'historique" : "Historique"}
           </button>
-          <button className="btn-secondary" onClick={exporterEnExcel}>
+          <button className="btn-exp" onClick={exporterEnExcel}>
             <FileDown size={16} /> Exporter
           </button>
         </div>

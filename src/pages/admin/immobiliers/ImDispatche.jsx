@@ -322,7 +322,7 @@ function ImDispatche() {
                   affectationsFiltrees.map((aff, index) => (
                     <tr key={`${aff.idBien}-${aff.idAgence}-${aff.dateAffectation}`}>
                       <td>{getNomBien(aff.idBien)}</td>
-                      <td>{getNomAgence(aff.idAgence)}</td>
+                      0<td>{getNomAgence(aff.idAgence)}</td>
                       <td>{new Date(aff.dateAffectation).toLocaleDateString()}</td>
                       <td className="actions-cellule">
                         <button

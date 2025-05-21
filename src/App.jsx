@@ -46,10 +46,6 @@ function App() {
         <AdminSidebar />
         <div className="dashboard-content">
           <Routes>
-            <Route
-              index
-              element={<div className="dashboard-welcome">Bienvenue dans le tableau de bord administrateur</div>}
-            />
             <Route path="consommables/stock" element={<Stock />} />
             <Route path="consommables/inventaire" element={<Inventaire />} />
             <Route path="consommables/dispatche" element={<Dispatche />} />

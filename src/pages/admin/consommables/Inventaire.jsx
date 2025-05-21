@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { FileDown, Package, Truck, Calendar, Loader2, FileText, X, Search, Edit, Trash2 } from "lucide-react"
+import { FileDown, Package, Truck, Calendar, Loader2, FileText, X } from "lucide-react"
 import { getFournitures } from "../../../services/fournituresServices"
 import { getAgenceFournitures } from "../../../services/agenceFournituresServices"
 import "./css/Inventaire.css"
@@ -14,13 +14,12 @@ function Inventaire() {
   const [loading, setLoading] = useState(true)
   const [filtreDate, setFiltreDate] = useState("")
   const [toasts, setToasts] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
 
   const exporterPDF = () => {
     try {
       const doc = new jsPDF()
       doc.setFontSize(16)
-      doc.setTextColor(192, 0, 0)
+      doc.setTextColor(150, 0, 0)
       doc.text(" Stock Enregistrés", 14, 15)
 
       const stockData = fournitures
@@ -39,7 +38,6 @@ function Inventaire() {
         head: [["Désignation", "Catégorie", "Qtt Ajoutée", "Qtt Restante", "PU", "Montant", "Date"]],
         body: stockData,
         startY: 20,
-        headStyles: { fillColor: [192, 0, 0] },
       })
 
       const yAfterStock = doc.lastAutoTable.finalY + 10
@@ -54,7 +52,6 @@ function Inventaire() {
         head: [["Fourniture", "Agence", "Quantité", "Date"]],
         body: dispatchData,
         startY: yAfterStock + 5,
-        headStyles: { fillColor: [192, 0, 0] },
       })
 
       doc.save("inventaire.pdf")
@@ -106,20 +103,6 @@ function Inventaire() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Filtrer les fournitures par terme de recherche et date
-  const filteredFournitures = fournitures.filter(
-    (f) =>
-      (!filtreDate || f.date?.startsWith(filtreDate)) &&
-      (!searchTerm ||
-        (f.nom && f.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (f.categorie && f.categorie.toLowerCase().includes(searchTerm.toLowerCase()))),
-  )
-
-  // Filtrer les affectations par date
-  const filteredAgenceFournitures = agenceFournitures.filter(
-    (af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate),
-  )
-
   return (
     <div className="page-inventaire">
       {loading ? (
@@ -128,154 +111,118 @@ function Inventaire() {
           <p>Chargement en cours...</p>
         </div>
       ) : (
-        <>
-          <div className="header-container">
-            <h1 className="titre-page">Résumé des Opérations</h1>
-          </div>
-
-          <div className="content-container">
-            <div className="actions-bar">
-              <div className="search-container">
-                <div className="search-input-wrapper">
-                  <Search size={18} className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="search-input"
-                  />
-                </div>
-
-                <div className="date-filter-wrapper">
-                  <Calendar size={18} className="calendar-icon" />
-                  <input
-                    type="date"
-                    value={filtreDate}
-                    onChange={(e) => setFiltreDate(e.target.value)}
-                    className="date-input"
-                  />
-                </div>
-              </div>
-
-              <button onClick={exporterPDF} className="export-btn">
+        <div className="content-wrapper">
+          <div className="page-header">
+            <h1 className="page-title">Résumé des Opérations</h1>
+            <div className="header-actions">
+              <button className="btn-historique">Historique</button>
+              <button className="btn-exporter" onClick={exporterPDF}>
                 <FileDown size={18} />
-                <span>Exporter en PDF</span>
+                Exporter
               </button>
             </div>
+          </div>
 
-            <section className="stock-section">
-              <div className="section-title">
-                <Package size={20} />
-                <h2>Stock enregistrés</h2>
+          <div className="filters-container">
+            <div className="date-filter">
+              <label>Filtrer par date :</label>
+              <div className="date-input-wrapper">
+                <Calendar size={18} className="calendar-icon" />
+                <input
+                  type="date"
+                  value={filtreDate}
+                  onChange={(e) => setFiltreDate(e.target.value)}
+                  className="date-input"
+                />
               </div>
+            </div>
+          </div>
 
-              <div className="table-responsive">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Désignation</th>
-                      <th>Catégorie</th>
-                      <th colSpan="3">Stock Restant</th>
-                      <th colSpan="3">Stock Actuel</th>
-                      <th>Actions</th>
-                    </tr>
-                    <tr className="sub-header">
-                      <th></th>
-                      <th></th>
-                      <th>Quantité</th>
-                      <th>Montant</th>
-                      <th>Date</th>
-                      <th>Quantité</th>
-                      <th>Prix Unitaire</th>
-                      <th>Montant</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredFournitures.length > 0 ? (
-                      filteredFournitures.map((f, index) => (
-                        <tr key={f.id || index} className={index % 2 === 0 ? "row-even" : "row-odd"}>
+          <section className="stock-section">
+            <div className="section-title">
+              <Package size={20} />
+              <h2>Stock enregistrés</h2>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Désignation</th>
+                    <th>Catégorie</th>
+                    <th>Quantité Ajoutée</th>
+                    <th>Quantité Restante</th>
+                    <th>Prix Unitaire</th>
+                    <th>Montant</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fournitures.filter((f) => !filtreDate || f.date?.startsWith(filtreDate)).length > 0 ? (
+                    fournitures
+                      .filter((f) => !filtreDate || f.date?.startsWith(filtreDate))
+                      .map((f) => (
+                        <tr key={f.id}>
                           <td>{f.nom}</td>
                           <td>{f.categorie}</td>
-                          <td>{f.quantiteRestante}</td>
-                          <td>{(f.prixUnitaire * f.quantiteRestante)?.toFixed(2)}</td>
-                          <td>{f.date?.split("T")[0]}</td>
                           <td>{f.quantite}</td>
+                          <td>{f.quantiteRestante}</td>
                           <td>{f.prixUnitaire?.toFixed(2)}</td>
                           <td>{f.montant?.toFixed(2)}</td>
-                          <td className="actions-cell">
-                            <button className="action-btn edit-btn">
-                              <Edit size={16} />
-                              <span>Modifier</span>
-                            </button>
-                            <button className="action-btn delete-btn">
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
+                          <td>{f.date?.split("T")[0]}</td>
                         </tr>
                       ))
-                    ) : (
-                      <tr>
-                        <td colSpan="9" className="no-data">
-                          Aucune donnée disponible
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="dispatch-section">
-              <div className="section-title">
-                <Truck size={20} />
-                <h2>Répartition vers les Agences</h2>
-              </div>
-
-              <div className="table-responsive">
-                <table className="data-table">
-                  <thead>
+                  ) : (
                     <tr>
-                      <th>Fourniture</th>
-                      <th>Agence</th>
-                      <th>Quantité Envoyée</th>
-                      <th>Date</th>
-                      <th>Actions</th>
+                      <td colSpan="7" className="no-data">
+                        Aucune donnée disponible
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAgenceFournitures.length > 0 ? (
-                      filteredAgenceFournitures.map((af, index) => (
-                        <tr key={index} className={index % 2 === 0 ? "row-even" : "row-odd"}>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="dispatch-section">
+            <div className="section-title">
+              <Truck size={20} />
+              <h2>Répartition vers les Agences</h2>
+            </div>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Fourniture</th>
+                    <th>Agence</th>
+                    <th>Quantité Envoyée</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agenceFournitures.filter((af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate)).length >
+                  0 ? (
+                    agenceFournitures
+                      .filter((af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate))
+                      .map((af, index) => (
+                        <tr key={index}>
                           <td>{af.fourniture?.nom || "-"}</td>
                           <td>{af.agence?.nom || "-"}</td>
                           <td>{af.quantite ?? "-"}</td>
                           <td>{af.dateAssociation?.split("T")[0] ?? "-"}</td>
-                          <td className="actions-cell">
-                            <button className="action-btn edit-btn">
-                              <Edit size={16} />
-                              <span>Modifier</span>
-                            </button>
-                            <button className="action-btn delete-btn">
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
                         </tr>
                       ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="no-data">
-                          Aucune donnée disponible
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        </>
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="no-data">
+                        Aucune donnée disponible
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       )}
 
       {/* Système de toast notifications */}

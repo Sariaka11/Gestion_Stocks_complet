@@ -39,22 +39,22 @@
   border: none;
 }
 
-.btn-primary {
-  background-color: var(--primary);
+.btn-hist {
+  background-color: #4f46e5;
   color: white;
 }
 
-.btn-primary:hover {
-  background-color: #a30000;
+.btn-hist:hover {
+  background-color: #4338ca;
 }
 
-.btn-secondary {
-  background-color: #e9ecef;
-  color: #495057;
+.btn-exp{
+  background-color:#4f46e5;
+  color: white;
 }
 
-.btn-secondary:hover {
-  background-color: #dee2e6;
+.btn-exp:hover {
+  background-color: #4338ca;
 }
 
 .filtres-section {
