@@ -79,12 +79,24 @@
   opacity: 0.8;
 }
 
+/* Header Right - Partie corrigée */
 .header-right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  position: relative;
+  justify-content: center;
+  gap: 2rem; /* espace entre les icônes */
+  flex: 1;
+  max-width: 300px;
+  margin-right: 1rem;/* S'assure que le header-right est bien aligné à droite */
 }
+
+.header-right-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 1;
+}
+
 
 /* Boutons d'icônes dans le header */
 .header-icon-btn {
@@ -140,6 +152,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  margin-right: 2rem;
 }
 
 .search-input {
@@ -167,12 +180,15 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* Menus déroulants */
-.notification-container,
+/* Conteneurs de notifications et profil */
+.notification-container{
+  margin-right: 2rem;
+}
 .profile-container {
   position: relative;
 }
 
+/* Menus déroulants - Version corrigée */
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -180,14 +196,14 @@
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  width: 300px;
-  max-width: 90vw;
   z-index: 1000;
   overflow: hidden;
   color: #333;
-  max-height: 80vh;
   display: flex;
   flex-direction: column;
+  max-height: 80vh;
+  width: 300px;
+  max-width: 90vw;
 }
 
 /* Flèche pointant vers l'icône */
@@ -201,18 +217,29 @@
   border-bottom: 8px solid white;
 }
 
+/* Correction spécifique pour le menu des notifications */
 .notifications-dropdown {
+  width: 320px;
   right: -10px;
 }
 
+/* Correction pour la flèche des notifications */
+.notifications-dropdown::before {
+  right: 22px;
+}
+
+/* Correction spécifique pour le menu profil */
 .profile-dropdown {
-  right: -10px;
-  width: 250px;
+  width: 280px;
+  right: 0;
 }
 
 .dropdown-header {
   padding: 1rem;
   border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .dropdown-header h3 {
@@ -225,6 +252,7 @@
   padding: 0.5rem 0;
   overflow-y: auto;
   flex: 1;
+  max-height: 350px;
 }
 
 .dropdown-footer {
@@ -241,12 +269,13 @@
   font-size: 0.875rem;
 }
 
-/* Notifications */
+/* Notifications - Version corrigée */
 .notification-item {
   display: flex;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s;
+  align-items: flex-start;
 }
 
 .notification-item:last-child {
@@ -275,10 +304,13 @@
   border-radius: 50%;
   margin-right: 0.75rem;
   color: #c00000;
+  flex-shrink: 0;
 }
 
 .notification-content {
   flex: 1;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .notification-title {
@@ -306,10 +338,11 @@
   padding: 0;
 }
 
-/* Profil */
+/* Profil - Version corrigée */
 .profile-info {
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .profile-avatar {
@@ -323,6 +356,11 @@
   justify-content: center;
   font-weight: bold;
   margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.profile-details {
+  flex: 1;
 }
 
 .profile-details h3 {
@@ -376,7 +414,7 @@
   margin-right: 0.5rem;
 }
 
-/* Statistiques du profil */
+/* Statistiques du profil - Version corrigée */
 .profile-stats {
   display: flex;
   justify-content: space-between;
@@ -384,6 +422,7 @@
   background-color: #f9f9f9;
   border-radius: 8px;
   margin: 0.5rem 1rem;
+  flex-wrap: wrap;
 }
 
 .stat-item {
@@ -391,6 +430,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  min-width: 60px;
+  margin: 0 5px;
 }
 
 .stat-value {
@@ -404,7 +445,7 @@
   color: #666;
 }
 
-/* Responsive */
+/* Responsive - Version améliorée */
 @media (max-width: 768px) {
   .admin-main,
   .user-main {
@@ -456,7 +497,7 @@
   padding: 2rem;
 }
 
-/* Ajustements pour les petits écrans */
+/* Ajustements pour les petits écrans - Version améliorée */
 @media (max-width: 480px) {
   .header-right {
     gap: 0.25rem;
@@ -469,4 +510,134 @@
   .search-container.search-open .search-input {
     width: 120px;
   }
+  
+  /* Empêcher les notifications et profil de sortir de l'écran */
+  .notifications-dropdown,
+  .profile-dropdown {
+    right: -5px;
+    width: calc(100vw - 20px);
+    max-height: 70vh;
+  }
+}
+
+
+
+
+
+/* --------------------------------------------------------------*/
+/* Correction spécifique pour le menu des notifications qui s'affiche avec un fond sombre */
+
+/* Ajustement du menu déroulant des notifications */
+.notifications-dropdown {
+  width: 350px;
+  right: -100px; /* Ajustement significatif pour déplacer le menu vers la gauche */
+  background-color: white !important; /* Force le fond blanc */
+  color: #333 !important; /* Force la couleur du texte */
+  z-index: 1500; /* Augmente le z-index pour s'assurer qu'il est au-dessus des autres éléments */
+  border: 1px solid #ddd; /* Ajoute une bordure visible */
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* S'assurer que le contenu de la notification est visible */
+.notification-item {
+  background-color: white !important; /* Fond blanc pour chaque élément */
+  color: #333 !important; /* Texte foncé */
+  border-bottom: 1px solid #eee; /* Séparateur clair */
+  padding: 12px 15px;
+  display: flex;
+  width: 100%; /* S'assure que l'élément occupe toute la largeur */
+  box-sizing: border-box; /* Inclut le padding dans la largeur */
+}
+
+.notification-icon {
+  flex-shrink: 0; /* Empêche l'icône de rétrécir */
+  margin-right: 10px;
+}
+
+.notification-content {
+  width: 100%; /* Utilise toute la largeur disponible */
+  color: #333 !important; /* Force la couleur du texte */
+}
+
+.notification-title {
+  color: #333 !important;
+  font-weight: 500;
+}
+
+.notification-message, 
+.notification-time {
+  color: #666 !important;
+}
+
+/* Ajustement pour le menu profil également */
+.profile-dropdown {
+  width: 300px;
+  right: -80px; /* Ajuste la position horizontale */
+  background-color: white !important;
+  color: #333 !important;
+  z-index: 1500;
+  border: 1px solid #ddd;
+}
+
+/* Correction du problème de positionnement en mobile */
+@media (max-width: 768px) {
+  .notifications-dropdown,
+  .profile-dropdown {
+    position: absolute !important; /* Force la position absolute au lieu de fixed */
+    top: 50px !important; /* Ajuste la position par rapport au header */
+    max-width: 90vw !important; /* Limite la largeur à 90% de la fenêtre */
+    left: auto !important; /* Reset left si défini ailleurs */
+    width: 300px !important; /* Largeur fixe */
+  }
+  
+  .notifications-dropdown {
+    right: -100px !important; /* Position ajustée */
+  }
+  
+  .profile-dropdown {
+    right: -80px !important; /* Position ajustée */
+  }
+  
+  /* S'assurer que le menu est visible même s'il dépasse */
+  .dropdown-content {
+    max-height: 70vh !important;
+  }
+}
+
+/* Pour les très petits écrans */
+@media (max-width: 480px) {
+  .notifications-dropdown,
+  .profile-dropdown {
+    width: 280px !important;
+    right: -50px !important; /* Position ajustée pour petits écrans */
+  }
+}
+
+/* Style pour le header des dropdowns pour assurer la visibilité */
+.dropdown-header {
+  background-color: white !important;
+  border-bottom: 1px solid #eee !important;
+  padding: 15px !important;
+}
+
+.dropdown-header h3 {
+  color: #333 !important;
+  font-weight: 600 !important;
+}
+
+/* Style pour le footer des dropdowns */
+.dropdown-footer {
+  background-color: white !important;
+  border-top: 1px solid #eee !important;
+  padding: 12px 15px !important;
+}
+
+.dropdown-footer a {
+  color: #c00000 !important;
+}
+
+/* Force la visibilité du contenu */
+.dropdown-content {
+  background-color: white !important;
 }

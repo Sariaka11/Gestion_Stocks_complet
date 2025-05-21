@@ -71,13 +71,19 @@
 }
 
 .auth-logo {
-  margin-top: 3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .logo-large {
-  width: 120px;
-  height: auto;
+ width: 9.45rem;   /* équivaut à ~4 cm */
+  height: 4.725rem; /* équivaut à ~2 cm */
+  object-fit: contain;
 }
+
+
 
 .auth-right {
   flex: 1;

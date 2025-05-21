@@ -1,62 +1,111 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { User, Mail, Building, UserCog, Lock, KeyRound } from "lucide-react"
-import "./Register.css"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { User, Mail, Building, UserCog, Lock, KeyRound } from "lucide-react";
+import "./Register.css";
+
+const API_URL = "http://localhost:5000/api"; // Adjust to your backend URL
 
 function Register() {
   const [formData, setFormData] = useState({
     nom: "",
+    prenom: "", // Added prenom to match User.cs model
     email: "",
     agence: "",
     fonction: "utilisateur",
     password: "",
     confirmPassword: "",
-  })
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
-    })
-  }
+    });
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     // Validation
-    if (!formData.nom || !formData.email || !formData.agence || !formData.password || !formData.confirmPassword) {
-      setError("Veuillez remplir tous les champs")
-      return
+    if (!formData.nom || !formData.prenom || !formData.email || !formData.agence || !formData.password || !formData.confirmPassword) {
+      setError("Veuillez remplir tous les champs");
+      return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
-      return
+      setError("Les mots de passe ne correspondent pas");
+      return;
     }
 
-    // Simuler un chargement
-    setLoading(true)
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
-    // Afficher un message de succès et rediriger
-    setTimeout(() => {
-      setSuccess("Utilisateur créé avec succès!")
+    try {
+      // Step 1: Create user
+      const userResponse = await fetch(`${API_URL}/Users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: formData.nom,
+          prenom: formData.prenom,
+          email: formData.email,
+          motDePasse: formData.password,
+          fonction: formData.fonction,
+        }),
+      });
+
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
+        throw new Error(errorData.message || "Erreur lors de la création de l'utilisateur");
+      }
+
+      const user = await userResponse.json();
+
+      // Step 2: Associate user with agency (assuming agence is the agency ID or name)
+      const agenceResponse = await fetch(`${API_URL}/Agences`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const agences = await agenceResponse.json();
+      const agence = agences.find(a => a.nom.toLowerCase() === formData.agence.toLowerCase() || a.numero === formData.agence);
+
+      if (!agence) {
+        throw new Error("Agence introuvable");
+      }
+
+      const userAgenceResponse = await fetch(`${API_URL}/UserAgences`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          agenceId: agence.id,
+        }),
+      });
+
+      if (!userAgenceResponse.ok) {
+        const errorData = await userAgenceResponse.json();
+        throw new Error(errorData.message || "Erreur lors de l'association avec l'agence");
+      }
+
+      setSuccess("Utilisateur créé avec succès!");
       setTimeout(() => {
-        // Rediriger vers la page de login appropriée
-        if (formData.fonction === "admin") {
-          navigate("/auth/login-admin")
-        } else {
-          navigate("/auth/login-user")
-        }
-      }, 1000)
-    }, 1500)
-  }
+        navigate(formData.fonction === "admin" ? "/auth/login-admin" : "/auth/login-user");
+      }, 1000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-container register-container">
@@ -93,7 +142,21 @@ function Register() {
                       name="nom"
                       value={formData.nom}
                       onChange={handleChange}
-                      placeholder="Nom complet"
+                      placeholder="Nom"
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="prenom">Prénom</label>
+                  <div className="input-with-icon">
+                    <User className="input-icon" size={18} />
+                    <input
+                      type="text"
+                      id="prenom"
+                      name="prenom"
+                      value={formData.prenom}
+                      onChange={handleChange}
+                      placeholder="Prénom"
                     />
                   </div>
                 </div>
@@ -133,7 +196,7 @@ function Register() {
                     <UserCog className="input-icon" size={18} />
                     <select id="fonction" name="fonction" value={formData.fonction} onChange={handleChange}>
                       <option value="utilisateur">Utilisateur</option>
-                      <option value="admin">Admin</option>
+                      <option value="admin">Administrateur</option>
                     </select>
                   </div>
                 </div>
@@ -167,7 +230,7 @@ function Register() {
                 </div>
               </div>
             </div>
-            <button type="submit" className="btn-register">
+            <button type="submit" className="btn-register" disabled={loading}>
               Inscrire
             </button>
           </form>
@@ -179,7 +242,7 @@ function Register() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Register
+export default Register;

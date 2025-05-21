@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { NavLink, useLocation } from "react-router-dom"
+import stockImage from '../../assets/logo.png';
 import { Package, ChevronDown, ChevronRight, Building2, BarChart3, Users } from "lucide-react"
 import "./Sidebar.css"
 
@@ -24,8 +25,7 @@ function Sidebar({ isOpen }) {
     <aside className={`app-sidebar ${isOpen ? "open" : "closed"}`}>
       <div className="sidebar-header">
         <div className="logo">
-          <span src="../../assets/stock.jpg" alt="CEM Logo" className="logo-icon" ></span>
-          <span className="logo-text">Gestion Stock</span>
+         <img src={stockImage} alt="CEM Logo" className="logo-icon" />   <span className="logo-text">Gestion Stock</span>
         </div>
       </div>
       <nav className="sidebar-nav">

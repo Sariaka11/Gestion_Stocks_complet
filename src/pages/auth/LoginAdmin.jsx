@@ -1,34 +1,70 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { User, Lock } from "lucide-react"
-import "./Login.css"
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { User, Lock } from "lucide-react";
+import "./Login.css";
+import stockImage from '../../assets/stock.png';
+
+const API_URL = "http://localhost:5000/api"; // Adjust to your backend URL
 
 function LoginAdmin() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  // Check if user is already logged in
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.fonction === "admin") {
+      navigate("/admin/suivi-stock", { replace: true });
+    }
+  }, [navigate]);
 
-    // Validation simple
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Simple validation
     if (!email || !password) {
-      setError("Veuillez remplir tous les champs")
-      return
+      setError("Veuillez remplir tous les champs");
+      return;
     }
 
-    // Simuler un chargement
-    setLoading(true)
+    setLoading(true);
+    setError("");
 
-    // Redirection après un délai pour simuler le chargement
-    setTimeout(() => {
-      navigate("/admin/suivi-stock")
-    }, 1500)
-  }
+    try {
+      const response = await fetch(`${API_URL}/Users/Login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erreur lors de la connexion");
+      }
+
+      const user = await response.json();
+      if (user.fonction !== "admin") {
+        throw new Error("Accès réservé aux administrateurs");
+      }
+
+      // Store user data in localStorage
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Redirect after successful login
+      setTimeout(() => {
+        navigate("/admin/suivi-stock", { replace: true });
+      }, 1000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-page">
@@ -46,13 +82,13 @@ function LoginAdmin() {
               <span className="app-name">StockManager</span>
             </h1>
             <p className="auth-description">Système de gestion de stock et d'inventaire</p>
-            <div className="auth-logo">
-              <img src="../../../assets/stock.jpg" alt="CEM Logo" className="logo-large" />
-            </div>
           </div>
         </div>
         <div className="auth-right">
           <div className="auth-form-container">
+            <div className="auth-logo">
+              <img src={stockImage} alt="CEM Logo" className="logo-large" />
+            </div>
             <h2>Connexion Administrateur</h2>
             {error && <div className="error-message">{error}</div>}
 
@@ -93,7 +129,7 @@ function LoginAdmin() {
                 </label>
               </div>
 
-              <button type="submit" className="btn-connect">
+              <button type="submit" className="btn-connect" disabled={loading}>
                 Se Connecter
               </button>
             </form>
@@ -101,7 +137,7 @@ function LoginAdmin() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default LoginAdmin
+export default LoginAdmin;

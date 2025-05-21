@@ -102,6 +102,7 @@ function AdminLayout({ children, onLogout }) {
           </div>
         </div>
 
+      <div className="header-right-container">
         <div className="header-right">
           <div className={`search-container ${searchOpen ? "search-open" : ""}`}>
             <button className="header-icon-btn search-toggle" onClick={toggleSearch}>
@@ -194,6 +195,7 @@ function AdminLayout({ children, onLogout }) {
               </div>
             )}
           </div>
+        </div>
         </div>
       </header>
 

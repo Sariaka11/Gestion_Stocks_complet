@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -17,155 +17,286 @@ import {
   Send,
   Edit,
   MessageSquare,
-} from "lucide-react"
-import "./css/gestion.css"
+  Trash2,
+  Lock,
+} from "lucide-react";
+import axios from "axios";
+import "./css/gestion.css";
+
+const API_URL = "http://localhost:5000/api"; // Adjust to your backend URL
 
 function GestionUtilisateurs() {
-  const navigate = useNavigate()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState("Tous les types")
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [showModal, setShowModal] = useState(false)
-  const [showAddUserModal, setShowAddUserModal] = useState(false)
-  const [showContactModal, setShowContactModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDispatcheModal, setShowDispatcheModal] = useState(false)
-  const [nouvelleAgence, setNouvelleAgence] = useState("")
-  const [nouveauRole, setNouveauRole] = useState("Gestionnaire d'agence")
-  const [nouveauNom, setNouveauNom] = useState("")
-  const [nouveauEmail, setNouveauEmail] = useState("")
-  const [messageContact, setMessageContact] = useState("")
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("Tous les types");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDispatcheModal, setShowDispatcheModal] = useState(false);
+  const [nouvelleAgence, setNouvelleAgence] = useState("");
+  const [nouveauNom, setNouveauNom] = useState("");
+  const [nouveauPrenom, setNouveauPrenom] = useState("");
+  const [nouveauEmail, setNouveauEmail] = useState("");
+  const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
+  const [messageContact, setMessageContact] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+  const [data, setData] = useState([]);
 
-  // Données initiales des utilisateurs
-  const [users, setUsers] = useState([])
+  // Fetch users on component mount
+ // Inside GestionUtilisateurs.jsx
+useEffect(() => {
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/Users`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      setData(response.data);
 
-  // Simuler un chargement initial
-  useEffect(() => {
-    // Simuler un délai de chargement
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+      // Log the response to inspect its structure
+      console.log("API Response for /Users:", data);
 
-    return () => clearTimeout(timer)
-  }, [])
-
-  // Ajouter un effet pour synchroniser avec les agences du dispatche
-  useEffect(() => {
-    // Cette fonction serait remplacée par un appel API réel
-    const synchroniserAvecDispatche = () => {
-      // Simuler la récupération des agences depuis le dispatche
-      console.log("Synchronisation avec la gestion des utilisateurs")
-    }
-
-    synchroniserAvecDispatche()
-
-    // Écouter les événements de synchronisation
-    const handleAgenceAjoutee = (e) => {
-      // Ajouter un nouvel utilisateur basé sur l'agence ajoutée
-      if (e.detail) {
-        const nouvelUtilisateur = {
-          id: Date.now(),
-          nom: `Responsable ${e.detail.nom}`,
-          role: e.detail.type || "Gestionnaire d'agence",
-          agence: e.detail.nom,
-          email: `contact@${e.detail.nom.toLowerCase()}.com`,
-          telephone: "+261 34 00 000 00",
-          dateCreation: new Date().toLocaleDateString(),
-          stockCritique: false,
-          stockLevel: 0,
-          stockItems: [],
-        }
-        setUsers((prevUsers) => [...prevUsers, nouvelUtilisateur])
+      // Check if data.$values exists and is an array
+      if (!data.$values || !Array.isArray(data.$values)) {
+        console.error("Expected an array in data.$values, but received:", data);
+        throw new Error("La réponse de l'API ne contient pas un tableau d'utilisateurs");
       }
+
+      
+    } catch (err) {
+      console.error("Error in fetchUsers:", err);
+      afficherMessage(err.message || "Erreur lors du chargement des utilisateurs", "erreur");
+      setUsers([]); // Set empty array to prevent UI issues
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Ajouter l'écouteur d'événement
-    window.addEventListener("dispatche:agence-ajoutee", handleAgenceAjoutee)
-
-    return () => {
-      window.removeEventListener("dispatche:agence-ajoutee", handleAgenceAjoutee)
-    }
-  }, [])
-
-  // Ajouter un utilisateur
-  const ajouterUtilisateur = () => {
-    if (!nouveauNom || !nouvelleAgence || !nouveauEmail) {
-      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
-      return
-    }
-
-    const nouvelUtilisateur = {
-      id: users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1,
-      nom: nouveauNom,
-      role: nouveauRole,
-      agence: nouvelleAgence,
-      email: nouveauEmail,
-      telephone: "+261 34 00 000 00",
-      dateCreation: new Date().toLocaleDateString(),
-      stockCritique: false,
-      stockLevel: 0,
-      stockItems: [],
-    }
-
-    setUsers([...users, nouvelUtilisateur])
-    setNouveauNom("")
-    setNouvelleAgence("")
-    setNouveauEmail("")
-    setNouveauRole("Gestionnaire d'agence")
-    setShowAddUserModal(false)
-    afficherMessage(`Utilisateur ${nouveauNom} ajouté avec succès!`, "succes")
+  const mappedData = async ()=>{
+    // Use data.$values instead of data
+      const usersWithDetails = await Promise.all(
+        data.$values.map(async (user) => {
+          const agenceResponse = await axios.get(`${API_URL}/Users/${user.id}/Agence`).catch(() => ({
+            data: { nom: "N/A" },
+          }));
+          const fournituresResponse = await axios.get(`${API_URL}/Users/${user.id}/Fournitures`).catch(() => ({
+            data: [],
+          }));
+          const agence = agenceResponse.data;
+          const stockItems = fournituresResponse.data;
+          return {
+            id: user.id,
+            nom: `${user.nom} ${user.prenom}`,
+            role: user.fonction,
+            agence: agence.nom,
+            email: user.email,
+            telephone: "+261 34 00 000 00", // Placeholder, adjust as needed
+            dateCreation: new Date().toLocaleDateString(), // Adjust based on API data
+            stockCritique: stockItems.some((item) => item.quantiteRestante < item.seuilCritique),
+            stockLevel: stockItems.length > 0 ? Math.min(100, stockItems.reduce((sum, item) => sum + item.quantiteRestante, 0) / stockItems.length) : 0,
+            stockItems: stockItems.map((item) => ({
+              id: item.id,
+              designation: item.nom,
+              quantite: item.quantiteRestante,
+              seuil: item.seuilCritique || 10,
+              cmup: item.cmup || 0,
+            })),
+          };
+        })
+      );
+      setUsers(usersWithDetails);
   }
+  if(!data.$values){
+    fetchUsers();
+  }else{
+    mappedData()
+  }
+}, [data]);
 
-  // Fonction pour envoyer un message à l'utilisateur
+  // Add user
+  const ajouterUtilisateur = async () => {
+    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !nouveauEmail || !nouveauMotDePasse) {
+      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur");
+      return;
+    }
+
+    try {
+      // Step 1: Create user
+      const userResponse = await axios.post(
+        `${API_URL}/Users`,
+        {
+          nom: nouveauNom,
+          prenom: nouveauPrenom,
+          email: nouveauEmail,
+          motDePasse: nouveauMotDePasse,
+          fonction: "admin",
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const user = userResponse.data;
+
+      // Step 2: Find agency
+      const agenceResponse = await axios.get(`${API_URL}/Agences`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const agences = agenceResponse.data;
+      const agence = agences.find((a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === nouvelleAgence);
+
+      if (!agence) {
+        throw new Error("Agence introuvable");
+      }
+
+      // Step 3: Associate user with agency
+      await axios.post(
+        `${API_URL}/UserAgences`,
+        {
+          userId: user.id,
+          agenceId: agence.id,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      // Refresh user list
+      const newUser = {
+        id: user.id,
+        nom: `${nouveauNom} ${nouveauPrenom}`,
+        role: "admin",
+        agence: nouvelleAgence,
+        email: nouveauEmail,
+        telephone: "+261 34 00 000 00",
+        dateCreation: new Date().toLocaleDateString(),
+        stockCritique: false,
+        stockLevel: 0,
+        stockItems: [],
+      };
+      setUsers([...users, newUser]);
+      setNouveauNom("");
+      setNouveauPrenom("");
+      setNouvelleAgence("");
+      setNouveauEmail("");
+      setNouveauMotDePasse("");
+      setShowAddUserModal(false);
+      afficherMessage(`Utilisateur ${nouveauNom} ajouté avec succès!`, "succes");
+    } catch (err) {
+      afficherMessage(err.response?.data?.message || err.message || "Erreur lors de la création de l'utilisateur", "erreur");
+    }
+  };
+
+  // Edit user
+  const modifierUtilisateur = async () => {
+    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !nouveauEmail) {
+      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `${API_URL}/Users/${selectedUser.id}`,
+        {
+          id: selectedUser.id,
+          nom: nouveauNom,
+          prenom: nouveauPrenom,
+          email: nouveauEmail,
+          fonction: "admin",
+          motDePasse: nouveauMotDePasse || "",
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      // Update agency association
+      const agenceResponse = await axios.get(`${API_URL}/Agences`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      const agences = agenceResponse.data;
+      const agence = agences.find((a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === nouvelleAgence);
+
+      if (agence) {
+        await axios.post(
+          `${API_URL}/UserAgences`,
+          {
+            userId: selectedUser.id,
+            agenceId: agence.id,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      } else {
+        throw new Error("Agence introuvable");
+      }
+
+      // Update local state
+      const usersModifies = users.map((user) =>
+        user.id === selectedUser.id
+          ? {
+              ...user,
+              nom: `${nouveauNom} ${nouveauPrenom}`,
+              email: nouveauEmail,
+              agence: nouvelleAgence,
+              role: "admin",
+            }
+          : user
+      );
+      setUsers(usersModifies);
+      setShowEditModal(false);
+      afficherMessage(`Utilisateur ${selectedUser.nom} modifié avec succès!`, "succes");
+    } catch (err) {
+      afficherMessage(err.response?.data?.message || err.message || "Erreur lors de la modification de l'utilisateur", "erreur");
+    }
+  };
+
+  // Delete user
+  const supprimerUtilisateur = async (userId) => {
+    try {
+      await axios.delete(`${API_URL}/Users/${userId}`, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      setUsers(users.filter((user) => user.id !== userId));
+      setShowModal(false);
+      afficherMessage("Utilisateur supprimé avec succès!", "succes");
+    } catch (err) {
+      afficherMessage(err.response?.data?.message || err.message || "Erreur lors de la suppression de l'utilisateur", "erreur");
+    }
+  };
+
+  // Send message (placeholder, as no API is provided for messaging)
   const envoyerMessage = () => {
     if (!messageContact.trim()) {
-      afficherMessage("Veuillez saisir un message", "erreur")
-      return
+      afficherMessage("Veuillez saisir un message", "erreur");
+      return;
     }
 
-    // Simuler l'envoi d'un message
-    console.log(`Message envoyé à ${selectedUser.nom}: ${messageContact}`)
-    setMessageContact("")
-    setShowContactModal(false)
-    afficherMessage(`Message envoyé à ${selectedUser.nom}`, "succes")
-  }
+    console.log(`Message envoyé à ${selectedUser.nom}: ${messageContact}`);
+    setMessageContact("");
+    setShowContactModal(false);
+    afficherMessage(`Message envoyé à ${selectedUser.nom}`, "succes");
+  };
 
-  // Fonction pour modifier l'utilisateur
-  const modifierUtilisateur = () => {
-    // Simuler la modification d'un utilisateur
-    const usersModifies = users.map((user) => {
-      if (user.id === selectedUser.id) {
-        return {
-          ...user,
-          nom: nouveauNom || user.nom,
-          email: nouveauEmail || user.email,
-          agence: nouvelleAgence || user.agence,
-          role: nouveauRole || user.role,
-        }
-      }
-      return user
-    })
-
-    setUsers(usersModifies)
-    setShowEditModal(false)
-    afficherMessage(`Utilisateur ${selectedUser.nom} modifié avec succès!`, "succes")
-  }
-
-  // Fonction pour rediriger vers la page de dispatche
+  // Redirect to dispatch page
   const envoyerStock = (type) => {
-    setShowDispatcheModal(false)
+    setShowDispatcheModal(false);
     if (type === "consommables") {
-      navigate("/admin/consommables/dispatche")
+      navigate("/admin/consommables/dispatche");
     } else {
-      navigate("/admin/immobiliers/dispatche")
+      navigate("/admin/immobiliers/dispatche");
     }
-  }
+  };
 
-  // Fonction pour afficher un message
+  // Display message
   const afficherMessage = (texte, type) => {
-    const messageElement = document.createElement("div")
-    messageElement.className = `alerte-flottante alerte-${type}`
+    const messageElement = document.createElement("div");
+    messageElement.className = `alerte-flottante alerte-${type}`;
     messageElement.innerHTML = `
       <div class="icone-alerte">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -180,94 +311,92 @@ function GestionUtilisateurs() {
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
-    `
+    `;
 
-    document.body.appendChild(messageElement)
+    document.body.appendChild(messageElement);
 
-    // Ajouter l'animation d'entrée
     setTimeout(() => {
-      messageElement.classList.add("visible")
-    }, 10)
+      messageElement.classList.add("visible");
+    }, 10);
 
-    // Ajouter l'événement pour fermer l'alerte
-    const boutonFermer = messageElement.querySelector(".fermer-alerte")
+    const boutonFermer = messageElement.querySelector(".fermer-alerte");
     if (boutonFermer) {
       boutonFermer.addEventListener("click", () => {
-        messageElement.classList.remove("visible")
-        messageElement.classList.add("disparition")
+        messageElement.classList.remove("visible");
+        messageElement.classList.add("disparition");
         setTimeout(() => {
           if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement)
+            messageElement.parentNode.removeChild(messageElement);
           }
-        }, 300)
-      })
+        }, 300);
+      });
     }
 
-    // Supprimer l'alerte après 5 secondes
     setTimeout(() => {
       if (messageElement.parentNode) {
-        messageElement.classList.remove("visible")
-        messageElement.classList.add("disparition")
+        messageElement.classList.remove("visible");
+        messageElement.classList.add("disparition");
         setTimeout(() => {
           if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement)
+            messageElement.parentNode.removeChild(messageElement);
           }
-        }, 300)
+        }, 300);
       }
-    }, 5000)
-  }
+    }, 5000);
+  };
 
-  // Filtrer les utilisateurs en fonction de la recherche et du filtre
+  // Filter users
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.agence.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = filterType === "Tous les types" || user.role === filterType
+    const matchesFilter = filterType === "Tous les types" || user.role === filterType;
 
-    return matchesSearch && matchesFilter
-  })
+    return matchesSearch && matchesFilter;
+  });
 
-  // Ouvrir le modal avec les détails de l'utilisateur
+  // Open user details modal
   const openUserDetails = (user) => {
-    setSelectedUser(user)
-    setShowModal(true)
-  }
+    setSelectedUser(user);
+    setShowModal(true);
+  };
 
-  // Ouvrir le modal de contact
+  // Open contact modal
   const openContactModal = () => {
-    setMessageContact("")
-    setShowContactModal(true)
-    setShowModal(false)
-  }
+    setMessageContact("");
+    setShowContactModal(true);
+    setShowModal(false);
+  };
 
-  // Ouvrir le modal d'édition
+  // Open edit modal
   const openEditModal = () => {
-    setNouveauNom(selectedUser.nom)
-    setNouveauEmail(selectedUser.email)
-    setNouvelleAgence(selectedUser.agence)
-    setNouveauRole(selectedUser.role)
-    setShowEditModal(true)
-    setShowModal(false)
-  }
+    setNouveauNom(selectedUser.nom.split(" ")[0]);
+    setNouveauPrenom(selectedUser.nom.split(" ").slice(1).join(" "));
+    setNouveauEmail(selectedUser.email);
+    setNouvelleAgence(selectedUser.agence);
+    setNouveauMotDePasse("");
+    setShowEditModal(true);
+    setShowModal(false);
+  };
 
-  // Ouvrir le modal de dispatche
+  // Open dispatch modal
   const openDispatcheModal = () => {
-    setShowDispatcheModal(true)
-    setShowModal(false)
-  }
+    setShowDispatcheModal(true);
+    setShowModal(false);
+  };
 
-  // Obtenir les initiales pour l'avatar
+  // Get initials for avatar
   const getInitials = (name) => {
     return name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-      .substring(0, 2)
-  }
+      .substring(0, 2);
+  };
 
   return (
     <div className="gestion-utilisateurs-container">
@@ -289,9 +418,7 @@ function GestionUtilisateurs() {
           <label>Type:</label>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
             <option>Tous les types</option>
-            <option>Gestionnaire d'agence</option>
-            <option>Responsable Western Union</option>
-            <option>Directeur régional</option>
+            <option>admin</option>
           </select>
         </div>
 
@@ -300,20 +427,19 @@ function GestionUtilisateurs() {
         </button>
       </div>
 
-      {/* Modal d'ajout d'utilisateur */}
       {showAddUserModal && (
         <div className="modal-overlay">
           <div className="modal-contenu">
             <div className="modal-header">
               <h2>Ajouter un utilisateur</h2>
               <button className="close-modal-btn" onClick={() => setShowAddUserModal(false)}>
-                &times;
+                ×
               </button>
             </div>
             <div className="formulaire-modal">
               <div className="groupe-champ">
                 <label htmlFor="nom">
-                  <User size={16} /> Nom complet*
+                  <User size={16} /> Nom*
                 </label>
                 <input
                   id="nom"
@@ -322,7 +448,21 @@ function GestionUtilisateurs() {
                   value={nouveauNom}
                   onChange={(e) => setNouveauNom(e.target.value)}
                   required
-                  placeholder="Ex: Rakoto Jean"
+                  placeholder="Ex: Rakoto"
+                />
+              </div>
+              <div className="groupe-champ">
+                <label htmlFor="prenom">
+                  <User size={16} /> Prénom*
+                </label>
+                <input
+                  id="prenom"
+                  name="prenom"
+                  type="text"
+                  value={nouveauPrenom}
+                  onChange={(e) => setNouveauPrenom(e.target.value)}
+                  required
+                  placeholder="Ex: Jean"
                 />
               </div>
               <div className="groupe-champ">
@@ -340,6 +480,20 @@ function GestionUtilisateurs() {
                 />
               </div>
               <div className="groupe-champ">
+                <label htmlFor="motDePasse">
+                  <Lock size={16} /> Mot de passe*
+                </label>
+                <input
+                  id="motDePasse"
+                  name="motDePasse"
+                  type="password"
+                  value={nouveauMotDePasse}
+                  onChange={(e) => setNouveauMotDePasse(e.target.value)}
+                  required
+                  placeholder="Entrez le mot de passe"
+                />
+              </div>
+              <div className="groupe-champ">
                 <label htmlFor="agence">
                   <Building size={16} /> Agence*
                 </label>
@@ -353,20 +507,6 @@ function GestionUtilisateurs() {
                   placeholder="Ex: CEM01"
                 />
               </div>
-              <div className="groupe-champ">
-                <label htmlFor="role">Rôle*</label>
-                <select
-                  id="role"
-                  name="role"
-                  value={nouveauRole}
-                  onChange={(e) => setNouveauRole(e.target.value)}
-                  required
-                >
-                  <option value="Gestionnaire d'agence">Gestionnaire d'agence</option>
-                  <option value="Responsable Western Union">Responsable Western Union</option>
-                  <option value="Directeur régional">Directeur régional</option>
-                </select>
-              </div>
               <div className="actions-modal">
                 <button className="bouton-annuler" onClick={() => setShowAddUserModal(false)}>
                   Annuler
@@ -374,7 +514,7 @@ function GestionUtilisateurs() {
                 <button
                   className="bouton-sauvegarder"
                   onClick={ajouterUtilisateur}
-                  disabled={!nouveauNom || !nouvelleAgence || !nouveauEmail}
+                  disabled={!nouveauNom || !nouveauPrenom || !nouvelleAgence || !nouveauEmail || !nouveauMotDePasse}
                 >
                   Ajouter
                 </button>
@@ -384,14 +524,13 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal de contact utilisateur */}
       {showContactModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
             <div className="modal-header">
               <h2>Contacter {selectedUser.nom}</h2>
               <button className="close-modal-btn" onClick={() => setShowContactModal(false)}>
-                &times;
+                ×
               </button>
             </div>
             <div className="formulaire-modal">
@@ -430,20 +569,19 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal d'édition utilisateur */}
       {showEditModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
             <div className="modal-header">
               <h2>Modifier {selectedUser.nom}</h2>
               <button className="close-modal-btn" onClick={() => setShowEditModal(false)}>
-                &times;
+                ×
               </button>
             </div>
             <div className="formulaire-modal">
               <div className="groupe-champ">
                 <label htmlFor="edit-nom">
-                  <User size={16} /> Nom complet
+                  <User size={16} /> Nom
                 </label>
                 <input
                   id="edit-nom"
@@ -451,6 +589,19 @@ function GestionUtilisateurs() {
                   type="text"
                   value={nouveauNom}
                   onChange={(e) => setNouveauNom(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="groupe-champ">
+                <label htmlFor="edit-prenom">
+                  <User size={16} /> Prénom
+                </label>
+                <input
+                  id="edit-prenom"
+                  name="edit-prenom"
+                  type="text"
+                  value={nouveauPrenom}
+                  onChange={(e) => setNouveauPrenom(e.target.value)}
                   required
                 />
               </div>
@@ -468,6 +619,19 @@ function GestionUtilisateurs() {
                 />
               </div>
               <div className="groupe-champ">
+                <label htmlFor="edit-motDePasse">
+                  <Lock size={16} /> Mot de passe (laisser vide pour ne pas modifier)
+                </label>
+                <input
+                  id="edit-motDePasse"
+                  name="edit-motDePasse"
+                  type="password"
+                  value={nouveauMotDePasse}
+                  onChange={(e) => setNouveauMotDePasse(e.target.value)}
+                  placeholder="Nouveau mot de passe"
+                />
+              </div>
+              <div className="groupe-champ">
                 <label htmlFor="edit-agence">
                   <Building size={16} /> Agence
                 </label>
@@ -479,20 +643,6 @@ function GestionUtilisateurs() {
                   onChange={(e) => setNouvelleAgence(e.target.value)}
                   required
                 />
-              </div>
-              <div className="groupe-champ">
-                <label htmlFor="edit-role">Rôle</label>
-                <select
-                  id="edit-role"
-                  name="edit-role"
-                  value={nouveauRole}
-                  onChange={(e) => setNouveauRole(e.target.value)}
-                  required
-                >
-                  <option value="Gestionnaire d'agence">Gestionnaire d'agence</option>
-                  <option value="Responsable Western Union">Responsable Western Union</option>
-                  <option value="Directeur régional">Directeur régional</option>
-                </select>
               </div>
               <div className="actions-modal">
                 <button className="bouton-annuler" onClick={() => setShowEditModal(false)}>
@@ -507,14 +657,13 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal de choix de dispatche */}
       {showDispatcheModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
             <div className="modal-header">
               <h2>Envoyer du stock à {selectedUser.nom}</h2>
               <button className="close-modal-btn" onClick={() => setShowDispatcheModal(false)}>
-                &times;
+                ×
               </button>
             </div>
             <div className="dispatche-options">
@@ -589,6 +738,9 @@ function GestionUtilisateurs() {
                   <button className="view-details-btn" onClick={() => openUserDetails(user)}>
                     Voir détails <ArrowRight size={16} />
                   </button>
+                  <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(user.id)}>
+                    <Trash2 size={16} /> Supprimer
+                  </button>
                 </div>
               </div>
             ))
@@ -607,7 +759,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal de détails utilisateur */}
       {showModal && selectedUser && (
         <div className="modal-overlay">
           <div className="user-details-modal">
@@ -622,7 +773,7 @@ function GestionUtilisateurs() {
                 </div>
               </div>
               <button className="close-modal-btn" onClick={() => setShowModal(false)}>
-                &times;
+                ×
               </button>
             </div>
 
@@ -745,13 +896,16 @@ function GestionUtilisateurs() {
                 <button className="action-btn edit-user" onClick={openEditModal}>
                   <Edit size={16} /> Modifier l'utilisateur
                 </button>
+                <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(selectedUser.id)}>
+                  <Trash2 size={16} /> Supprimer l'utilisateur
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default GestionUtilisateurs
+export default GestionUtilisateurs;
