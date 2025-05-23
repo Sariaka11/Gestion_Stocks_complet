@@ -23,7 +23,7 @@ body {
   font-family: "Segoe UI", Arial, sans-serif;
   background-color: #f0f0f0;
   color: var(--color-black);
-  overflow-x: hidden;
+  overflow-y:hidden;
 }
 
 .page-inventaire {
@@ -32,13 +32,13 @@ body {
   min-height: 100vh;
   background-color: var(--color-white);
   width: 100%;
-  overflow-x: hidden;
+ 
 }
 
 .content-wrapper {
   padding: 20px;
   max-width: 100%;
-  overflow-x: hidden;
+ 
 }
 
 /* Header */
@@ -194,7 +194,7 @@ body {
 }
 
 /* Loading */
-.loading-overlay {
+/* .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -206,8 +206,19 @@ body {
   align-items: center;
   justify-content: center;
   flex-direction: column;
+} */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8); /* Fond semi-transparent */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000; /* S'assurer qu'il est au-dessus des autres contenus */
 }
-
 .spinner {
   animation: spin 1s linear infinite;
   color: var(--color-red);

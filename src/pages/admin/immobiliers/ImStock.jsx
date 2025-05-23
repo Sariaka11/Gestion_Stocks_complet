@@ -517,6 +517,7 @@ function ImStock() {
           )}
         </div>
 
+      
         <table className="table-categorie">
           <thead>
             <tr>
@@ -553,8 +554,9 @@ function ImStock() {
           </tbody>
         </table>
       </div>
-
+      
       <div className="imstock-table-container">
+        <h2 className="titre2">Gestion des biens</h2>
         <table className="imstock-table">
           <thead>
             <tr>

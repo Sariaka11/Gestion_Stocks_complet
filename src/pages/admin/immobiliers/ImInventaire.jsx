@@ -280,7 +280,9 @@ function ImInventaire() {
 
       <div className="inventaire-header">
         <h2>Inventaire des immobiliers</h2>
-        <div className="inventaire-actions">
+      </div>
+
+      <div className="inventaire-actions">
           <button className="btn-hist" onClick={() => setShowHistorique(!showHistorique)}>
             {showHistorique ? "Masquer l'historique" : "Historique"}
           </button>
@@ -288,7 +290,6 @@ function ImInventaire() {
             <FileDown size={16} /> Exporter
           </button>
         </div>
-      </div>
 
       {apiStatus !== "available" && (
         <div className="api-status-warning">
@@ -321,7 +322,6 @@ function ImInventaire() {
                 <th>Date</th>
                 <th>Précision</th>
                 <th>Écarts détectés</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -423,7 +423,6 @@ function ImInventaire() {
                   <th>Date d'acquisition</th>
                   <th>Quantité</th>
                   <th>Statut</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -441,16 +440,6 @@ function ImInventaire() {
                         <span className={`statut-badge ${item.statut}`}>
                           {item.statut === "actif" ? "Actif" : "Amorti"}
                         </span>
-                      </td>
-                      <td>
-                        <div className="actions-cell">
-                          <button className="btn-action btn-edit" title="Modifier">
-                            <Edit size={16} />
-                          </button>
-                          <button className="btn-action btn-delete" title="Supprimer">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
                       </td>
                     </tr>
                   ))

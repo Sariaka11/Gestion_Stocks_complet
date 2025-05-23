@@ -1,5 +1,6 @@
 .gestion-utilisateurs-container {
   padding: 1rem 0;
+  width: 169vh;
 }
 
 .page-title {
@@ -647,81 +648,129 @@
   background-color: var(--border);
 }
 
-/* Styles pour les alertes de succès */
-.alerte-flottante {
+/* Toast Notifications */
+.toast-container {
   position: fixed;
-  bottom: 20px;
+  top: 20px;
   right: 20px;
-  max-width: 300px; /* Réduire la largeur maximale */
-  padding: 10px 15px; /* Réduire le padding */
-  background-color: white;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transform: translateY(100px);
-  opacity: 0;
-  transition: all 0.3s ease;
-  z-index: 1000;
-  font-size: 0.9rem; /* Réduire la taille de la police */
+  animation: slideIn 0.3s ease-out forwards;
+  background-color: white;
+  border-left: 4px solid;
 }
 
-.alerte-flottante.visible {
-  transform: translateY(0);
-  opacity: 1;
+.toast-success {
+  border-left-color: #10b981;
 }
 
-.alerte-flottante.disparition {
-  transform: translateY(100px);
-  opacity: 0;
+.toast-error {
+  border-left-color: #ef4444;
 }
 
-.alerte-succes {
-  border-left: 4px solid #52c41a;
+.toast-info {
+  border-left-color: #3b82f6;
 }
 
-.alerte-erreur {
-  border-left: 4px solid #f5222d;
-}
-
-.alerte-info {
-  border-left: 4px solid #1890ff;
-}
-
-.icone-alerte {
+.toast-icon {
+  margin-right: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #52c41a;
 }
 
-.alerte-erreur .icone-alerte {
-  color: #f5222d;
+.toast-success .toast-icon {
+  color: #10b981;
 }
 
-.alerte-info .icone-alerte {
-  color: #1890ff;
+.toast-error .toast-icon {
+  color: #ef4444;
 }
 
-.texte-alerte {
+.toast-info .toast-icon {
+  color: #3b82f6;
+}
+
+.toast-message {
   flex: 1;
+  font-size: 14px;
+  color: #1f2937;
 }
 
-.fermer-alerte {
+.toast-close {
   background: none;
   border: none;
+  color: #9ca3af;
   cursor: pointer;
-  color: #999;
-  padding: 0;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-.fermer-alerte:hover {
-  color: #666;
+.toast-close:hover {
+  background-color: #f3f4f6;
+  color: #4b5563;
 }
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast.removing {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+/* Modal Close Button Update */
+.close-modal-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.close-modal-btn:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
 
 /* Styles pour le modal de dispatche */
 .dispatche-options {

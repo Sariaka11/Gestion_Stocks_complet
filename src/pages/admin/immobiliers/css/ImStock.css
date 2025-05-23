@@ -64,11 +64,20 @@
   font-size: 0.875rem;
 }
 
+.titre2{
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+  color:var(--primary);
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
 .imstock-table-container {
   background-color: white;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
 }
 
 .imstock-table {
@@ -245,24 +254,6 @@
   flex: 1;
 }
 
-.btn-regenerate {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #f0f0f0;
-  color: #333;
-  border: none;
-  padding: 0 0.75rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-regenerate:hover {
-  background-color: #e0e0e0;
-}
-
 .actions-modal {
   display: flex;
   justify-content: flex-end;
@@ -279,12 +270,16 @@
   cursor: pointer;
 }
 
+.bouton-annuler :hover{
+  background-color: #a00000;
+}
+
 .bouton-sauvegarder {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background-color: #cc0000;
+  background-color: #6be480;
   color: white;
   border: none;
   border-radius: 4px;
@@ -293,7 +288,7 @@
 }
 
 .bouton-sauvegarder:hover {
-  background-color: #a00000;
+  background-color: #68d877;
 }
 
 .bouton-sauvegarder:disabled {
@@ -495,13 +490,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #aa0000;
+  color: #9e9d9d;
   transition: background-color 0.2s, color 0.2s;
 }
 
 .btn-icon:hover {
-  background-color: #c71717;
-  color: ;
+  background-color: #cc2a2a;
 }
 
 .btn-icon + .btn-icon {
@@ -543,10 +537,11 @@
   margin-top: 3rem;
   border-top: 1px solid #ddd;
   padding-top: 2rem;
+  margin-bottom: 10%;
 }
 
 .section-categorie h2 {
-  color: #990000;
+  color:var(--primary);
 }
 
 .formulaire-categorie {
