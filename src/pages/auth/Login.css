@@ -78,12 +78,10 @@
 }
 
 .logo-large {
- width: 9.45rem;   /* équivaut à ~4 cm */
+  width: 9.45rem; /* équivaut à ~4 cm */
   height: 4.725rem; /* équivaut à ~2 cm */
   object-fit: contain;
 }
-
-
 
 .auth-right {
   flex: 1;
@@ -122,44 +120,42 @@
   width: 100%;
 }
 
+/* Nouveau style pour les labels avec icônes */
+.label-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label-icon {
+  color: #cc0000;
+}
+
 .form-group label {
   font-size: 0.875rem;
   font-weight: 500;
   color: #555;
 }
 
-.input-with-icon {
-  position: relative;
+/* Nouveau style pour les inputs sans icônes à l'intérieur */
+.form-input {
   width: 100%;
-}
-
-.input-icon {
-  position: absolute;
-  left: 25px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #aaa;
-  z-index: 1;
-}
-
-.input-with-icon input {
-  width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  padding: 0.75rem 1rem;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 0.875rem;
   transition: border-color 0.3s;
   background-color: #f9f9f9;
   box-sizing: border-box;
-  margin-left: 25px;
 }
 
-.input-with-icon input:focus {
+.form-input:focus {
   outline: none;
   border-color: #cc0000;
   box-shadow: 0 0 0 3px rgba(204, 0, 0, 0.1);
 }
 
+/* Styles existants */
 .form-options {
   display: flex;
   justify-content: space-between;

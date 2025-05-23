@@ -5,7 +5,7 @@
 
 .suivi-container h2 {
   margin-bottom: 1.5rem;
-  color: #333;
+  color: var(--primary);
   font-size: 1.75rem;
   font-weight: 600;
 }
