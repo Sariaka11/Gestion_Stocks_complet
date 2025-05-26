@@ -19,15 +19,12 @@ import {
   MessageSquare,
   Trash2,
   Lock,
-  CheckCircle,
-  XCircle,
-  Info,
-  X,
 } from "lucide-react"
 import axios from "axios"
+import { afficherMessage } from "../../../components/utils"
 import "./css/gestion.css"
 
-const API_URL = "http://localhost:5000/api" // Adjust to your backend URL
+const API_URL = "http://localhost:5000/api"
 
 function GestionUtilisateurs() {
   const navigate = useNavigate()
@@ -40,6 +37,7 @@ function GestionUtilisateurs() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDispatcheModal, setShowDispatcheModal] = useState(false)
   const [nouvelleAgence, setNouvelleAgence] = useState("")
+  const [numeroAgence, setNumeroAgence] = useState("")
   const [nouveauNom, setNouveauNom] = useState("")
   const [nouveauPrenom, setNouveauPrenom] = useState("")
   const [nouveauEmail, setNouveauEmail] = useState("")
@@ -47,54 +45,21 @@ function GestionUtilisateurs() {
   const [messageContact, setMessageContact] = useState("")
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState([])
-  const [data, setData] = useState([])
-  const [toasts, setToasts] = useState([])
 
-  // Toast notification system
-  const showToast = (message, type = "success") => {
-    const id = Date.now()
-    const toast = { id, message, type }
-    setToasts((prevToasts) => [...prevToasts, toast])
+  // Fetch users
+  const fetchUsers = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get(`${API_URL}/Users`, {
+        headers: { "Content-Type": "application/json" },
+      })
+      const data = response.data
 
-    // Auto-remove toast after 5 seconds
-    setTimeout(() => {
-      setToasts((prevToasts) => prevToasts.filter((t) => t.id !== id))
-    }, 5000)
-  }
-
-  const removeToast = (id) => {
-    setToasts((prevToasts) => prevToasts.filter((t) => t.id !== id))
-  }
-
-  // Fetch users on component mount
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true)
-      try {
-        const response = await axios.get(`${API_URL}/Users`, {
-          headers: { "Content-Type": "application/json" },
-        })
-        setData(response.data)
-
-        // Log the response to inspect its structure
-        console.log("API Response for /Users:", data)
-
-        // Check if data.$values exists and is an array
-        if (!data.$values || !Array.isArray(data.$values)) {
-          console.error("Expected an array in data.$values, but received:", data)
-          throw new Error("La réponse de l'API ne contient pas un tableau d'utilisateurs")
-        }
-      } catch (err) {
-        console.error("Error in fetchUsers:", err)
-        showToast(err.message || "Erreur lors du chargement des utilisateurs", "error")
-        setUsers([]) // Set empty array to prevent UI issues
-      } finally {
-        setLoading(false)
+      if (!data.$values || !Array.isArray(data.$values)) {
+        console.error("Réponse inattendue :", data)
+        throw new Error("La réponse de l'API ne contient pas un tableau d'utilisateurs")
       }
-    }
 
-    const mappedData = async () => {
-      // Use data.$values instead of data
       const usersWithDetails = await Promise.all(
         data.$values.map(async (user) => {
           const agenceResponse = await axios.get(`${API_URL}/Users/${user.id}/Agence`).catch(() => ({
@@ -103,49 +68,100 @@ function GestionUtilisateurs() {
           const fournituresResponse = await axios.get(`${API_URL}/Users/${user.id}/Fournitures`).catch(() => ({
             data: [],
           }))
+          let stockItems = fournituresResponse.data
+
+          if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
+            stockItems = stockItems.$values
+          } else if (!Array.isArray(stockItems)) {
+            console.warn(`stockItems non valide pour user ${user.id} :`, stockItems)
+            stockItems = []
+          }
+
           const agence = agenceResponse.data
-          const stockItems = fournituresResponse.data
+
           return {
             id: user.id,
             nom: `${user.nom} ${user.prenom}`,
             role: user.fonction,
             agence: agence.nom,
             email: user.email,
-            telephone: "+261 34 00 000 00", // Placeholder, adjust as needed
-            dateCreation: new Date().toLocaleDateString(), // Adjust based on API data
-            stockCritique: stockItems.some((item) => item.quantiteRestante < item.seuilCritique),
+            telephone: "+261 34 00 000 00",
+            dateCreation: new Date().toLocaleDateString(),
+            stockCritique:
+              Array.isArray(stockItems) && stockItems.length > 0
+                ? stockItems.some((item) => item.quantiteRestante < item.seuilCritique)
+                : false,
             stockLevel:
-              stockItems.length > 0
-                ? Math.min(100, stockItems.reduce((sum, item) => sum + item.quantiteRestante, 0) / stockItems.length)
+              Array.isArray(stockItems) && stockItems.length > 0
+                ? Math.min(
+                    100,
+                    stockItems.reduce((sum, item) => sum + item.quantiteRestante, 0) / stockItems.length
+                  )
                 : 0,
-            stockItems: stockItems.map((item) => ({
-              id: item.id,
-              designation: item.nom,
-              quantite: item.quantiteRestante,
-              seuil: item.seuilCritique || 10,
-              cmup: item.cmup || 0,
-            })),
+            stockItems: Array.isArray(stockItems)
+              ? stockItems.map((item) => ({
+                  id: item.id,
+                  designation: item.nom,
+                  quantite: item.quantiteRestante,
+                  seuil: item.seuilCritique || 10,
+                  cmup: item.cmup || 0,
+                }))
+              : [],
           }
-        }),
+        })
       )
+
       setUsers(usersWithDetails)
+    } catch (err) {
+      console.error("Erreur fetchUsers :", err)
+      afficherMessage(err.message || "Erreur lors du chargement des utilisateurs", "erreur")
+      setUsers([])
+    } finally {
+      setLoading(false)
     }
-    if (!data.$values) {
-      fetchUsers()
-    } else {
-      mappedData()
-    }
-  }, [data])
+  }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
 
   // Add user
   const ajouterUtilisateur = async () => {
-    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !nouveauEmail || !nouveauMotDePasse) {
-      showToast("Veuillez remplir tous les champs obligatoires", "error")
+    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail || !nouveauMotDePasse) {
+      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
       return
     }
 
     try {
-      // Step 1: Create user
+      // Step 1: Find or create agency
+      let agence
+      const agenceResponse = await axios.get(`${API_URL}/Agences`, {
+        headers: { "Content-Type": "application/json" },
+      })
+      const agences = Array.isArray(agenceResponse.data.$values)
+        ? agenceResponse.data.$values
+        : agenceResponse.data
+
+      agence = agences.find(
+        (a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence
+      )
+
+      if (!agence) {
+        // Create new agency
+        const newAgenceResponse = await axios.post(
+          `${API_URL}/Agences`,
+          {
+            nom: nouvelleAgence,
+            numero: numeroAgence,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+        agence = newAgenceResponse.data
+      }
+
+      // Step 2: Create user
       const userResponse = await axios.post(
         `${API_URL}/Users`,
         {
@@ -153,27 +169,13 @@ function GestionUtilisateurs() {
           prenom: nouveauPrenom,
           email: nouveauEmail,
           motDePasse: nouveauMotDePasse,
-          fonction: "admin",
+          fonction: "Utilisateur",
         },
         {
           headers: { "Content-Type": "application/json" },
-        },
+        }
       )
-
       const user = userResponse.data
-
-      // Step 2: Find agency
-      const agenceResponse = await axios.get(`${API_URL}/Agences`, {
-        headers: { "Content-Type": "application/json" },
-      })
-      const agences = agenceResponse.data
-      const agence = agences.find(
-        (a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === nouvelleAgence,
-      )
-
-      if (!agence) {
-        throw new Error("Agence introuvable")
-      }
 
       // Step 3: Associate user with agency
       await axios.post(
@@ -184,42 +186,94 @@ function GestionUtilisateurs() {
         },
         {
           headers: { "Content-Type": "application/json" },
-        },
+        }
       )
 
-      // Refresh user list
+      // Step 4: Fetch updated user details
+      const newUserResponse = await axios.get(`${API_URL}/Users/${user.id}`)
+      const newUserData = newUserResponse.data
+      const agenceDetails = await axios.get(`${API_URL}/Users/${user.id}/Agence`).catch(() => ({
+        data: { nom: agence.nom },
+      }))
+      const fournituresResponse = await axios.get(`${API_URL}/Users/${user.id}/Fournitures`).catch(() => ({
+        data: [],
+      }))
+      let stockItems = fournituresResponse.data
+
+      if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
+        stockItems = stockItems.$values
+      } else if (!Array.isArray(stockItems)) {
+        stockItems = []
+      }
+
       const newUser = {
-        id: user.id,
-        nom: `${nouveauNom} ${nouveauPrenom}`,
-        role: "admin",
-        agence: nouvelleAgence,
-        email: nouveauEmail,
+        id: newUserData.id,
+        nom: `${newUserData.nom} ${newUserData.prenom}`,
+        role: newUserData.fonction,
+        agence: agenceDetails.data.nom,
+        email: newUserData.email,
+        telephone: "+261 34 00 000 00",
         dateCreation: new Date().toLocaleDateString(),
         stockCritique: false,
         stockLevel: 0,
         stockItems: [],
       }
+
+      // Update state
       setUsers([...users, newUser])
       setNouveauNom("")
       setNouveauPrenom("")
       setNouvelleAgence("")
+      setNumeroAgence("")
       setNouveauEmail("")
       setNouveauMotDePasse("")
       setShowAddUserModal(false)
-      showToast(`Utilisateur ${nouveauNom} ajouté avec succès!`, "success")
+      afficherMessage(`Utilisateur ${newUser.nom} ajouté avec succès !`, "succes")
     } catch (err) {
-      showToast(err.response?.data?.message || err.message || "Erreur lors de la création de l'utilisateur", "error")
+      console.error("Erreur lors de la création de l'utilisateur :", err)
+      afficherMessage(
+        err.response?.data?.message || err.message || "Erreur lors de la création de l'utilisateur",
+        "erreur"
+      )
     }
   }
 
   // Edit user
   const modifierUtilisateur = async () => {
-    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !nouveauEmail) {
-      showToast("Veuillez remplir tous les champs obligatoires", "error")
+    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail) {
+      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
       return
     }
 
     try {
+      // Find or create agency
+      let agence
+      const agenceResponse = await axios.get(`${API_URL}/Agences`, {
+        headers: { "Content-Type": "application/json" },
+      })
+      const agences = Array.isArray(agenceResponse.data.$values)
+        ? agenceResponse.data.$values
+        : agenceResponse.data
+
+      agence = agences.find(
+        (a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence
+      )
+
+      if (!agence) {
+        const newAgenceResponse = await axios.post(
+          `${API_URL}/Agences`,
+          {
+            nom: nouvelleAgence,
+            numero: numeroAgence,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+        agence = newAgenceResponse.data
+      }
+
+      // Update user
       await axios.put(
         `${API_URL}/Users/${selectedUser.id}`,
         {
@@ -227,37 +281,25 @@ function GestionUtilisateurs() {
           nom: nouveauNom,
           prenom: nouveauPrenom,
           email: nouveauEmail,
-          fonction: "admin",
+          fonction: "Utilisateur",
           motDePasse: nouveauMotDePasse || "",
         },
         {
           headers: { "Content-Type": "application/json" },
-        },
+        }
       )
 
       // Update agency association
-      const agenceResponse = await axios.get(`${API_URL}/Agences`, {
-        headers: { "Content-Type": "application/json" },
-      })
-      const agences = agenceResponse.data
-      const agence = agences.find(
-        (a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === nouvelleAgence,
+      await axios.post(
+        `${API_URL}/UserAgences`,
+        {
+          userId: selectedUser.id,
+          agenceId: agence.id,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
       )
-
-      if (agence) {
-        await axios.post(
-          `${API_URL}/UserAgences`,
-          {
-            userId: selectedUser.id,
-            agenceId: agence.id,
-          },
-          {
-            headers: { "Content-Type": "application/json" },
-          },
-        )
-      } else {
-        throw new Error("Agence introuvable")
-      }
 
       // Update local state
       const usersModifies = users.map((user) =>
@@ -267,17 +309,17 @@ function GestionUtilisateurs() {
               nom: `${nouveauNom} ${nouveauPrenom}`,
               email: nouveauEmail,
               agence: nouvelleAgence,
-              role: "admin",
+              role: "Utilisateur",
             }
-          : user,
+          : user
       )
       setUsers(usersModifies)
       setShowEditModal(false)
-      showToast(`Utilisateur ${selectedUser.nom} modifié avec succès!`, "success")
+      afficherMessage(`Utilisateur ${selectedUser.nom} modifié avec succès !`, "succes")
     } catch (err) {
-      showToast(
+      afficherMessage(
         err.response?.data?.message || err.message || "Erreur lors de la modification de l'utilisateur",
-        "error",
+        "erreur"
       )
     }
   }
@@ -291,23 +333,26 @@ function GestionUtilisateurs() {
 
       setUsers(users.filter((user) => user.id !== userId))
       setShowModal(false)
-      showToast("Utilisateur supprimé avec succès!", "success")
+      afficherMessage("Utilisateur supprimé avec succès !", "succes")
     } catch (err) {
-      showToast(err.response?.data?.message || err.message || "Erreur lors de la suppression de l'utilisateur", "error")
+      afficherMessage(
+        err.response?.data?.message || err.message || "Erreur lors de la suppression de l'utilisateur",
+        "erreur"
+      )
     }
   }
 
-  // Send message (placeholder, as no API is provided for messaging)
+  // Send message
   const envoyerMessage = () => {
     if (!messageContact.trim()) {
-      showToast("Veuillez saisir un message", "error")
+      afficherMessage("Veuillez saisir un message", "erreur")
       return
     }
 
     console.log(`Message envoyé à ${selectedUser.nom}: ${messageContact}`)
     setMessageContact("")
     setShowContactModal(false)
-    showToast(`Message envoyé à ${selectedUser.nom}`, "success")
+    afficherMessage(`Message envoyé à ${selectedUser.nom}`, "succes")
   }
 
   // Redirect to dispatch page
@@ -352,6 +397,7 @@ function GestionUtilisateurs() {
     setNouveauPrenom(selectedUser.nom.split(" ").slice(1).join(" "))
     setNouveauEmail(selectedUser.email)
     setNouvelleAgence(selectedUser.agence)
+    setNumeroAgence("") // Reset for edit
     setNouveauMotDePasse("")
     setShowEditModal(true)
     setShowModal(false)
@@ -375,23 +421,6 @@ function GestionUtilisateurs() {
 
   return (
     <div className="gestion-utilisateurs-container">
-      {/* Toast Notifications */}
-      <div className="toast-container">
-        {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.type}`}>
-            <div className="toast-icon">
-              {toast.type === "success" && <CheckCircle size={20} />}
-              {toast.type === "error" && <XCircle size={20} />}
-              {toast.type === "info" && <Info size={20} />}
-            </div>
-            <div className="toast-message">{toast.message}</div>
-            <button className="toast-close" onClick={() => removeToast(toast.id)}>
-              <X size={16} />
-            </button>
-          </div>
-        ))}
-      </div>
-
       <h1 className="page-title">Gestion des Utilisateurs</h1>
 
       <div className="search-filter-container">
@@ -410,6 +439,7 @@ function GestionUtilisateurs() {
           <label>Type:</label>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
             <option>Tous les types</option>
+            <option>Utilisateur</option>
             <option>admin</option>
           </select>
         </div>
@@ -425,7 +455,7 @@ function GestionUtilisateurs() {
             <div className="modal-header">
               <h2>Ajouter un utilisateur</h2>
               <button className="close-modal-btn" onClick={() => setShowAddUserModal(false)}>
-                <X size={18} />
+                ×
               </button>
             </div>
             <div className="formulaire-modal">
@@ -487,7 +517,7 @@ function GestionUtilisateurs() {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="agence">
-                  <Building size={16} /> Agence*
+                  <Building size={16} /> Nom de l'Agence*
                 </label>
                 <input
                   id="agence"
@@ -495,6 +525,20 @@ function GestionUtilisateurs() {
                   type="text"
                   value={nouvelleAgence}
                   onChange={(e) => setNouvelleAgence(e.target.value)}
+                  required
+                  placeholder="Ex: Agence Centrale"
+                />
+              </div>
+              <div className="groupe-champ">
+                <label htmlFor="numeroAgence">
+                  <Building size={16} /> Numéro d'Agence*
+                </label>
+                <input
+                  id="numeroAgence"
+                  name="numeroAgence"
+                  type="text"
+                  value={numeroAgence}
+                  onChange={(e) => setNumeroAgence(e.target.value)}
                   required
                   placeholder="Ex: CEM01"
                 />
@@ -506,7 +550,14 @@ function GestionUtilisateurs() {
                 <button
                   className="bouton-sauvegarder"
                   onClick={ajouterUtilisateur}
-                  disabled={!nouveauNom || !nouveauPrenom || !nouvelleAgence || !nouveauEmail || !nouveauMotDePasse}
+                  disabled={
+                    !nouveauNom ||
+                    !nouveauPrenom ||
+                    !nouvelleAgence ||
+                    !numeroAgence ||
+                    !nouveauEmail ||
+                    !nouveauMotDePasse
+                  }
                 >
                   Ajouter
                 </button>
@@ -522,7 +573,7 @@ function GestionUtilisateurs() {
             <div className="modal-header">
               <h2>Contacter {selectedUser.nom}</h2>
               <button className="close-modal-btn" onClick={() => setShowContactModal(false)}>
-                <X size={18} />
+                ×
               </button>
             </div>
             <div className="formulaire-modal">
@@ -552,7 +603,11 @@ function GestionUtilisateurs() {
                 <button className="bouton-annuler" onClick={() => setShowContactModal(false)}>
                   Annuler
                 </button>
-                <button className="bouton-sauvegarder" onClick={envoyerMessage} disabled={!messageContact.trim()}>
+                <button
+                  className="bouton-sauvegarder"
+                  onClick={envoyerMessage}
+                  disabled={!messageContact.trim()}
+                >
                   <MessageSquare size={16} /> Envoyer
                 </button>
               </div>
@@ -567,7 +622,7 @@ function GestionUtilisateurs() {
             <div className="modal-header">
               <h2>Modifier {selectedUser.nom}</h2>
               <button className="close-modal-btn" onClick={() => setShowEditModal(false)}>
-                <X size={18} />
+                ×
               </button>
             </div>
             <div className="formulaire-modal">
@@ -625,7 +680,7 @@ function GestionUtilisateurs() {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="edit-agence">
-                  <Building size={16} /> Agence
+                  <Building size={16} /> Nom de l'Agence
                 </label>
                 <input
                   id="edit-agence"
@@ -636,11 +691,24 @@ function GestionUtilisateurs() {
                   required
                 />
               </div>
+              <div className="groupe-champ">
+                <label htmlFor="edit-numeroAgence">
+                  <Building size={16} /> Numéro d'Agence
+                </label>
+                <input
+                  id="edit-numeroAgence"
+                  name="edit-numeroAgence"
+                  type="text"
+                  value={numeroAgence}
+                  onChange={(e) => setNumeroAgence(e.target.value)}
+                  required
+                />
+              </div>
               <div className="actions-modal">
                 <button className="bouton-annuler" onClick={() => setShowEditModal(false)}>
                   Annuler
                 </button>
-                <button className="bouton-sauvegarder" onClick={modifierUtilisateur}>
+                <button className="bouton-sauvegarder" >
                   <Edit size={16} /> Enregistrer
                 </button>
               </div>
@@ -655,7 +723,7 @@ function GestionUtilisateurs() {
             <div className="modal-header">
               <h2>Envoyer du stock à {selectedUser.nom}</h2>
               <button className="close-modal-btn" onClick={() => setShowDispatcheModal(false)}>
-                <X size={18} />
+                ×
               </button>
             </div>
             <div className="dispatche-options">
@@ -720,7 +788,9 @@ function GestionUtilisateurs() {
                   </div>
                   <div className="stock-progress-bar">
                     <div
-                      className={`stock-progress ${user.stockLevel < 30 ? "low" : user.stockLevel < 70 ? "medium" : "high"}`}
+                      className={`stock-progress ${
+                        user.stockLevel < 30 ? "low" : user.stockLevel < 70 ? "medium" : "high"
+                      }`}
                       style={{ width: `${user.stockLevel}%` }}
                     ></div>
                   </div>
@@ -765,7 +835,7 @@ function GestionUtilisateurs() {
                 </div>
               </div>
               <button className="close-modal-btn" onClick={() => setShowModal(false)}>
-                <X size={18} />
+                ×
               </button>
             </div>
 
@@ -861,7 +931,9 @@ function GestionUtilisateurs() {
                           <td>{item.seuil}</td>
                           <td>{item.cmup.toLocaleString()} Ar</td>
                           <td>
-                            <span className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}>
+                            <span
+                              className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}
+                            >
                               {item.quantite < item.seuil ? "Critique" : "Normal"}
                             </span>
                           </td>
@@ -888,7 +960,10 @@ function GestionUtilisateurs() {
                 <button className="action-btn edit-user" onClick={openEditModal}>
                   <Edit size={16} /> Modifier l'utilisateur
                 </button>
-                <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(selectedUser.id)}>
+                <button
+                  className="action-btn delete-user"
+                  onClick={() => supprimerUtilisateur(selectedUser.id)}
+                >
                   <Trash2 size={16} /> Supprimer l'utilisateur
                 </button>
               </div>
