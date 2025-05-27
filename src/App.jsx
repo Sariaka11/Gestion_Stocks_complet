@@ -5,7 +5,7 @@ import AdminLayout from "./layouts/AdminLayout"
 import UserLayout from "./layouts/UserLayout"
 import LoginUser from "./pages/auth/LoginUser"
 import LoginAdmin from "./pages/auth/LoginAdmin"
-import Register from "./pages/auth/Register"
+
 
 // Import des composants Admin
 import AdminSidebar from "./components/admin/Sidebar"
@@ -18,6 +18,7 @@ import Amortissements from "./pages/admin/immobiliers/Amortissements"
 import ImInventaire from "./pages/admin/immobiliers/ImInventaire"
 import ImDispatche from "./pages/admin/immobiliers/ImDispatche"
 import SuiviStock from "./pages/admin/SuiviStock/SuiviStock"
+import Register from "./pages/admin/Register/Register"
 
 // Import des composants User
 import UserSidebar from "./components/user/Sidebar"
@@ -55,6 +56,7 @@ function App() {
             <Route path="immobiliers/Amortissements" element={<Amortissements />} />
             <Route path="GestionUtilisateurs" element={<GestionUtilisateurs />} />
             <Route path="suivi-stock" element={<SuiviStock />} />
+            <Route path="register" element={<Register />} />
           </Routes>
         </div>
       </div>
@@ -95,7 +97,7 @@ function App() {
         {/* Routes d'authentification */}
         <Route path="/auth/login-user" element={<LoginUser />} />
         <Route path="/auth/login-admin" element={<LoginAdmin />} />
-        <Route path="/auth/register" element={<Register />} />
+        {/* <Route path="/auth/register" element={<Register />} /> */}
 
         {/* Routes admin - rendues publiques */}
         <Route

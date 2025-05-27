@@ -131,6 +131,13 @@ function Sidebar({ isOpen }) {
               <span>Gestion des Utilisateurs</span>
             </NavLink>
           </li>
+
+           <li className="nav-item">
+            <NavLink to="/admin/register" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+              <Users className="nav-icon" size={20} />
+              <span>Inscription</span>
+            </NavLink>
+          </li>
         </ul>
       </nav>
       <div className="sidebar-footer">
