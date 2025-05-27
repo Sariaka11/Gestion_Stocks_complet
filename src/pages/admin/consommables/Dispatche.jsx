@@ -1,12 +1,9 @@
-// ✅ Dispatche.jsx — Avec bouton "Créer", modal et envoi des fournitures à une agence
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { Search, Plus, Edit, Trash, Save } from "lucide-react";
 import {
   getAgences,
-  createAgence,
   deleteAgence,
 } from "../../../services/agenceServices";
 import {
@@ -20,19 +17,17 @@ import "./css/Dispatche.css";
 
 function Dispatche() {
   const [agences, setAgences] = useState([]);
+  const [agencesAffichees, setAgencesAffichees] = useState([]);
   const [fournitures, setFournitures] = useState([]);
-  const [nouvelleAgence, setNouvelleAgence] = useState("");
   const [dispatches, setDispatches] = useState([]);
   const [dispatchEnEdition, setDispatchEnEdition] = useState(null);
   const [filtreDesignation, setFiltreDesignation] = useState("");
-  const [listeAgencesOuverte, setListeAgencesOuverte] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [filtreFourniture, setFiltreFourniture] = useState("");
   const [filtreAgence, setFiltreAgence] = useState("");
-  const [modalAgenceOuvert, setModalAgenceOuvert] = useState(false);
-
-
+  const [filtreAgenceTableau, setFiltreAgenceTableau] = useState("");
   const [modalOuvert, setModalOuvert] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const [nouveauDispatch, setNouveauDispatch] = useState({
     fournitureId: "",
     agenceId: "",
@@ -42,64 +37,51 @@ function Dispatche() {
 
   useEffect(() => {
     setLoading(true);
-  Promise.all([getAgences(), getFournitures()])
-  .then(([resAgences, resFournitures]) => {
-    // On récupère les agences au bon format
-    let agencesRaw = resAgences.data;
-    if (!Array.isArray(agencesRaw)) {
-      agencesRaw = agencesRaw?.["$values"] || [];
-    }
-    setAgences(agencesRaw);
+    Promise.all([getAgences(), getFournitures()])
+      .then(([resAgences, resFournitures]) => {
+        // On récupère les agences au bon format
+        let agencesRaw = resAgences.data;
+        if (!Array.isArray(agencesRaw)) {
+          agencesRaw = agencesRaw?.["$values"] || [];
+        }
+        setAgences(agencesRaw);
 
-    // On récupère les fournitures au bon format
-    let fournituresRaw = resFournitures.data;
-    if (!Array.isArray(fournituresRaw)) {
-      fournituresRaw = fournituresRaw?.["$values"] || [];
-    }
-    setFournitures(fournituresRaw);
+        // On récupère les fournitures au bon format
+        let fournituresRaw = resFournitures.data;
+        if (!Array.isArray(fournituresRaw)) {
+          fournituresRaw = fournituresRaw?.["$values"] || [];
+        }
+        setFournitures(fournituresRaw);
 
-    // Construire le tableau dispatches avec agences déballées
-    const lignes = fournituresRaw.map((f) => ({
-      id: f.id,
-      designation: f.nom,
-      quantite: f.quantiteRestante,
-      date: f.date?.split("T")[0],
-      consommations: agencesRaw.map((a) => ({ agenceId: a.id, quantite: 0 })),
-    }));
+        // Construire le tableau dispatches avec agences déballées
+        const lignes = fournituresRaw.map((f) => ({
+          id: f.id,
+          designation: f.nom,
+          quantite: f.quantiteRestante,
+          date: f.date?.split("T")[0],
+          consommations: agencesRaw.map((a) => ({ agenceId: a.id, quantite: 0 })),
+        }));
 
-    setDispatches(lignes);
-  })
-  .catch((err) => console.error("Erreur chargement:", err))
-  .finally(() => setLoading(false));
-
-
+        setDispatches(lignes);
+      })
+      .catch((err) => console.error("Erreur chargement:", err))
+      .finally(() => setLoading(false));
   }, []);
 
-  const ajouterAgence = () => {
-    if (!nouvelleAgence.trim()) return;
-    createAgence({ nom: nouvelleAgence })
-      .then((res) => {
-        const nouvelle = res.data;
-        setAgences((prev) => [...prev, nouvelle]);
-        setDispatches((prev) =>
-          prev.map((d) => ({
-            ...d,
-            consommations: [...d.consommations, { agenceId: nouvelle.id, quantite: 0 }],
-          }))
-        );
-        setNouvelleAgence("");
-      })
-      .catch((err) => console.error("Erreur ajout agence:", err));
-  };
-
-  const toggleListeAgences = () => {
-    setListeAgencesOuverte(!listeAgencesOuverte);
+  const ajouterAgenceTableau = () => {
+    if (!filtreAgenceTableau) return;
+    const agence = agences.find((a) => a.id === parseInt(filtreAgenceTableau));
+    if (agence && !agencesAffichees.find((a) => a.id === agence.id)) {
+      setAgencesAffichees((prev) => [...prev, agence]);
+    }
+    setFiltreAgenceTableau("");
   };
 
   const supprimerAgence = (id) => {
     deleteAgence(id)
       .then(() => {
         setAgences((prev) => prev.filter((a) => a.id !== id));
+        setAgencesAffichees((prev) => prev.filter((a) => a.id !== id));
         setDispatches((prev) =>
           prev.map((d) => ({
             ...d,
@@ -166,40 +148,6 @@ function Dispatche() {
     setFiltreAgence("");
     setModalOuvert(true);
   };
-
-    const ouvrirModalAgence = () => {
-  setNouvelleAgence({ nom: "", numero: "" });
-  setModalAgenceOuvert(true);
-};
-
-const fermerModalAgence = () => {
-  setModalAgenceOuvert(false);
-};
-
-const handleChangeAgence = (e) => {
-  const { name, value } = e.target;
-  setNouvelleAgence((prev) => ({ ...prev, [name]: value }));
-};
-
-const sauvegarderAgence = () => {
-  const { nom, numero } = nouvelleAgence;
-  if (!nom.trim() || !numero.trim()) return;
-
-  createAgence({ nom, numero })
-    .then((res) => {
-      const nouvelle = res.data;
-      setAgences((prev) => [...prev, nouvelle]);
-      setDispatches((prev) =>
-        prev.map((d) => ({
-          ...d,
-          consommations: [...d.consommations, { agenceId: nouvelle.id, quantite: 0 }],
-        }))
-      );
-      setModalAgenceOuvert(false);
-    })
-    .catch((err) => console.error("Erreur ajout agence:", err));
-};
-
 
   const fermerModal = () => {
     setModalOuvert(false);
@@ -278,11 +226,24 @@ const sauvegarderAgence = () => {
                 className="champ-filtre"
               />
             </div>
-            <div className="ajout-agence">
-              <button className="bouton-ajouter-agence" onClick={ouvrirModalAgence}>
-                <Plus size={16} /> Ajouter Agence
-              </button>
+            <div className="champ-recherche-wrapper">
+              <Search size={18} className="icone-recherche" />
+              <select
+                value={filtreAgenceTableau}
+                onChange={(e) => setFiltreAgenceTableau(e.target.value)}
+                className="champ-filtre"
+              >
+                <option value="">Sélectionner une agence</option>
+                {agences.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nom}
+                  </option>
+                ))}
+              </select>
             </div>
+            <button className="bouton-ajouter" onClick={ajouterAgenceTableau}>
+              <Plus size={16} /> Ajouter
+            </button>
             <button className="bouton-ajouter" onClick={ouvrirModal}>
               <Plus size={16} /> Créer un envoi
             </button>
@@ -296,17 +257,23 @@ const sauvegarderAgence = () => {
                 <tr>
                   <th>Désignation</th>
                   <th>Quantité</th>
-                  {agences.length > 0 && <th colSpan={agences.length}>Consommations des agences</th>}
+                  {agencesAffichees.length > 0 && <th colSpan={agencesAffichees.length}>Consommations des agences</th>}
                   <th>Date</th>
                   <th>Actions</th>
                 </tr>
-                {agences.length > 0 && (
+                {agencesAffichees.length > 0 && (
                   <tr>
                     <th></th>
                     <th></th>
-                    {agences.map((agence) => (
+                    {agencesAffichees.map((agence) => (
                       <th key={agence.id} className="th-agence">
                         {agence.nom}
+                        <button
+                          className="bouton-supprimer-agence"
+                          onClick={() => supprimerAgence(agence.id)}
+                        >
+                          <Trash size={14} />
+                        </button>
                       </th>
                     ))}
                     <th></th>
@@ -320,7 +287,7 @@ const sauvegarderAgence = () => {
                     <tr key={dispatch.id}>
                       <td>{dispatch.designation}</td>
                       <td>{dispatch.quantite}</td>
-                      {agences.map((agence) => {
+                      {agencesAffichees.map((agence) => {
                         const consommation = dispatch.consommations?.find((c) => c.agenceId === agence.id);
                         return (
                           <td key={`${dispatch.id}-${agence.id}`}>
@@ -362,8 +329,8 @@ const sauvegarderAgence = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={agences.length > 0 ? agences.length + 4 : 4} className="no-data">
-                      Aucune agence trouvée. Utilisez le bouton "Ajouter" pour en créer une.
+                    <td colSpan={agencesAffichees.length > 0 ? agencesAffichees.length + 4 : 4} className="no-data">
+                      Aucune donnée trouvée. Utilisez le bouton "Créer un envoi" pour ajouter des données.
                     </td>
                   </tr>
                 )}
@@ -378,112 +345,93 @@ const sauvegarderAgence = () => {
           <div className="modal-contenu">
             <h2>Créer un envoi de fourniture</h2>
             <div className="formulaire-modal">
-            <div className="groupe-champ">
-  <label htmlFor="filtreFourniture">Rechercher une fourniture</label>
-  <input
-    type="text"
-    placeholder="Filtrer..."
-    value={filtreFourniture}
-    onChange={(e) => setFiltreFourniture(e.target.value)}
-  />
-  <select
-    name="fournitureId"
-    value={nouveauDispatch.fournitureId}
-    onChange={handleChange}
-    required
-  >
-    <option value="">-- Sélectionner --</option>
-    {fournitures
-      .filter((f) =>
-        f.nom.toLowerCase().includes(filtreFourniture.toLowerCase())
-      )
-      .map((f) => (
-        <option key={f.id} value={f.id}>
-          {f.nom}
-        </option>
-      ))}
-  </select>
-</div>
+              <div className="groupe-champ">
+                <label htmlFor="filtreFourniture">Rechercher une fourniture</label>
+                <input
+                  type="text"
+                  placeholder="Filtrer..."
+                  value={filtreFourniture}
+                  onChange={(e) => setFiltreFourniture(e.target.value)}
+                />
+                <select
+                  name="fournitureId"
+                  value={nouveauDispatch.fournitureId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Sélectionner --</option>
+                  {fournitures
+                    .filter((f) =>
+                      f.nom.toLowerCase().includes(filtreFourniture.toLowerCase())
+                    )
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.nom}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-<div className="groupe-champ">
-  <label htmlFor="filtreAgence">Rechercher une agence</label>
-  <input
-    type="text"
-    placeholder="Filtrer..."
-    value={filtreAgence}
-    onChange={(e) => setFiltreAgence(e.target.value)}
-  />
-  <select
-    name="agenceId"
-    value={nouveauDispatch.agenceId}
-    onChange={handleChange}
-    required
-  >
-    <option value="">-- Sélectionner --</option>
-    {agences
-      .filter((a) =>
-        a.nom.toLowerCase().includes(filtreAgence.toLowerCase())
-      )
-      .map((a) => (
-        <option key={a.id} value={a.id}>
-          {a.nom}
-        </option>
-      ))}
-  </select>
-</div>
+              <div className="groupe-champ">
+                <label htmlFor="filtreAgence">Rechercher une agence</label>
+                <input
+                  type="text"
+                  placeholder="Filtrer..."
+                  value={filtreAgence}
+                  onChange={(e) => setFiltreAgence(e.target.value)}
+                />
+                <select
+                  name="agenceId"
+                  value={nouveauDispatch.agenceId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Sélectionner --</option>
+                  {agences
+                    .filter((a) =>
+                      a.nom.toLowerCase().includes(filtreAgence.toLowerCase())
+                    )
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.nom}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
               <div className="groupe-champ">
                 <label htmlFor="quantite">Quantité</label>
-                <input type="number" name="quantite" min="1" value={nouveauDispatch.quantite} onChange={handleChange} required />
+                <input
+                  type="number"
+                  name="quantite"
+                  min="1"
+                  value={nouveauDispatch.quantite}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="groupe-champ">
                 <label htmlFor="date">Date</label>
-                <input type="date" name="date" value={nouveauDispatch.date} onChange={handleChange} required />
+                <input
+                  type="date"
+                  name="date"
+                  value={nouveauDispatch.date}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="actions-modal">
-                <button className="bouton-annuler" onClick={fermerModal}>Annuler</button>
-                <button className="bouton-sauvegarder" onClick={sauvegarderDispatch}>Valider</button>
+                <button className="bouton-annuler" onClick={fermerModal}>
+                  Annuler
+                </button>
+                <button className="bouton-sauvegarder" onClick={sauvegarderDispatch}>
+                  Valider
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {modalAgenceOuvert && (
-  <div className="modal-overlay">
-    <div className="modal-contenu">
-      <h2>Créer une nouvelle agence</h2>
-      <div className="formulaire-modal">
-        <div className="groupe-champ">
-          <label htmlFor="numero">Numéro</label>
-          <input
-            type="text"
-            name="numero"
-            value={nouvelleAgence.numero}
-            onChange={handleChangeAgence}
-            required
-          />
-        </div>
-        <div className="groupe-champ">
-          <label htmlFor="nom">Nom</label>
-          <input
-            type="text"
-            name="nom"
-            value={nouvelleAgence.nom}
-            onChange={handleChangeAgence}
-            required
-          />
-        </div>
-        <div className="actions-modal">
-          <button className="bouton-annuler" onClick={fermerModalAgence}>Annuler</button>
-          <button className="bouton-sauvegarder" onClick={sauvegarderAgence}>Créer</button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
-
     </div>
   );
 }

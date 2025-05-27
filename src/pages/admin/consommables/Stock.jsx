@@ -29,7 +29,6 @@ import Modal from "../../../components/Modal"
 import "./css/Stock.css"
 
 function Stock() {
-  // Remplacer la déclaration des états au début du composant pour ajouter modalDetailOuvert et filtreMois/filtreAnnee
   const [modalDetailOuvert, setModalDetailOuvert] = useState(false)
   const [filtreMois, setFiltreMois] = useState("")
   const [filtreAnnee, setFiltreAnnee] = useState("")
@@ -40,9 +39,6 @@ function Stock() {
   const [articleASupprimer, setArticleASupprimer] = useState(null)
   const [articleEnEdition, setArticleEnEdition] = useState(null)
   const [toasts, setToasts] = useState([])
-  const [detailsOuverts, setDetailsOuverts] = useState({})
-  const [filtresMois, setFiltresMois] = useState({})
-  const [filtresAnnee, setFiltresAnnee] = useState({})
 
   const [nouvelArticle, setNouvelArticle] = useState({
     designation: "",
@@ -58,8 +54,8 @@ function Stock() {
     { id: 1, nom: "Fournitures de Bureau", icone: "FileText" },
     { id: 2, nom: "Matériel Informatique", icone: "Computer" },
     { id: 3, nom: "Fournitures d'Entretien", icone: "Package" },
-    { id: 4, nom: "Matériels Informatiques", icone: "HardDrive" },
-    { id: 5, nom: "Livret", icone: "Book" },
+   // { id: 4, nom: "Matériels Informatiques", icone: "HardDrive" },
+    { id: 4, nom: "Livret", icone: "Book" },
   ]
 
   // Fonction pour afficher un toast
@@ -111,20 +107,17 @@ function Stock() {
           id: item.id,
           designation: item.nom,
           categorie: item.categorie,
-
           stockAvant: {
             quantite: item.quantiteRestante,
             montant: item.quantiteRestante * item.prixUnitaire,
             cmup: item.cmup ?? 0,
           },
-
           stockActuel: {
             date: item.date,
             quantite: item.quantite,
             prixUnitaire: item.prixUnitaire,
             montant: item.quantite * item.prixUnitaire,
           },
-
           dateEntree: item.date,
         }))
 
@@ -253,13 +246,11 @@ function Stock() {
     return icones[cat.icone] || <Package size={24} />
   }
 
-  // Remplacer la fonction toggleDetails par ouvrirModalDetail
   const ouvrirModalDetail = (categorie) => {
     setCategorieSelectionnee(categorie)
     setModalDetailOuvert(true)
   }
 
-  // Ajouter la fonction fermerModalDetail
   const fermerModalDetail = () => {
     setModalDetailOuvert(false)
     setCategorieSelectionnee(null)
@@ -267,90 +258,10 @@ function Stock() {
     setFiltreAnnee("")
   }
 
-  const toggleDetails = (categorieId) => {
-    setDetailsOuverts((prev) => ({
-      ...prev,
-      [categorieId]: !prev[categorieId],
-    }))
-  }
-
   const getArticlesParCategorie = (categorie) => {
     return articles.filter((a) => a.categorie === categorie)
   }
 
-  const getMoisDisponibles = (articlesCategorie) => {
-    const mois = new Set()
-    articlesCategorie.forEach((article) => {
-      if (article.dateEntree) {
-        const date = new Date(article.dateEntree)
-        mois.add(date.getMonth())
-      }
-    })
-    return Array.from(mois).sort((a, b) => a - b)
-  }
-
-  const getAnneesDisponibles = (articlesCategorie) => {
-    const annees = new Set()
-    articlesCategorie.forEach((article) => {
-      if (article.dateEntree) {
-        const date = new Date(article.dateEntree)
-        annees.add(date.getFullYear())
-      }
-    })
-    return Array.from(annees).sort((a, b) => a - b)
-  }
-
-  const getNomMois = (numeroMois) => {
-    const mois = [
-      "Janvier",
-      "Février",
-      "Mars",
-      "Avril",
-      "Mai",
-      "Juin",
-      "Juillet",
-      "Août",
-      "Septembre",
-      "Octobre",
-      "Novembre",
-      "Décembre",
-    ]
-    return mois[numeroMois]
-  }
-
-  const handleFiltreMois = (categorieId, mois) => {
-    setFiltresMois((prev) => ({
-      ...prev,
-      [categorieId]: mois,
-    }))
-  }
-
-  const handleFiltreAnnee = (categorieId, annee) => {
-    setFiltresAnnee((prev) => ({
-      ...prev,
-      [categorieId]: annee,
-    }))
-  }
-
-  const getArticlesFiltres = (categorie) => {
-    const articlesCategorie = getArticlesParCategorie(categorie)
-    const moisFiltre = filtresMois[categorie.id]
-    const anneeFiltre = filtresAnnee[categorie.id]
-
-    if (!moisFiltre && !anneeFiltre) return articlesCategorie
-
-    return articlesCategorie.filter((article) => {
-      if (!article.dateEntree) return false
-
-      const date = new Date(article.dateEntree)
-      const moisMatch = moisFiltre === undefined || date.getMonth() === moisFiltre
-      const anneeMatch = anneeFiltre === undefined || date.getFullYear() === anneeFiltre
-
-      return moisMatch && anneeMatch
-    })
-  }
-
-  // Modifier la fonction filtrerArticlesParDate
   const filtrerArticlesParDate = (articles) => {
     if (!filtreMois && !filtreAnnee) return articles
 
@@ -363,6 +274,12 @@ function Stock() {
 
       return moisMatch && anneeMatch
     })
+  }
+
+  // Nouvelle fonction pour compter les articles par catégorie avec les filtres de date
+  const getNombreArticlesParCategorie = (categorie) => {
+    const articlesCategorie = getArticlesParCategorie(categorie)
+    return filtrerArticlesParDate(articlesCategorie).length
   }
 
   const articlesFiltres = articles.filter((article) =>
@@ -379,13 +296,12 @@ function Stock() {
       )}
       <h1 className="titre-page">Gestion du Stock</h1>
 
-      {/* Remplacer le rendu des boîtes de catégories dans le JSX */}
       <div className="categories-stock">
         {categoriesStock.map((cat) => (
           <div key={cat.id} className="boite-categorie" onClick={() => ouvrirModalDetail(cat)}>
             <div className="icone-categorie">{getIconeCategorie(cat.nom)}</div>
             <h3>{cat.nom}</h3>
-            <p className="quantite-categorie">{getArticlesParCategorie(cat.nom).length} articles</p>
+            <p className="quantite-categorie">{getNombreArticlesParCategorie(cat.nom)} articles</p>
             <div className="voir-details">Voir détails</div>
           </div>
         ))}
@@ -563,7 +479,6 @@ function Stock() {
         </div>
       </Modal>
 
-      {/* Système de toast notifications */}
       <div className="toast-container">
         {toasts.map((toast) =>
           toast.type === "confirmation" ? (
@@ -613,7 +528,7 @@ function Stock() {
           ),
         )}
       </div>
-      {/* Modal de détail de catégorie */}
+
       {modalDetailOuvert && categorieSelectionnee && (
         <div className="modal-overlay">
           <div className="modal-contenu modal-large">
@@ -646,11 +561,13 @@ function Stock() {
                   </label>
                   <select id="filtreAnnee" value={filtreAnnee} onChange={(e) => setFiltreAnnee(e.target.value)}>
                     <option value="">Toutes les années</option>
-                    {getAnneesDisponibles(articles).map((annee) => (
-                      <option key={annee} value={annee.toString()}>
-                        {annee}
-                      </option>
-                    ))}
+                    {[...new Set(articles.map((a) => new Date(a.dateEntree).getFullYear()))]
+                      .sort((a, b) => a - b)
+                      .map((annee) => (
+                        <option key={annee} value={annee.toString()}>
+                          {annee}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>

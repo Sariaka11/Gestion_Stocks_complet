@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { FileDown, Package, Truck, Calendar, Loader2, FileText, X } from "lucide-react"
 import { getFournitures } from "../../../services/fournituresServices"
 import { getAgenceFournitures } from "../../../services/agenceFournituresServices"
+import { getAgences } from "../../../services/agenceServices"
 import "./css/Inventaire.css"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -11,9 +12,19 @@ import autoTable from "jspdf-autotable"
 function Inventaire() {
   const [fournitures, setFournitures] = useState([])
   const [agenceFournitures, setAgenceFournitures] = useState([])
+  const [agences, setAgences] = useState([])
   const [loading, setLoading] = useState(true)
   const [filtreDate, setFiltreDate] = useState("")
+  const [filtreCategorie, setFiltreCategorie] = useState("")
   const [toasts, setToasts] = useState([])
+
+  const categoriesStock = [
+    { id: 1, nom: "Fournitures de Bureau" },
+    { id: 2, nom: "Matériel Informatique" },
+    { id: 3, nom: "Fournitures d'Entretien" },
+    { id: 4, nom: "Matériels Informatiques" },
+    { id: 5, nom: "Livret" },
+  ]
 
   const exporterPDF = () => {
     try {
@@ -23,7 +34,7 @@ function Inventaire() {
       doc.text(" Stock Enregistrés", 14, 15)
 
       const stockData = fournitures
-        .filter((f) => !filtreDate || f.date?.startsWith(filtreDate))
+        .filter((f) => (!filtreDate || f.date?.startsWith(filtreDate)) && (!filtreCategorie || f.categorie === filtreCategorie))
         .map((f) => [
           f.nom,
           f.categorie,
@@ -46,7 +57,16 @@ function Inventaire() {
 
       const dispatchData = agenceFournitures
         .filter((af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate))
-        .map((af) => [af.fourniture?.nom || "-", af.agence?.nom || "-", af.quantite, af.dateAssociation?.split("T")[0]])
+        .map((af) => {
+          const fourniture = fournitures.find((f) => f.id === af.fournitureId)
+          const agence = agences.find((a) => a.id === af.agenceId)
+          return [
+            fourniture?.nom || "-",
+            agence?.nom || "-",
+            af.quantite,
+            af.dateAssociation?.split("T")[0] || "-",
+          ]
+        })
 
       autoTable(doc, {
         head: [["Fourniture", "Agence", "Quantité", "Date"]],
@@ -87,14 +107,15 @@ function Inventaire() {
   useEffect(() => {
     setLoading(true)
 
-    Promise.all([getFournitures(), getAgenceFournitures()])
-      .then(([resF, resAF]) => {
+    Promise.all([getFournitures(), getAgenceFournitures(), getAgences()])
+      .then(([resF, resAF, resAgences]) => {
         const rawFournitures = Array.isArray(resF.data) ? resF.data : resF.data?.["$values"] || []
-
         const rawAgenceFournitures = Array.isArray(resAF.data) ? resAF.data : resAF.data?.["$values"] || []
+        const rawAgences = Array.isArray(resAgences.data) ? resAgences.data : resAgences.data?.["$values"] || []
 
         setFournitures(rawFournitures)
         setAgenceFournitures(rawAgenceFournitures)
+        setAgences(rawAgences)
       })
       .catch((err) => {
         console.error("Erreur chargement:", err)
@@ -102,6 +123,12 @@ function Inventaire() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  // Calcul du total des montants pour les fournitures filtrées
+  const totalMontant = fournitures
+    .filter((f) => (!filtreDate || f.date?.startsWith(filtreDate)) && (!filtreCategorie || f.categorie === filtreCategorie))
+    .reduce((sum, f) => sum + (f.montant || 0), 0)
+    .toFixed(2)
 
   return (
     <div className="page-inventaire">
@@ -115,7 +142,6 @@ function Inventaire() {
           <div className="page-header">
             <h1 className="page-title">Résumé des Opérations</h1>
             <div className="header-actions">
-              <button className="btn-historique">Historique</button>
               <button className="btn-exporter" onClick={exporterPDF}>
                 <FileDown size={18} />
                 Exporter
@@ -134,6 +160,24 @@ function Inventaire() {
                   onChange={(e) => setFiltreDate(e.target.value)}
                   className="date-input"
                 />
+              </div>
+            </div>
+            <div className="categorie-filter">
+              <label>Filtrer par catégorie :</label>
+              <div className="categorie-input-wrapper">
+                <Package size={18} className="categorie-icon" />
+                <select
+                  value={filtreCategorie}
+                  onChange={(e) => setFiltreCategorie(e.target.value)}
+                  className="categorie-input"
+                >
+                  <option value="">Toutes les catégories</option>
+                  {categoriesStock.map((cat) => (
+                    <option key={cat.id} value={cat.nom}>
+                      {cat.nom}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -157,9 +201,11 @@ function Inventaire() {
                   </tr>
                 </thead>
                 <tbody>
-                  {fournitures.filter((f) => !filtreDate || f.date?.startsWith(filtreDate)).length > 0 ? (
+                  {fournitures
+                    .filter((f) => (!filtreDate || f.date?.startsWith(filtreDate)) && (!filtreCategorie || f.categorie === filtreCategorie))
+                    .length > 0 ? (
                     fournitures
-                      .filter((f) => !filtreDate || f.date?.startsWith(filtreDate))
+                      .filter((f) => (!filtreDate || f.date?.startsWith(filtreDate)) && (!filtreCategorie || f.categorie === filtreCategorie))
                       .map((f) => (
                         <tr key={f.id}>
                           <td>{f.nom}</td>
@@ -179,6 +225,15 @@ function Inventaire() {
                     </tr>
                   )}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="5" className="total-label">
+                      Total Montant :
+                    </td>
+                    <td>{totalMontant}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </section>
@@ -203,14 +258,18 @@ function Inventaire() {
                   0 ? (
                     agenceFournitures
                       .filter((af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate))
-                      .map((af, index) => (
-                        <tr key={index}>
-                          <td>{af.fourniture?.nom || "-"}</td>
-                          <td>{af.agence?.nom || "-"}</td>
-                          <td>{af.quantite ?? "-"}</td>
-                          <td>{af.dateAssociation?.split("T")[0] ?? "-"}</td>
-                        </tr>
-                      ))
+                      .map((af, index) => {
+                        const fourniture = fournitures.find((f) => f.id === af.fournitureId)
+                        const agence = agences.find((a) => a.id === af.agenceId)
+                        return (
+                          <tr key={index}>
+                            <td>{fourniture?.nom || "-"}</td>
+                            <td>{agence?.nom || "-"}</td>
+                            <td>{af.quantite ?? "-"}</td>
+                            <td>{af.dateAssociation?.split("T")[0] ?? "-"}</td>
+                          </tr>
+                        )
+                      })
                   ) : (
                     <tr>
                       <td colSpan="4" className="no-data">
@@ -225,7 +284,6 @@ function Inventaire() {
         </div>
       )}
 
-      {/* Système de toast notifications */}
       <div className="toast-container">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast toast-${toast.type}`}>

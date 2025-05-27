@@ -368,3 +368,39 @@ body {
 .admin-main {
   overflow-x: hidden;
 }
+
+.categorie-filter {
+  margin-bottom: 1rem;
+  font-family: Arial, sans-serif;
+}
+
+.categorie-filter label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.categorie-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f5f5f5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.categorie-icon {
+  color: #666;
+}
+
+.categorie-input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  background-color: transparent;
+  font-size: 1rem;
+  outline: none;
+}
+
