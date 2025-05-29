@@ -1,11 +1,10 @@
 "use client"
 
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate } from "react-router-dom"
 import AdminLayout from "./layouts/AdminLayout"
 import UserLayout from "./layouts/UserLayout"
 import LoginUser from "./pages/auth/LoginUser"
 import LoginAdmin from "./pages/auth/LoginAdmin"
-
 
 // Import des composants Admin
 import AdminSidebar from "./components/admin/Sidebar"
@@ -29,43 +28,58 @@ import UserImStock from "./pages/user/Immobiliers/UserImStock"
 import UserImConsommation from "./pages/user/Immobiliers/UserImConsommation"
 import UserImDemande from "./pages/user/Immobiliers/UserImDemande"
 import Profile from "./pages/user/Profil/Profile"
-import { MockDataProvider} from "../app/MockDataProvider"; // ✅ corrige le chemin si nécessaire
-import { RefreshProvider } from './pages/admin/context/RefreshContext';
+import { MockDataProvider } from "../app/MockDataProvider"
+import { RefreshProvider } from './pages/admin/context/RefreshContext'
 import "./App.css"
 
 function App() {
-  // Fonction simple pour la déconnexion (à connecter au backend plus tard)
+  // Fonction pour vérifier si l'utilisateur est connecté
+  const isAuthenticated = () => {
+    return localStorage.getItem('user') !== null;
+  };
+
+  // Fonction de déconnexion
   const handleLogout = () => {
-    console.log("Déconnexion")
-    // Ici vous pourriez rediriger vers la page de login si nécessaire
+    localStorage.removeItem('user');
+    console.log("Déconnexion effectuée");
+    // Forcer un rechargement pour rediriger vers login
+    window.location.href = '/auth/login-admin';
   }
 
-  // Composant Admin Dashboard simplifié
+  // Composant de protection des routes
+  const ProtectedRoute = ({ children }) => {
+    if (!isAuthenticated()) {
+      return <Navigate to="/auth/login-admin" replace />;
+    }
+    return children;
+  };
+
+  // Composant Admin Dashboard
   function AdminDashboard() {
     return (
       <RefreshProvider>
-      <div className="dashboard-container">
-        <AdminSidebar />
-        <div className="dashboard-content">
-          <Routes>
-            <Route path="consommables/stock" element={<Stock />} />
-            <Route path="consommables/inventaire" element={<Inventaire />} />
-            <Route path="consommables/dispatche" element={<Dispatche />} />
-            <Route path="immobiliers/stock" element={<ImStock />} />
-            <Route path="immobiliers/inventaire" element={<ImInventaire />} />
-            <Route path="immobiliers/dispatche" element={<ImDispatche />} />
-            <Route path="immobiliers/Amortissements" element={<Amortissements />} />
-            <Route path="GestionUtilisateurs" element={<GestionUtilisateurs />} />
-            <Route path="suivi-stock" element={<SuiviStock />} />
-            <Route path="register" element={<Register />} />
-          </Routes>
+        <div className="dashboard-container">
+          <AdminSidebar />
+          <div className="dashboard-content">
+            <Routes>
+              <Route path="consommables/stock" element={<Stock />} />
+              <Route path="consommables/inventaire" element={<Inventaire />} />
+              <Route path="consommables/dispatche" element={<Dispatche />} />
+              <Route path="immobiliers/stock" element={<ImStock />} />
+              <Route path="immobiliers/inventaire" element={<ImInventaire />} />
+              <Route path="immobiliers/dispatche" element={<ImDispatche />} />
+              <Route path="immobiliers/Amortissements" element={<Amortissements />} />
+              <Route path="GestionUtilisateurs" element={<GestionUtilisateurs />} />
+              <Route path="suivi-stock" element={<SuiviStock />} />
+              <Route path="register" element={<Register />} />
+            </Routes>
+          </div>
         </div>
-      </div>
       </RefreshProvider>
     )
   }
 
-  // Composant User Dashboard simplifié
+  // Composant User Dashboard
   function UserDashboard() {
     return (
       <div className="dashboard-container">
@@ -82,7 +96,6 @@ function App() {
             <Route path="immobiliers/stock" element={<UserImStock />} />
             <Route path="immobiliers/consommation" element={<UserImConsommation />} />
             <Route path="immobiliers/demande" element={<UserImDemande />} />
-       
             <Route path="profil" element={<Profile />} />
           </Routes>
         </div>
@@ -91,37 +104,41 @@ function App() {
   }
 
   return (
-          <MockDataProvider>
-    <div className="app">
-      <Routes>
-        <Route path="/" element={<LoginAdmin />} />
+    <MockDataProvider>
+      <div className="app">
+        <Routes>
+          {/* Route par défaut - redirection vers login admin */}
+          <Route path="/" element={<LoginAdmin />} />
 
-        {/* Routes d'authentification */}
-        <Route path="/auth/login-user" element={<LoginUser />} />
-        <Route path="/auth/login-admin" element={<LoginAdmin />} />
-        {/* <Route path="/auth/register" element={<Register />} /> */}
+          {/* Routes d'authentification - publiques */}
+          <Route path="/auth/login-user" element={<LoginUser />} />
+          <Route path="/auth/login-admin" element={<LoginAdmin />} />
 
-        {/* Routes admin - rendues publiques */}
-        <Route
-          path="/admin/*"
-          element={
-            <AdminLayout onLogout={handleLogout}>
-              <AdminDashboard />
-            </AdminLayout>
-          }
-        />
+          {/* Routes admin - protégées */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute>
+                <AdminLayout onLogout={handleLogout}>
+                  <AdminDashboard />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Routes utilisateur - rendues publiques */}
-        <Route
-          path="/user/*"
-          element={
-            <UserLayout onLogout={handleLogout}>
-              <UserDashboard />
-            </UserLayout>
-          }
-        />
-      </Routes>
-    </div>
+          {/* Routes utilisateur - protégées */}
+          <Route
+            path="/user/*"
+            element={
+              <ProtectedRoute>
+                <UserLayout onLogout={handleLogout}>
+                  <UserDashboard />
+                </UserLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </div>
     </MockDataProvider>
   )
 }

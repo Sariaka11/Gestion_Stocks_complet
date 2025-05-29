@@ -30,9 +30,19 @@ function AdminLayout({ children }) {
     setSidebarOpen(!sidebarOpen)
   }
 
-  const handleLogout = () => {
-    setShowProfile(false)
-    navigate("/auth/login-admin")
+  const handleLogout = (e) => {
+    console.log('handleLogout called') // Debug
+    e.preventDefault()
+    e.stopPropagation()
+    
+    try {
+      setShowProfile(false)
+      localStorage.removeItem('user')
+      console.log('About to navigate') // Debug
+      navigate("/auth/login-admin")
+    } catch (error) {
+      console.error('Error in handleLogout:', error)
+    }
   }
 
   const notifications = [
@@ -125,12 +135,25 @@ function AdminLayout({ children }) {
                       <UserPlus size={16} />
                       <span>Inscription</span>
                     </Link>
-                    <button className="dropdown-link logout" onClick={handleLogout}>
+                    {/* Version 1: Bouton simple */}
+                    <button 
+                      className="dropdown-link logout" 
+                      onClick={handleLogout}
+                      type="button"
+                    >
                       <LogOut size={16} />
-                      <Link to="./auth/loginAdmin">
                       <span>Déconnexion</span>
-                      </Link>
                     </button>
+
+                    {/* Version 2: Alternative si la première ne marche pas */}
+                    {/* <div 
+                      className="dropdown-link logout" 
+                      onClick={handleLogout}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <LogOut size={16} />
+                      <span>Déconnexion</span>
+                    </div> */}
                   </div>
                 </div>
               )}
@@ -146,7 +169,7 @@ function AdminLayout({ children }) {
 
       <main className="admin-main">{children}</main>
 
-      {/* Overlay pour fermer les dropdowns */}
+      {/* Overlay pour fermer les dropdowns - Modifié pour ne pas interférer */}
       {(showNotifications || showProfile) && (
         <div
           className="dropdown-overlay"
@@ -154,6 +177,7 @@ function AdminLayout({ children }) {
             setShowNotifications(false)
             setShowProfile(false)
           }}
+          style={{ zIndex: 999 }} // S'assurer que l'overlay est derrière le dropdown
         ></div>
       )}
     </div>
