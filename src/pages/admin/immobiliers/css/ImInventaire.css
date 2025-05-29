@@ -597,3 +597,37 @@
     min-width: 800px;
   }
 }
+
+  .tableau-resume {
+    margin-top: 20px;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .tableau-resume th, .tableau-resume td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  .tableau-resume th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+  .tableau-resume .no-data {
+    text-align: center;
+    padding: 10px;
+  }
+
+  .btn-supprimer {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-supprimer:hover {
+  background-color: #c0392b;
+}

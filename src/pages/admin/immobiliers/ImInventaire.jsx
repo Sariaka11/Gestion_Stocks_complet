@@ -1,28 +1,30 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, FileDown, RefreshCw, AlertCircle, Edit, Trash2, X, CheckCircle, AlertTriangle } from "lucide-react"
+import { Search, FileDown, RefreshCw, AlertCircle, X, CheckCircle } from "lucide-react"
 import "./css/ImInventaire.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAmortissements } from "../../../services/amortissementServices"
 import { getBienAgences } from "../../../services/bienAgenceServices"
-import { useMockData } from "../../../../app/MockDataProvider"
+import { getAgences } from "../../../services/agenceServices"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 function ImInventaire() {
   const [filtreDesignation, setFiltreDesignation] = useState("")
   const [filtreMois, setFiltreMois] = useState("")
   const [filtreAnnee, setFiltreAnnee] = useState("")
   const [filtreStatut, setFiltreStatut] = useState("")
-  const [showHistorique, setShowHistorique] = useState(false)
+  const [filtreAgence, setFiltreAgence] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [inventaireData, setInventaireData] = useState([])
+  const [agences, setAgences] = useState([])
+  const [affectations, setAffectations] = useState([])
 
   // État pour gérer les toasts
   const [toasts, setToasts] = useState([])
-
-  // Récupérer le contexte des données mockées
-  const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
   // Générer les options pour les années
   const genererOptionsAnnees = () => {
@@ -44,57 +46,25 @@ function ImInventaire() {
     setLoading(true)
     setError(null)
 
-    // Si nous utilisons des données mockées, utilisez-les directement
-    if (useMock) {
-      console.log("Utilisation des données mockées pour ImInventaire")
-
-      // Transformer les données mockées pour l'inventaire
-      const inventaireItems = mockData.immobiliers.map((item) => {
-        // Trouver les amortissements associés à cet immobilier
-        const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === item.idBien)
-
-        // Trouver les affectations associées à cet immobilier
-        const affectationsBien = mockData.affectations.filter((a) => a.idBien === item.idBien)
-
-        // Déterminer le statut d'amortissement
-        const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
-
-        return {
-          id: item.idBien,
-          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-          designation: item.nomBien || "",
-          codeBarre: item.codeBarre || "0000000000000",
-          prixAchat: item.valeurAcquisition || 0,
-          typeImmobilier:
-            item.categorie?.nomCategorie ||
-            mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
-            "Non catégorisé",
-          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-          quantite: item.quantite || 1,
-          statut: estAmorti ? "amorti" : item.statut || "actif",
-          affectations: affectationsBien,
-        }
-      })
-
-      setInventaireData(inventaireItems)
-      setLoading(false)
-      return
-    }
-
     try {
+      // Charger les agences
+      const agencesRes = await getAgences()
+      let agencesData = agencesRes.data
+      if (agencesData && typeof agencesData === "object" && "$values" in agencesData) {
+        agencesData = agencesData.$values
+      }
+      if (!Array.isArray(agencesData)) {
+        console.warn("Les données agences reçues ne sont pas un tableau:", agencesData)
+        agencesData = []
+      }
+      setAgences(agencesData)
+
       // Charger les immobiliers
       const immobiliersRes = await getImmobiliers()
-      console.log("Données immobiliers brutes:", immobiliersRes.data)
-
-      // Déterminer le format des données
       let immobiliersData = immobiliersRes.data
-
-      // Vérifier si les données sont dans un format spécifique (comme $values)
       if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
         immobiliersData = immobiliersRes.data.$values
       }
-
-      // S'assurer que immobiliersData est un tableau
       if (!Array.isArray(immobiliersData)) {
         console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
         immobiliersData = []
@@ -102,17 +72,10 @@ function ImInventaire() {
 
       // Charger les amortissements
       const amortissementsRes = await getAmortissements()
-      console.log("Données amortissements brutes:", amortissementsRes.data)
-
-      // Déterminer le format des données
       let amortissementsData = amortissementsRes.data
-
-      // Vérifier si les données sont dans un format spécifique (comme $values)
       if (amortissementsRes.data && typeof amortissementsRes.data === "object" && "$values" in amortissementsRes.data) {
         amortissementsData = amortissementsRes.data.$values
       }
-
-      // S'assurer que amortissementsData est un tableau
       if (!Array.isArray(amortissementsData)) {
         console.warn("Les données amortissements reçues ne sont pas un tableau:", amortissementsData)
         amortissementsData = []
@@ -120,31 +83,20 @@ function ImInventaire() {
 
       // Charger les affectations
       const affectationsRes = await getBienAgences()
-      console.log("Données affectations brutes:", affectationsRes.data)
-
-      // Déterminer le format des données
       let affectationsData = affectationsRes.data
-
-      // Vérifier si les données sont dans un format spécifique (comme $values)
       if (affectationsRes.data && typeof affectationsRes.data === "object" && "$values" in affectationsRes.data) {
         affectationsData = affectationsRes.data.$values
       }
-
-      // S'assurer que affectationsData est un tableau
       if (!Array.isArray(affectationsData)) {
         console.warn("Les données affectations reçues ne sont pas un tableau:", affectationsData)
         affectationsData = []
       }
+      setAffectations(affectationsData)
 
       // Transformer les données pour l'inventaire
       const inventaireItems = immobiliersData.map((item) => {
-        // Trouver les amortissements associés à cet immobilier
         const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.idBien)
-
-        // Trouver les affectations associées à cet immobilier
         const affectationsBien = affectationsData.filter((a) => a.idBien === item.idBien)
-
-        // Déterminer le statut d'amortissement
         const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
 
         return {
@@ -165,109 +117,165 @@ function ImInventaire() {
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err)
       setError("Impossible de charger les données. Veuillez réessayer plus tard.")
-
-      // Si l'API échoue, basculez vers les données mockées
-      if (!useMock) {
-        console.log("Basculement vers les données mockées après échec de l'API")
-
-        // Transformer les données mockées pour l'inventaire
-        const inventaireItems = mockData.immobiliers.map((item) => {
-          // Trouver les amortissements associés à cet immobilier
-          const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === item.idBien)
-
-          // Trouver les affectations associées à cet immobilier
-          const affectationsBien = mockData.affectations.filter((a) => a.idBien === item.idBien)
-
-          // Déterminer le statut d'amortissement
-          const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
-
-          return {
-            id: item.idBien,
-            codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-            designation: item.nomBien || "",
-            codeBarre: item.codeBarre || "0000000000000",
-            prixAchat: item.valeurAcquisition || 0,
-            typeImmobilier:
-              item.categorie?.nomCategorie ||
-              mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
-              "Non catégorisé",
-            dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-            quantite: item.quantite || 1,
-            statut: estAmorti ? "amorti" : item.statut || "actif",
-            affectations: affectationsBien,
-          }
-        })
-
-        setInventaireData(inventaireItems)
-      }
     } finally {
       setLoading(false)
     }
   }
 
-  // Fonction pour exporter en Excel
-  const exporterEnExcel = () => {
-    afficherToast("Exportation en Excel initiée. Cette fonctionnalité sera implémentée ultérieurement.", "info")
+  // Fonction pour exporter l'inventaire en PDF
+  const exporterEnPDF = () => {
+    try {
+      const doc = new jsPDF()
+      
+      // Ajouter le tableau principal
+      doc.setFontSize(16)
+      doc.text("Inventaire des Immobiliers", 14, 20)
+      autoTable(doc, {
+        head: [
+          [
+            "Code Article",
+            "Désignation",
+            "Code Barre",
+            "Prix d'achat",
+            "Type",
+            "Date d'acquisition",
+            "Quantité",
+            "Statut",
+          ],
+        ],
+        body: filteredInventaire.map((item) => [
+          item.codeArticle,
+          item.designation,
+          item.codeBarre,
+          `${item.prixAchat.toLocaleString()} Ar`,
+          item.typeImmobilier,
+          item.dateAcquisition,
+          item.quantite,
+          item.statut === "actif" ? "Actif" : "Amorti",
+        ]),
+        startY: 30,
+        theme: "grid",
+        headStyles: { fillColor: [22, 160, 133] },
+        styles: { fontSize: 8, cellPadding: 2 },
+      })
+
+      // Enregistrer le PDF
+      doc.save("inventaire-immobiliers.pdf")
+      afficherToast("Exportation de l'inventaire en PDF réussie !", "succes")
+    } catch (err) {
+      console.error("Erreur lors de l'exportation en PDF:", err)
+      afficherToast("Erreur lors de l'exportation de l'inventaire en PDF.", "error")
+    }
+  }
+
+  // Fonction pour exporter le résumé des affectations en PDF
+  const exporterAffectationsPDF = () => {
+    try {
+      const doc = new jsPDF()
+      
+      // Ajouter le tableau de résumé
+      doc.setFontSize(16)
+      doc.text("Résumé des Affectations", 14, 20)
+      autoTable(doc, {
+        head: [
+          [
+            "Nom de l'Agence",
+            "Bien affecté",
+            "Quantité",
+            "Date d'Affectation",
+          ],
+        ],
+        body: filteredAffectations.map((aff) => [
+          getNomAgence(aff.idAgence),
+          getNomBien(aff.idBien),
+          aff.quantite || 1, // Utiliser 1 comme valeur par défaut si quantite n'existe pas encore
+          new Date(aff.dateAffectation).toLocaleDateString(),
+        ]),
+        startY: 30,
+        theme: "grid",
+        headStyles: { fillColor: [22, 160, 133] },
+        styles: { fontSize: 8, cellPadding: 2 },
+      })
+
+      // Enregistrer le PDF
+      doc.save("resume-affectations.pdf")
+      afficherToast("Exportation du résumé des affectations en PDF réussie !", "succes")
+    } catch (err) {
+      console.error("Erreur lors de l'exportation du résumé en PDF:", err)
+      afficherToast("Erreur lors de l'exportation du résumé en PDF.", "error")
+    }
   }
 
   // Fonction pour afficher un toast
   const afficherToast = (message, type) => {
     const id = Date.now()
-    const nouveauToast = {
-      id,
-      message,
-      type,
-    }
-
+    const nouveauToast = { id, message, type }
     setToasts((prev) => [...prev, nouveauToast])
 
-    // Supprimer le toast après 5 secondes
+    // Supprimer le toast après 3 secondes
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
-    }, 5000)
+    }, 3000)
   }
 
-  // Fonction pour afficher une boîte de dialogue de confirmation moderne
-  const afficherConfirmation = (message, onConfirm) => {
-    const confirmationId = Date.now()
-    const confirmation = {
-      id: confirmationId,
-      message,
-      onConfirm,
-      onCancel: () => {
-        setToasts((prev) => prev.filter((t) => t.id !== confirmationId))
-      },
-    }
-
-    setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
+  // Fonctions pour obtenir les noms des agences et des biens
+  const getNomBien = (idBien) => {
+    const bien = inventaireData.find((item) => item.id === idBien)
+    return bien ? bien.designation : "Inconnu"
   }
 
-  // Supprimer un toast spécifique
-  const supprimerToast = (id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  const getNomAgence = (idAgence) => {
+    const agence = agences.find((item) => item.id === idAgence)
+    return agence ? agence.nom : "Inconnue"
   }
 
-  // Filtrer les données d'inventaire
+  // Filtrer les données de l'inventaire
   const filteredInventaire = inventaireData.filter((item) => {
     const matchDesignation = (item.designation || "").toLowerCase().includes(filtreDesignation.toLowerCase())
     const matchStatut = filtreStatut === "" || item.statut === filtreStatut
 
-    // Filtrer par mois si spécifié
+    // Filtre par mois
     let matchMois = true
     if (filtreMois !== "") {
       const moisAcquisition = new Date(item.dateAcquisition).getMonth() + 1
       matchMois = moisAcquisition.toString() === filtreMois
     }
 
-    // Filtrer par année si spécifiée
+    // Filtre par année
     let matchAnnee = true
     if (filtreAnnee !== "") {
       const anneeAcquisition = new Date(item.dateAcquisition).getFullYear().toString()
       matchAnnee = anneeAcquisition === filtreAnnee
     }
 
-    return matchDesignation && matchStatut && matchMois && matchAnnee
+    // Filtre par agence
+    let matchAgence = true
+    if (filtreAgence !== "") {
+      const affectationsBien = item.affectations || []
+      matchAgence = affectationsBien.some((aff) => aff.idAgence.toString() === filtreAgence)
+    }
+
+    return matchDesignation && matchStatut && matchMois && matchAnnee && matchAgence
   })
+
+  // Filtrer les affectations pour le tableau de résumé
+  const filteredAffectations = affectations.filter((aff) => {
+    const matchAgence = filtreAgence === "" || aff.idAgence.toString() === filtreAgence
+    const matchDesignation = filtreDesignation === "" || 
+      getNomBien(aff.idBien).toLowerCase().includes(filtreDesignation.toLowerCase())
+    return matchAgence && matchDesignation
+  })
+
+//       const supprimerAffectation = async (idBien, idAgence, dateAffectation) => {
+//   try {
+//     await deleteBienAgence(idBien, idAgence, dateAffectation);
+//     afficherToast("Affectation supprimée avec succès", "succes");
+//     chargerDonnees(); // Recharger les données
+//   } catch (error) {
+//     console.error("Erreur lors de la suppression:", error);
+//     afficherToast("Erreur lors de la suppression de l'affectation", "error");
+//   }
+// };
 
   return (
     <div className="inventaire-container">
@@ -283,25 +291,13 @@ function ImInventaire() {
       </div>
 
       <div className="inventaire-actions">
-          <button className="btn-hist" onClick={() => setShowHistorique(!showHistorique)}>
-            {showHistorique ? "Masquer l'historique" : "Historique"}
-          </button>
-          <button className="btn-exp" onClick={exporterEnExcel}>
-            <FileDown size={16} /> Exporter
-          </button>
-        </div>
-
-      {apiStatus !== "available" && (
-        <div className="api-status-warning">
-          <AlertCircle size={20} />
-          <span>
-            {apiStatus === "checking"
-              ? "Vérification de la connexion à l'API..."
-              : "Mode hors ligne: utilisation de données de démonstration. L'API n'est pas accessible."}
-          </span>
-          <button onClick={toggleMockData}>{useMock ? "Essayer l'API" : "Utiliser les données de démo"}</button>
-        </div>
-      )}
+        <button className="btn-exp" onClick={exporterEnPDF}>
+          <FileDown size={16} /> Exporter l'inventaire en PDF
+        </button>
+        <button className="btn-exp" onClick={exporterAffectationsPDF}>
+          <FileDown size={16} /> Exporter le résumé des affectations
+        </button>
+      </div>
 
       {error && (
         <div className="error-message">
@@ -313,206 +309,210 @@ function ImInventaire() {
         </div>
       )}
 
-      {showHistorique ? (
-        <div className="historique-inventaires">
-          <h3>Historique des inventaires</h3>
-          <table className="table-historique">
-            <thead>
+      <div className="filtres-section">
+        <div className="filtre-groupe">
+          <div className="champ-recherche-wrapper">
+            <Search size={18} className="icone-recherche" />
+            <input
+              type="text"
+              placeholder="Rechercher par désignation..."
+              value={filtreDesignation}
+              onChange={(e) => setFiltreDesignation(e.target.value)}
+              className="champ-filtre"
+            />
+          </div>
+        </div>
+
+        <div className="filtre-groupe">
+          <div className="select-wrapper">
+            <label htmlFor="filtreStatut">Statut :</label>
+            <select
+              id="filtreStatut"
+              value={filtreStatut}
+              onChange={(e) => setFiltreStatut(e.target.value)}
+              className="select-filtre"
+            >
+              <option value="">Tous</option>
+              <option value="actif">Actif</option>
+              <option value="amorti">Amorti</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="filtre-groupe">
+          <div className="select-wrapper">
+            <label htmlFor="filtreMois">Mois :</label>
+            <select
+              id="filtreMois"
+              value={filtreMois}
+              onChange={(e) => setFiltreMois(e.target.value)}
+              className="select-filtre"
+            >
+              <option value="">Tous</option>
+              <option value="1">Janvier</option>
+              <option value="2">Février</option>
+              <option value="3">Mars</option>
+              <option value="4">Avril</option>
+              <option value="5">Mai</option>
+              <option value="6">Juin</option>
+              <option value="7">Juillet</option>
+              <option value="8">Août</option>
+              <option value="9">Septembre</option>
+              <option value="10">Octobre</option>
+              <option value="11">Novembre</option>
+              <option value="12">Décembre</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="filtre-groupe">
+          <div className="select-wrapper">
+            <label htmlFor="filtreAnnee">Année :</label>
+            <select
+              id="filtreAnnee"
+              value={filtreAnnee}
+              onChange={(e) => setFiltreAnnee(e.target.value)}
+              className="select-filtre"
+            >
+              <option value="">Toutes</option>
+              {genererOptionsAnnees().map((annee) => (
+                <option key={annee} value={annee.toString()}>
+                  {annee}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="filtre-groupe">
+          <div className="select-wrapper">
+            <label htmlFor="filtreAgence">Agence :</label>
+            <select
+              id="filtreAgence"
+              value={filtreAgence}
+              onChange={(e) => setFiltreAgence(e.target.value)}
+              className="select-filtre"
+            >
+              <option value="">Toutes</option>
+              {agences.map((agence) => (
+                <option key={agence.id} value={agence.id}>
+                  {agence.nom}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="tableau-container">
+        <table className="tableau-inventaire">
+          <thead>
+            <tr>
+              <th>Code Article</th>
+              <th>Désignation</th>
+              <th>Code Barre</th>
+              <th>Prix d'achat</th>
+              <th>Type d'immobilier</th>
+              <th>Date d'acquisition</th>
+              <th>Quantité</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredInventaire.length > 0 ? (
+              filteredInventaire.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.codeArticle}</td>
+                  <td>{item.designation}</td>
+                  <td>{item.codeBarre}</td>
+                  <td>{item.prixAchat.toLocaleString()} Ar</td>
+                  <td>{item.typeImmobilier}</td>
+                  <td>{item.dateAcquisition}</td>
+                  <td>{item.quantite}</td>
+                  <td>
+                    <span className={`statut-badge ${item.statut}`}>
+                      {item.statut === "actif" ? "Actif" : "Amorti"}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
-                <th>Date</th>
-                <th>Précision</th>
-                <th>Écarts détectés</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan="4" className="no-data">
-                  Aucun historique disponible
+                <td colSpan="8" className="no-data">
+                  {loading
+                    ? "Chargement..."
+                    : 'Aucun article trouvé. Utilisez la page "Stock" pour ajouter des articles.'}
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <>
-          <div className="filtres-section">
-            <div className="filtre-groupe">
-              <div className="champ-recherche-wrapper">
-                <Search size={18} className="icone-recherche" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par désignation..."
-                  value={filtreDesignation}
-                  onChange={(e) => setFiltreDesignation(e.target.value)}
-                  className="champ-filtre"
-                />
-              </div>
-            </div>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-            <div className="filtre-groupe">
-              <div className="select-wrapper">
-                <label htmlFor="filtreStatut">Statut:</label>
-                <select
-                  id="filtreStatut"
-                  value={filtreStatut}
-                  onChange={(e) => setFiltreStatut(e.target.value)}
-                  className="select-filtre"
-                >
-                  <option value="">Tous</option>
-                  <option value="actif">Actif</option>
-                  <option value="amorti">Amorti</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="filtre-groupe">
-              <div className="select-wrapper">
-                <label htmlFor="filtreMois">Mois:</label>
-                <select
-                  id="filtreMois"
-                  value={filtreMois}
-                  onChange={(e) => setFiltreMois(e.target.value)}
-                  className="select-filtre"
-                >
-                  <option value="">Tous</option>
-                  <option value="1">Janvier</option>
-                  <option value="2">Février</option>
-                  <option value="3">Mars</option>
-                  <option value="4">Avril</option>
-                  <option value="5">Mai</option>
-                  <option value="6">Juin</option>
-                  <option value="7">Juillet</option>
-                  <option value="8">Août</option>
-                  <option value="9">Septembre</option>
-                  <option value="10">Octobre</option>
-                  <option value="11">Novembre</option>
-                  <option value="12">Décembre</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="filtre-groupe">
-              <div className="select-wrapper">
-                <label htmlFor="filtreAnnee">Année:</label>
-                <select
-                  id="filtreAnnee"
-                  value={filtreAnnee}
-                  onChange={(e) => setFiltreAnnee(e.target.value)}
-                  className="select-filtre"
-                >
-                  <option value="">Toutes</option>
-                  {genererOptionsAnnees().map((annee) => (
-                    <option key={annee} value={annee.toString()}>
-                      {annee}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="tableau-container">
-            <table className="tableau-inventaire">
-              <thead>
-                <tr>
-                  <th>Code Article</th>
-                  <th>Désignation</th>
-                  <th>Code Barre</th>
-                  <th>Prix d'achat</th>
-                  <th>Type d'immobilier</th>
-                  <th>Date d'acquisition</th>
-                  <th>Quantité</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInventaire.length > 0 ? (
-                  filteredInventaire.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.codeArticle}</td>
-                      <td>{item.designation}</td>
-                      <td>{item.codeBarre}</td>
-                      <td>{item.prixAchat.toLocaleString()} Ar</td>
-                      <td>{item.typeImmobilier}</td>
-                      <td>{item.dateAcquisition}</td>
-                      <td>{item.quantite}</td>
-                      <td>
-                        <span className={`statut-badge ${item.statut}`}>
-                          {item.statut === "actif" ? "Actif" : "Amorti"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="9" className="no-data">
-                      {loading
-                        ? "Chargement..."
-                        : 'Aucun article trouvé. Utilisez la page "Stock" pour ajouter des articles.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+      {/* Tableau de résumé des affectations */}
+      <div className="tableau-container">
+        <h3>Résumé des Affectations</h3>
+       <table className="tableau-resume">
+  <thead>
+    <tr>
+      <th>Nom de l'Agence</th>
+      <th>Bien affecté</th>
+      <th>Quantité</th>
+      <th>Date d'Affectation</th>
+      {/* <th>Actions</th> Nouvelle colonne */}
+    </tr>
+  </thead>
+  <tbody>
+    {filteredAffectations.length > 0 ? (
+      filteredAffectations.map((aff, index) => (
+        <tr key={index}>
+          <td>{getNomAgence(aff.idAgence)}</td>
+          <td>{getNomBien(aff.idBien)}</td>
+          <td>{aff.quantite || 0}</td>
+          <td>{new Date(aff.dateAffectation).toLocaleDateString()}</td>
+          {/* <td>
+            <button
+              className="btn-supprimer"
+              onClick={() => supprimerAffectation(aff.idBien, aff.idAgence, aff.dateAffectation)}
+            >
+              <X size={16} /> Supprimer
+            </button>
+          </td> */}
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan="5" className="no-data">
+          Aucune affectation trouvée.
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
+      </div>
 
       {/* Système de toast notifications */}
       <div className="toast-container">
-        {toasts.map((toast) =>
-          toast.type === "confirmation" ? (
-            <div key={toast.id} className="toast toast-confirmation">
-              <div className="toast-icon">
-                <AlertTriangle size={20} />
-              </div>
-              <div className="toast-content">
-                <p>{toast.message}</p>
-                <div className="toast-actions">
-                  <button
-                    onClick={() => {
-                      toast.onConfirm()
-                      supprimerToast(toast.id)
-                    }}
-                    className="toast-btn confirm"
-                  >
-                    Confirmer
-                  </button>
-                  <button
-                    onClick={() => {
-                      toast.onCancel()
-                      supprimerToast(toast.id)
-                    }}
-                    className="toast-btn cancel"
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </div>
-              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
-                <X size={16} />
-              </button>
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            <div className="toast-icon">
+              {toast.type === "succes" ? (
+                <CheckCircle size={20} />
+              ) : (
+                <AlertCircle size={20} />
+              )}
             </div>
-          ) : (
-            <div key={toast.id} className={`toast toast-${toast.type}`}>
-              <div className="toast-icon">
-                {toast.type === "succes" ? (
-                  <CheckCircle size={20} />
-                ) : toast.type === "info" ? (
-                  <AlertCircle size={20} className="info-icon" />
-                ) : (
-                  <AlertCircle size={20} />
-                )}
-              </div>
-              <div className="toast-content">
-                <p>{toast.message}</p>
-              </div>
-              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
-                <X size={16} />
-              </button>
+            <div className="toast-content">
+              <p>{toast.message}</p>
             </div>
-          ),
-        )}
+            <button
+              onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+              className="toast-close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )

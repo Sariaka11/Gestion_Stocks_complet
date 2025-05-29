@@ -1,26 +1,51 @@
 import axios from "../api/axios";
 
-// 🔁 Récupérer toutes les associations agences-fournitures
-export const getAgenceFournitures = () => {
-  return axios.get("/AgenceFournitures");
+const API_URL = 'http://localhost:5000/api/AgenceFournitures'; // Remplacez par votre URL d'API
+
+export const getAgenceFournitures = async () => {
+  try {
+    const response = await axios.get(API_URL);
+    return response;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des agence-fournitures:', error);
+    throw error;
+  }
 };
 
-// 🔁 Récupérer les fournitures d’une agence spécifique
-export const getFournituresByAgence = (agenceId) => {
-  return axios.get(`/AgenceFournitures/ByAgence/${agenceId}`);
+export const createAgenceFourniture = async (data) => {
+  try {
+    console.log('Envoi de la requête POST à:', API_URL, 'avec les données:', data);
+    const response = await axios.post(API_URL, data, { timeout: 15000 });
+    console.log('Réponse reçue:', response.data);
+    return response;
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'agence-fourniture:', {
+      message: error.message,
+      code: error.code,
+      response: error.response ? {
+        status: error.response.status,
+        data: error.response.data
+      } : null
+    });
+    throw error;
+  }
+};
+export const updateAgenceFourniture = async (agenceId, fournitureId, quantite) => {
+  try {
+    const response = await axios.put(`${API_URL}/Agence/${agenceId}/Fourniture/${fournitureId}`, { quantite });
+    return response;
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'agence-fourniture:', error);
+    throw error;
+  }
 };
 
-// 🔁 Récupérer les agences pour une fourniture donnée
-export const getAgencesByFourniture = (fournitureId) => {
-  return axios.get(`/AgenceFournitures/ByFourniture/${fournitureId}`);
-};
-
-// ✅ Ajouter un envoi de fourniture à une agence
-export const createDispatch = (data) => {
-  return axios.post("/AgenceFournitures", data);
-};
-
-// ❌ Supprimer une répartition spécifique
-export const deleteDispatch = (agenceId, fournitureId) => {
-  return axios.delete(`/AgenceFournitures/Agence/${agenceId}/Fourniture/${fournitureId}`);
+export const deleteAgenceFourniture = async (agenceId, fournitureId) => {
+  try {
+    const response = await axios.delete(`${API_URL}/Agence/${agenceId}/Fourniture/${fournitureId}`);
+    return response;
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'agence-fourniture:', error);
+    throw error;
+  }
 };

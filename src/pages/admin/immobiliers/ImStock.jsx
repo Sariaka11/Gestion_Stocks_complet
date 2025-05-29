@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Plus, Search, Save, AlertCircle, RefreshCw, Trash2, Edit, X, CheckCircle, AlertTriangle } from "lucide-react"
 import "./css/ImStock.css"
-import { getImmobiliers, createImmobilier, deleteImmobilier } from "../../../services/immobilierServices"
+import { getImmobiliers, createImmobilier, deleteImmobilier,updateImmobilier } from "../../../services/immobilierServices"
 import { getCategories, createCategorie, updateCategorie, deleteCategorie } from "../../../services/categorieServices"
 import { useMockData } from "../../../../app/MockDataProvider"
 
@@ -51,6 +51,7 @@ function ImStock() {
         mode: "cors",
       })
       console.log("Test de connexion API:", response)
+      setCategories(response.json())
       return response.ok
     } catch (error) {
       console.error("Erreur de connexion à l'API:", error)
@@ -60,38 +61,15 @@ function ImStock() {
       return false
     }
   }
-
+  useEffect(()=>{
+    verifierConnexionApi()
+  },[])
   // Fonction pour charger les immobiliers
   const chargerImmobiliers = () => {
     setLoading(true)
     setError(null)
 
-    // Si nous utilisons des données mockées, utilisez-les directement
-    if (useMock) {
-      console.log("Utilisation des données mockées pour les immobiliers")
-
-      const items = mockData.immobiliers.map((item) => ({
-        id: item.idBien,
-        nomBien: item.nomBien || "",
-        dateAcquisition: item.dateAcquisition || "",
-        valeurAcquisition: item.valeurAcquisition || 0,
-        tauxAmortissement: item.tauxAmortissement || 0,
-        statut: item.statut || "actif",
-        categorie:
-          item.categorie?.nomCategorie ||
-          mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
-          `Catégorie #${item.idCategorie}`,
-        codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-        codeBarre: item.codeBarre || "0000000000000",
-        quantite: item.quantite || 1,
-        idCategorie: item.idCategorie,
-      }))
-
-      setImmobilierItems(items)
-      setLoading(false)
-      return
-    }
-
+ 
     // Sinon, essayez de charger depuis l'API
     getImmobiliers()
       .then((res) => {
@@ -163,12 +141,7 @@ function ImStock() {
 
   // Fonction pour charger les catégories
   const chargerCategories = () => {
-    // Si nous utilisons des données mockées, utilisez-les directement
-    if (useMock) {
-      console.log("Utilisation des données mockées pour les catégories")
-      setCategories(mockData.categories)
-      return
-    }
+    
 
     // Sinon, essayez de charger depuis l'API
     getCategories()
@@ -188,7 +161,7 @@ function ImStock() {
           console.warn("Les données reçues ne sont pas un tableau:", catRaw)
           catRaw = []
         }
-
+        console.log("test", catRaw)
         setCategories(catRaw)
       })
       .catch((err) => {
@@ -317,66 +290,76 @@ function ImStock() {
     setModalOuvert(false)
   }
 
-  const sauvegarderImmobilier = () => {
-    // Vérification simple
-    if (
-      !nouvelImmobilier.nomBien ||
-      !nouvelImmobilier.valeurAcquisition ||
-      !nouvelImmobilier.tauxAmortissement ||
-      !nouvelImmobilier.quantite ||
-      !nouvelImmobilier.idCategorie
-    ) {
-      afficherToast("Veuillez remplir tous les champs obligatoires.", "erreur")
-      return
-    }
-
-    const data = {
-      nomBien: nouvelImmobilier.nomBien,
-      valeurAcquisition: Number.parseFloat(nouvelImmobilier.valeurAcquisition),
-      tauxAmortissement: Number.parseFloat(nouvelImmobilier.tauxAmortissement),
-      quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
-      statut: nouvelImmobilier.statut,
-      idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
-      dateAcquisition: nouvelImmobilier.dateAcquisition,
-      codeBarre: nouvelImmobilier.codeBarre,
-    }
-
-    setLoading(true)
-    createImmobilier(data)
-      .then((res) => {
-        afficherToast("Immobilier enregistré avec succès!", "succes")
-        setNouvelImmobilier(objetVideImmobilier)
-        setModalOuvert(false)
-        // Recharger les immobiliers après création
-        setTimeout(() => chargerImmobiliers(), 500)
-      })
-      .catch((err) => {
-        console.error("Erreur création immobilier:", err)
-        afficherToast("Erreur lors de l'enregistrement.", "erreur")
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+const sauvegarderImmobilier = () => {
+  if (
+    !nouvelImmobilier.nomBien ||
+    !nouvelImmobilier.valeurAcquisition ||
+    !nouvelImmobilier.tauxAmortissement ||
+    !nouvelImmobilier.quantite ||
+    !nouvelImmobilier.idCategorie
+  ) {
+    afficherToast("Veuillez remplir tous les champs obligatoires.", "erreur");
+    return;
   }
+
+  const data = {
+    idBien: immobilierEnEdition?.id || 0,
+    nomBien: nouvelImmobilier.nomBien,
+    valeurAcquisition: Number.parseFloat(nouvelImmobilier.valeurAcquisition),
+    tauxAmortissement: Number.parseFloat(nouvelImmobilier.tauxAmortissement),
+    quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
+    statut: nouvelImmobilier.statut,
+    idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
+    dateAcquisition: nouvelImmobilier.dateAcquisition,
+    codeBarre: nouvelImmobilier.codeBarre,
+  };
+
+  setLoading(true);
+  const promise = immobilierEnEdition
+    ? updateImmobilier(immobilierEnEdition.id, data)
+    : createImmobilier(data);
+
+  promise
+    .then((res) => {
+      afficherToast(
+        immobilierEnEdition ? "Immobilier modifié avec succès!" : "Immobilier enregistré avec succès!",
+        "succes"
+      );
+      setNouvelImmobilier(objetVideImmobilier);
+      setImmobilierEnEdition(null);
+      setModalOuvert(false);
+      setTimeout(() => chargerImmobiliers(), 500);
+    })
+    .catch((err) => {
+      console.error("Erreur sauvegarde immobilier:", err);
+      afficherToast("Erreur lors de l'enregistrement.", "erreur");
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+};
 
   const supprimerImmobilier = (id) => {
-    afficherConfirmation("Êtes-vous sûr de vouloir supprimer cet immobilier ?", () => {
-      setLoading(true)
-      deleteImmobilier(id)
-        .then(() => {
-          setImmobilierItems((prev) => prev.filter((item) => item.id !== id))
-          afficherToast("Immobilier supprimé avec succès!", "succes")
-        })
-        .catch((err) => {
-          console.error("Erreur suppression:", err)
-          afficherToast("Erreur lors de la suppression", "erreur")
-        })
-        .finally(() => {
-          setLoading(false)
-        })
-    })
-  }
-
+  afficherConfirmation("Êtes-vous sûr de vouloir supprimer cet immobilier ?", () => {
+    setLoading(true);
+    deleteImmobilier(id)
+      .then(() => {
+        setImmobilierItems((prev) => prev.filter((item) => item.id !== id));
+        afficherToast("Immobilier supprimé avec succès !", "succes");
+      })
+      .catch((err) => {
+        console.error("Erreur suppression immobilier:", err);
+        if (err.response?.status === 400) {
+          afficherToast("Impossible de supprimer : cet immobilier est associé à des affectations.", "erreur");
+        } else {
+          afficherToast("Erreur lors de la suppression de l'immobilier.", "erreur");
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  });
+};
   // Fonction pour afficher une boîte de dialogue de confirmation moderne
   const afficherConfirmation = (message, onConfirm) => {
     const confirmationId = Date.now()

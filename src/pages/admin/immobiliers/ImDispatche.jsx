@@ -1,153 +1,169 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Plus, Trash, Save, AlertCircle, RefreshCw, X, CheckCircle, AlertTriangle } from "lucide-react"
+import { Search, Plus, Save, FileText, X, CheckCircle, AlertCircle } from "lucide-react"
 import "./css/ImDispatche.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAgences } from "../../../services/agenceServices"
-import { getBienAgences, createBienAgence, deleteBienAgence } from "../../../services/bienAgenceServices"
-import { useMockData } from "../../../../app/MockDataProvider"
+import { getBienAgences, createBienAgence } from "../../../services/bienAgenceServices"
+import { useRefresh } from "../context/RefreshContext.jsx"
 
 function ImDispatche() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-
+  const { triggerRefresh } = useRefresh()
   const [immobiliers, setImmobiliers] = useState([])
   const [agences, setAgences] = useState([])
+  const [agencesAffichees, setAgencesAffichees] = useState([])
   const [affectations, setAffectations] = useState([])
-
-  const [filtreImmobilier, setFiltreImmobilier] = useState("")
+  const [affectationEnEdition, setAffectationEnEdition] = useState(null)
+  const [filtreDesignation, setFiltreDesignation] = useState("")
   const [filtreAgence, setFiltreAgence] = useState("")
-
+  const [filtreAgenceTableau, setFiltreAgenceTableau] = useState("")
   const [modalOuvert, setModalOuvert] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [toasts, setToasts] = useState([])
+
   const [nouvelleAffectation, setNouvelleAffectation] = useState({
     idBien: "",
     idAgence: "",
-    dateAffectation: new Date().toISOString().split("T")[0],
+    quantite: "",
+    dateAffectation: "",
   })
-
-  // État pour gérer les toasts
-  const [toasts, setToasts] = useState([])
-
-  const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
-
-  useEffect(() => {
-    chargerDonnees()
-  }, [])
-
-  const chargerDonnees = async () => {
-    setLoading(true)
-    setError(null)
-
-    if (useMock) {
-      console.log("Utilisation des données mockées pour ImDispatche")
-      setImmobiliers(mockData.immobiliers)
-      setAgences(mockData.agences)
-      setAffectations(mockData.affectations)
-      setLoading(false)
-      return
-    }
-
-    try {
-      const immobiliersRes = await getImmobiliers()
-      let immobiliersData = immobiliersRes.data
-
-      if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
-        immobiliersData = immobiliersRes.data.$values
-      }
-
-      if (!Array.isArray(immobiliersData)) {
-        console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
-        immobiliersData = []
-      }
-
-      setImmobiliers(immobiliersData)
-
-      const agencesRes = await getAgences()
-      let agencesData = agencesRes.data
-
-      if (agencesRes.data && typeof agencesRes.data === "object" && "$values" in agencesRes.data) {
-        agencesData = agencesRes.data.$values
-      }
-
-      if (!Array.isArray(agencesData)) {
-        console.warn("Les données agences reçues ne sont pas un tableau:", agencesData)
-        agencesData = []
-      }
-
-      setAgences(agencesData)
-
-      const affectationsRes = await getBienAgences()
-      let affectationsData = affectationsRes.data
-
-      if (affectationsRes.data && typeof affectationsRes.data === "object" && "$values" in affectationsRes.data) {
-        affectationsData = affectationsRes.data.$values
-      }
-
-      if (!Array.isArray(affectationsData)) {
-        console.warn("Les données affectations reçues ne sont pas un tableau:", affectationsData)
-        affectationsData = []
-      }
-
-      setAffectations(affectationsData)
-    } catch (err) {
-      console.error("Erreur lors du chargement des données:", err)
-      setError(`Impossible de charger les données: ${err.message}`)
-
-      if (!useMock) {
-        console.log("Basculement vers les données mockées après échec de l'API")
-        setImmobiliers(mockData.immobiliers)
-        setAgences(mockData.agences)
-        setAffectations(mockData.affectations)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // Fonction pour afficher un toast
   const afficherToast = (message, type) => {
     const id = Date.now()
-    const nouveauToast = {
-      id,
-      message,
-      type,
-    }
-
+    const nouveauToast = { id, message, type }
     setToasts((prev) => [...prev, nouveauToast])
-
-    // Supprimer le toast après 5 secondes
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 5000)
   }
 
-  // Fonction pour afficher une boîte de dialogue de confirmation moderne
-  const afficherConfirmation = (message, onConfirm) => {
-    const confirmationId = Date.now()
-    const confirmation = {
-      id: confirmationId,
-      message,
-      onConfirm,
-      onCancel: () => {
-        setToasts((prev) => prev.filter((t) => t.id !== confirmationId))
-      },
-    }
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([getImmobiliers(), getAgences(), getBienAgences()])
+      .then(([resImmobiliers, resAgences, resAffectations]) => {
+        // Formatage des immobiliers
+        let immobiliersRaw = resImmobiliers.data
+        if (!Array.isArray(immobiliersRaw)) {
+          immobiliersRaw = immobiliersRaw?.["$values"] || []
+        }
+        setImmobiliers(immobiliersRaw)
 
-    setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
+        // Formatage des agences
+        let agencesRaw = resAgences.data
+        if (!Array.isArray(agencesRaw)) {
+          agencesRaw = agencesRaw?.["$values"] || []
+        }
+        setAgences(agencesRaw)
+
+        // Formatage des affectations
+        let affectationsRaw = resAffectations.data
+        if (!Array.isArray(affectationsRaw)) {
+          affectationsRaw = affectationsRaw?.["$values"] || []
+        }
+
+        // Construire le tableau des affectations
+        const lignes = immobiliersRaw.map((immobilier) => ({
+          id: immobilier.idBien,
+          designation: immobilier.nomBien,
+          quantite: immobilier.quantite ,
+          date: immobilier.dateAcquisition?.split("T")[0],
+          affectations: agencesRaw.map((a) => ({
+            agenceId: a.id,
+            quantite: affectationsRaw
+              .filter((aff) => aff.idBien === immobilier.idBien && aff.idAgence === a.id)
+              .reduce((sum, aff) => sum + (aff.quantite ), 0),
+          })),
+        }))
+        setAffectations(lignes)
+      })
+      .catch((err) => {
+        console.error("Erreur chargement:", err)
+        afficherToast("Erreur lors du chargement des données", "erreur")
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const ajouterAgenceTableau = () => {
+    if (!filtreAgenceTableau) return
+    const agence = agences.find((a) => a.id === parseInt(filtreAgenceTableau))
+    if (agence && !agencesAffichees.find((a) => a.id === agence.id)) {
+      setAgencesAffichees((prev) => [...prev, agence])
+    }
+    setFiltreAgenceTableau("")
   }
 
-  // Supprimer un toast spécifique
-  const supprimerToast = (id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  const toggleEditionAffectation = (id) => {
+    if (affectationEnEdition === id) {
+      const ligne = affectations.find((a) => a.id === id)
+      let totalQuantiteAffectee = 0
+
+      // Calculer la quantité totale affectée
+      ligne.affectations.forEach((a) => {
+        if (a.quantite > 0) {
+          totalQuantiteAffectee += a.quantite
+        }
+      })
+
+      // Vérifier si la quantité totale est valide
+      if (totalQuantiteAffectee > ligne.quantite) {
+        afficherToast("La quantité totale dépasse le stock disponible", "erreur")
+        return
+      }
+
+      // Envoyer les mises à jour pour chaque affectation
+      const promises = ligne.affectations
+        .filter((a) => a.quantite > 0)
+        .map((a) =>
+          createBienAgence({
+            idBien: ligne.id,
+            idAgence: a.agenceId,
+            quantite: a.quantite,
+            dateAffectation: new Date().toISOString(),
+          })
+        )
+
+      Promise.all(promises)
+        .then(() => {
+          afficherToast("Affectation mise à jour avec succès", "succes")
+          triggerRefresh()
+          setAffectationEnEdition(null)
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la mise à jour de l'affectation:", error)
+          if (error.code === "ECONNABORTED") {
+            afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi", "info")
+            triggerRefresh()
+          } else if (error.response?.status === 400) {
+            afficherToast(error.response.data || "Données invalides", "erreur")
+          } else {
+            afficherToast("Erreur lors de la mise à jour de l'affectation", "erreur")
+          }
+        })
+    } else {
+      setAffectationEnEdition(id)
+    }
+  }
+
+  const mettreAJourAffectation = (immobilierId, agenceId, qtt) => {
+    setAffectations((prev) =>
+      prev.map((a) => {
+        if (a.id === immobilierId) {
+          const majAff = a.affectations.map((aff) =>
+            aff.agenceId === agenceId ? { ...aff, quantite: parseInt(qtt, 10) || 0 } : aff
+          )
+          return { ...a, affectations: majAff }
+        }
+        return a
+      })
+    )
   }
 
   const ouvrirModal = () => {
-    setNouvelleAffectation({
-      idBien: "",
-      idAgence: "",
-      dateAffectation: new Date().toISOString().split("T")[0],
-    })
+    setNouvelleAffectation({ idBien: "", idAgence: "", quantite: "", dateAffectation: "" })
+    setFiltreDesignation("")
+    setFiltreAgence("")
     setModalOuvert(true)
   }
 
@@ -155,92 +171,70 @@ function ImDispatche() {
     setModalOuvert(false)
   }
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target
+    setNouvelleAffectation((prev) => ({ ...prev, [name]: value }))
+  }
+
+const sauvegarderAffectation = async () => {
+  try {
+    const { idBien, idAgence, quantite, dateAffectation } = nouvelleAffectation;
+    const immobilier = immobiliers.find((i) => i.idBien === parseInt(idBien));
+
+    if (!immobilier || !idAgence || !quantite || !dateAffectation) {
+      afficherToast("Veuillez remplir tous les champs.", "erreur");
+      return;
+    }
+
+    const quantiteInt = parseInt(quantite);
+    if (isNaN(quantiteInt) || quantiteInt <= 0) {
+      afficherToast("La quantité doit être un nombre positif.", "erreur");
+      return;
+    }
+
+    if (quantiteInt > (immobilier.quantite || 0)) {
+      afficherToast("Quantité supérieure au stock disponible.", "erreur");
+      return;
+    }
+
+    console.log("Données avant envoi:", { idBien, idAgence, quantite: quantiteInt, dateAffectation });
+
+    await createBienAgence({
+      idBien: parseInt(idBien),
+      idAgence: parseInt(idAgence),
+      quantite: quantiteInt,
+      dateAffectation: new Date(dateAffectation).toISOString(),
+    });
+
+    afficherToast("Affectation enregistrée avec succès.", "succes");
+    setModalOuvert(false);
     setNouvelleAffectation({
-      ...nouvelleAffectation,
-      [name]: value,
-    })
-  }
-
-  const sauvegarderAffectation = async () => {
-    if (!nouvelleAffectation.idBien || !nouvelleAffectation.idAgence) {
-      afficherToast("Veuillez sélectionner un bien et une agence", "erreur")
-      return
-    }
-
-    setLoading(true)
-    try {
-      if (useMock) {
-        const nouvelleAff = {
-          idBien: Number.parseInt(nouvelleAffectation.idBien, 10),
-          idAgence: Number.parseInt(nouvelleAffectation.idAgence, 10),
-          dateAffectation: nouvelleAffectation.dateAffectation,
-        }
-
-        setAffectations((prev) => [...prev, nouvelleAff])
-        afficherToast("Affectation créée avec succès (mode démo)!", "succes")
-        fermerModal()
-      } else {
-        await createBienAgence({
-          idBien: Number.parseInt(nouvelleAffectation.idBien, 10),
-          idAgence: Number.parseInt(nouvelleAffectation.idAgence, 10),
-          dateAffectation: nouvelleAffectation.dateAffectation,
-        })
-
-        afficherToast("Affectation créée avec succès!", "succes")
-        fermerModal()
-        chargerDonnees()
-      }
-    } catch (err) {
-      console.error("Erreur lors de la création de l'affectation:", err)
-      afficherToast("Erreur lors de la création de l'affectation", "erreur")
-    } finally {
-      setLoading(false)
+      idBien: "",
+      idAgence: "",
+      quantite: "",
+      dateAffectation: "",
+    });
+    triggerRefresh();
+  } catch (error) {
+    console.error("Erreur lors de la création de l'affectation:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    if (error.code === "ECONNABORTED") {
+      afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi.", "info");
+      triggerRefresh();
+    } else if (error.response?.status === 400) {
+      afficherToast(error.response.data || "Données invalides.", "erreur");
+    } else {
+      afficherToast(`Erreur lors de l'enregistrement: ${error.response?.data || error.message}`, "erreur");
     }
   }
+};
 
-  const supprimerAffectation = (idBien, idAgence, dateAffectation) => {
-    afficherConfirmation("Êtes-vous sûr de vouloir supprimer cette affectation ?", async () => {
-      setLoading(true)
-      try {
-        if (useMock) {
-          setAffectations((prev) =>
-            prev.filter(
-              (aff) => !(aff.idBien === idBien && aff.idAgence === idAgence && aff.dateAffectation === dateAffectation),
-            ),
-          )
-          afficherToast("Affectation supprimée avec succès (mode démo)!", "succes")
-        } else {
-          await deleteBienAgence(idBien, idAgence, new Date(dateAffectation))
-          afficherToast("Affectation supprimée avec succès!", "succes")
-          chargerDonnees()
-        }
-      } catch (err) {
-        console.error("Erreur lors de la suppression de l'affectation:", err)
-        afficherToast("Erreur lors de la suppression de l'affectation", "erreur")
-      } finally {
-        setLoading(false)
-      }
-    })
-  }
-
-  const getNomBien = (idBien) => {
-    const bien = immobiliers.find((b) => b.idBien === idBien)
-    return bien ? bien.nomBien : `Bien #${idBien}`
-  }
-
-  const getNomAgence = (idAgence) => {
-    const agence = agences.find((a) => a.id === idAgence)
-    return agence ? agence.nom : `Agence #${idAgence}`
-  }
-
-  const affectationsFiltrees = affectations.filter((aff) => {
-    const bienNom = getNomBien(aff.idBien).toLowerCase()
-    const agenceNom = getNomAgence(aff.idAgence).toLowerCase()
-
-    return bienNom.includes(filtreImmobilier.toLowerCase()) && agenceNom.includes(filtreAgence.toLowerCase())
-  })
+  const affectationsFiltrees = affectations.filter((a) =>
+    a.designation.toLowerCase().includes(filtreDesignation.toLowerCase())
+  )
 
   return (
     <div className="page-dispatche animation-dispatche">
@@ -253,29 +247,6 @@ function ImDispatche() {
 
       <h1 className="titre-page">Gestion des Affectations d'Immobiliers</h1>
 
-      {apiStatus !== "available" && (
-        <div className="api-status-warning">
-          <AlertCircle size={20} />
-          <span>
-            {apiStatus === "checking"
-              ? "Vérification de la connexion à l'API..."
-              : "Mode hors ligne: utilisation de données de démonstration. L'API n'est pas accessible."}
-          </span>
-          <button onClick={toggleMockData}>{useMock ? "Essayer l'API" : "Utiliser les données de démo"}</button>
-        </div>
-      )}
-
-      {error && (
-        <div className="error-message">
-          <AlertCircle size={20} />
-          <span>{error}</span>
-          <button onClick={chargerDonnees}>
-            <RefreshCw size={16} /> Réessayer
-          </button>
-        </div>
-      )}
-
-      {/* Section Affectations */}
       <div className="section-dispatche">
         <div className="entete-section">
           <h2>Liste des Affectations</h2>
@@ -284,24 +255,32 @@ function ImDispatche() {
               <Search size={18} className="icone-recherche" />
               <input
                 type="text"
-                placeholder="Filtrer par bien..."
-                value={filtreImmobilier}
-                onChange={(e) => setFiltreImmobilier(e.target.value)}
+                placeholder="Filtrer par désignation..."
+                value={filtreDesignation}
+                onChange={(e) => setFiltreDesignation(e.target.value)}
                 className="champ-filtre"
               />
             </div>
             <div className="champ-recherche-wrapper">
               <Search size={18} className="icone-recherche" />
-              <input
-                type="text"
-                placeholder="Filtrer par agence..."
-                value={filtreAgence}
-                onChange={(e) => setFiltreAgence(e.target.value)}
+              <select
+                value={filtreAgenceTableau}
+                onChange={(e) => setFiltreAgenceTableau(e.target.value)}
                 className="champ-filtre"
-              />
+              >
+                <option value="">Sélectionner une agence</option>
+                {agences.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nom}
+                  </option>
+                ))}
+              </select>
             </div>
+            <button className="bouton-ajouter" onClick={ajouterAgenceTableau}>
+              <Plus size={16} /> Ajouter
+            </button>
             <button className="bouton-ajouter" onClick={ouvrirModal}>
-              <Plus size={16} /> Ajouter une affectation
+              <Plus size={16} /> Créer une affectation
             </button>
           </div>
         </div>
@@ -311,35 +290,73 @@ function ImDispatche() {
             <table>
               <thead>
                 <tr>
-                  <th>Bien</th>
-                  <th>Agence</th>
-                  <th>Date d'affectation</th>
+                  <th>Désignation</th>
+                  <th>Quantité</th>
+                  {agencesAffichees.length > 0 && <th colSpan={agencesAffichees.length}>Affectations par agence</th>}
+                  <th>Date</th>
                   <th>Actions</th>
                 </tr>
+                {agencesAffichees.length > 0 && (
+                  <tr>
+                    <th></th>
+                    <th></th>
+                    {agencesAffichees.map((agence) => (
+                      <th key={agence.id} className="th-agence">
+                        {agence.nom}
+                      </th>
+                    ))}
+                    <th></th>
+                    <th></th>
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {affectationsFiltrees.length > 0 ? (
-                  affectationsFiltrees.map((aff, index) => (
-                    <tr key={`${aff.idBien}-${aff.idAgence}-${aff.dateAffectation}`}>
-                      <td>{getNomBien(aff.idBien)}</td>
-                      0<td>{getNomAgence(aff.idAgence)}</td>
-                      <td>{new Date(aff.dateAffectation).toLocaleDateString()}</td>
+                  affectationsFiltrees.map((affectation) => (
+                    <tr key={affectation.id}>
+                      <td>{affectation.designation}</td>
+                      <td>{affectation.quantite}</td>
+                      {agencesAffichees.map((agence) => {
+                        const aff = affectation.affectations?.find((a) => a.agenceId === agence.id)
+                        return (
+                          <td key={`${affectation.id}-${agence.id}`}>
+                            <input
+                              type="number"
+                              min="0"
+                              max={affectation.quantite}
+                              value={aff?.quantite || 0}
+                              onChange={(e) =>
+                                mettreAJourAffectation(affectation.id, agence.id, e.target.value)
+                              }
+                              className="input-consommation"
+                              disabled={affectationEnEdition !== affectation.id}
+                            />
+                          </td>
+                        )
+                      })}
+                      <td>{affectation.date}</td>
                       <td className="actions-cellule">
                         <button
-                          className="bouton-supprimer"
-                          onClick={() => supprimerAffectation(aff.idBien, aff.idAgence, aff.dateAffectation)}
+                          className={`bouton-modifier ${affectationEnEdition === affectation.id ? "actif" : ""}`}
+                          onClick={() => toggleEditionAffectation(affectation.id)}
                         >
-                          <Trash size={14} /> Supprimer
+                          {affectationEnEdition === affectation.id ? (
+                            <>
+                              <Save size={14} /> Enregistrer
+                            </>
+                          ) : (
+                            <>
+                              <Save size={14} /> Modifier
+                            </>
+                          )}
                         </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="no-data">
-                      {loading
-                        ? "Chargement..."
-                        : 'Aucune affectation trouvée. Utilisez le bouton "Ajouter" pour en créer une.'}
+                    <td colSpan={agencesAffichees.length > 0 ? agencesAffichees.length + 4 : 4} className="no-data">
+                      Aucune donnée trouvée. Utilisez le bouton "Créer une affectation" pour ajouter des données.
                     </td>
                   </tr>
                 )}
@@ -349,71 +366,92 @@ function ImDispatche() {
         </div>
       </div>
 
-      {/* Modal pour ajouter une affectation */}
       {modalOuvert && (
         <div className="modal-overlay">
           <div className="modal-contenu">
-            <h2>Ajouter une affectation</h2>
-
+            <h2>Créer une affectation d'immobilier</h2>
             <div className="formulaire-modal">
               <div className="groupe-champ">
-                <label htmlFor="idBien">Bien immobilier</label>
+                <label htmlFor="filtreImmobilier">Rechercher un immobilier</label>
+                <input
+                  type="text"
+                  placeholder="Filtrer..."
+                  value={filtreDesignation}
+                  onChange={(e) => setFiltreDesignation(e.target.value)}
+                />
                 <select
-                  id="idBien"
                   name="idBien"
                   value={nouvelleAffectation.idBien}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   required
                 >
-                  <option value="">-- Sélectionner un bien --</option>
-                  {immobiliers.map((bien) => (
-                    <option key={bien.idBien} value={bien.idBien}>
-                      {bien.nomBien || `Bien #${bien.idBien}`}
-                    </option>
-                  ))}
+                  <option value="">-- Sélectionner --</option>
+                  {immobiliers
+                    .filter((i) =>
+                      i.nomBien.toLowerCase().includes(filtreDesignation.toLowerCase())
+                    )
+                    .map((i) => (
+                      <option key={i.idBien} value={i.idBien}>
+                        {i.nomBien}
+                      </option>
+                    ))}
                 </select>
               </div>
 
               <div className="groupe-champ">
-                <label htmlFor="idAgence">Agence</label>
+                <label htmlFor="filtreAgence">Rechercher une agence</label>
+                <input
+                  type="text"
+                  placeholder="Filtrer..."
+                  value={filtreAgence}
+                  onChange={(e) => setFiltreAgence(e.target.value)}
+                />
                 <select
-                  id="idAgence"
                   name="idAgence"
                   value={nouvelleAffectation.idAgence}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   required
                 >
-                  <option value="">-- Sélectionner une agence --</option>
-                  {agences.map((agence) => (
-                    <option key={agence.id} value={agence.id}>
-                      {agence.nom || `Agence #${agence.id}`}
-                    </option>
-                  ))}
+                  <option value="">-- Sélectionner --</option>
+                  {agences
+                    .filter((a) =>
+                      a.nom.toLowerCase().includes(filtreAgence.toLowerCase())
+                    )
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.nom}
+                      </option>
+                    ))}
                 </select>
               </div>
 
               <div className="groupe-champ">
-                <label htmlFor="dateAffectation">Date d'affectation</label>
+                <label htmlFor="quantite">Quantité</label>
                 <input
-                  id="dateAffectation"
-                  name="dateAffectation"
-                  type="date"
-                  value={nouvelleAffectation.dateAffectation}
-                  onChange={handleInputChange}
+                  type="number"
+                  name="quantite"
+                  min="1"
+                  value={nouvelleAffectation.quantite}
+                  onChange={handleChange}
                   required
                 />
               </div>
-
+              <div className="groupe-champ">
+                <label htmlFor="dateAffectation">Date</label>
+                <input
+                  type="date"
+                  name="dateAffectation"
+                  value={nouvelleAffectation.dateAffectation}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <div className="actions-modal">
                 <button className="bouton-annuler" onClick={fermerModal}>
                   Annuler
                 </button>
-                <button
-                  className="bouton-sauvegarder"
-                  onClick={sauvegarderAffectation}
-                  disabled={!nouvelleAffectation.idBien || !nouvelleAffectation.idAgence}
-                >
-                  <Save size={16} /> Sauvegarder
+                <button className="bouton-sauvegarder" onClick={sauvegarderAffectation}>
+                  Valider
                 </button>
               </div>
             </div>
@@ -421,55 +459,23 @@ function ImDispatche() {
         </div>
       )}
 
-      {/* Système de toast notifications */}
       <div className="toast-container">
-        {toasts.map((toast) =>
-          toast.type === "confirmation" ? (
-            <div key={toast.id} className="toast toast-confirmation">
-              <div className="toast-icon">
-                <AlertTriangle size={20} />
-              </div>
-              <div className="toast-content">
-                <p>{toast.message}</p>
-                <div className="toast-actions">
-                  <button
-                    onClick={() => {
-                      toast.onConfirm()
-                      supprimerToast(toast.id)
-                    }}
-                    className="toast-btn confirm"
-                  >
-                    Confirmer
-                  </button>
-                  <button
-                    onClick={() => {
-                      toast.onCancel()
-                      supprimerToast(toast.id)
-                    }}
-                    className="toast-btn cancel"
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </div>
-              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
-                <X size={16} />
-              </button>
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            <div className="toast-icon">
+              <FileText size={20} />
             </div>
-          ) : (
-            <div key={toast.id} className={`toast toast-${toast.type}`}>
-              <div className="toast-icon">
-                {toast.type === "succes" ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-              </div>
-              <div className="toast-content">
-                <p>{toast.message}</p>
-              </div>
-              <button onClick={() => supprimerToast(toast.id)} className="toast-close">
-                <X size={16} />
-              </button>
+            <div className="toast-content">
+              <p>{toast.message}</p>
             </div>
-          ),
-        )}
+            <button
+              onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+              className="toast-close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )

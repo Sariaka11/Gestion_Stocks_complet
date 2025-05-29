@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { FileDown, Package, Truck, Calendar, Loader2, FileText, X } from "lucide-react"
 import { getFournitures } from "../../../services/fournituresServices"
 import { getAgenceFournitures } from "../../../services/agenceFournituresServices"
-import { getAgences } from "../../../services/agenceServices"
 import "./css/Inventaire.css"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -12,7 +11,6 @@ import autoTable from "jspdf-autotable"
 function Inventaire() {
   const [fournitures, setFournitures] = useState([])
   const [agenceFournitures, setAgenceFournitures] = useState([])
-  const [agences, setAgences] = useState([])
   const [loading, setLoading] = useState(true)
   const [filtreDate, setFiltreDate] = useState("")
   const [filtreCategorie, setFiltreCategorie] = useState("")
@@ -57,16 +55,12 @@ function Inventaire() {
 
       const dispatchData = agenceFournitures
         .filter((af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate))
-        .map((af) => {
-          const fourniture = fournitures.find((f) => f.id === af.fournitureId)
-          const agence = agences.find((a) => a.id === af.agenceId)
-          return [
-            fourniture?.nom || "-",
-            agence?.nom || "-",
-            af.quantite,
-            af.dateAssociation?.split("T")[0] || "-",
-          ]
-        })
+        .map((af) => [
+          af.fournitureNom || "Fourniture inconnue",
+          af.agenceNom || "Agence inconnue",
+          af.quantite ?? "-",
+          af.dateAssociation?.split("T")[0] || "-",
+        ])
 
       autoTable(doc, {
         head: [["Fourniture", "Agence", "Quantité", "Date"]],
@@ -107,15 +101,16 @@ function Inventaire() {
   useEffect(() => {
     setLoading(true)
 
-    Promise.all([getFournitures(), getAgenceFournitures(), getAgences()])
-      .then(([resF, resAF, resAgences]) => {
+    Promise.all([getFournitures(), getAgenceFournitures()])
+      .then(([resF, resAF]) => {
         const rawFournitures = Array.isArray(resF.data) ? resF.data : resF.data?.["$values"] || []
         const rawAgenceFournitures = Array.isArray(resAF.data) ? resAF.data : resAF.data?.["$values"] || []
-        const rawAgences = Array.isArray(resAgences.data) ? resAgences.data : resAgences.data?.["$values"] || []
+
+        // Log pour déboguer les données brutes
+        console.log("rawAgenceFournitures:", rawAgenceFournitures)
 
         setFournitures(rawFournitures)
         setAgenceFournitures(rawAgenceFournitures)
-        setAgences(rawAgences)
       })
       .catch((err) => {
         console.error("Erreur chargement:", err)
@@ -151,10 +146,11 @@ function Inventaire() {
 
           <div className="filters-container">
             <div className="date-filter">
-              <label>Filtrer par date :</label>
+              <label htmlFor="filtreDate">Filtrer par date :</label>
               <div className="date-input-wrapper">
                 <Calendar size={18} className="calendar-icon" />
                 <input
+                  id="filtreDate"
                   type="date"
                   value={filtreDate}
                   onChange={(e) => setFiltreDate(e.target.value)}
@@ -163,10 +159,11 @@ function Inventaire() {
               </div>
             </div>
             <div className="categorie-filter">
-              <label>Filtrer par catégorie :</label>
+              <label htmlFor="filtreCategorie">Filtrer par catégorie :</label>
               <div className="categorie-input-wrapper">
                 <Package size={18} className="categorie-icon" />
                 <select
+                  id="filtreCategorie"
                   value={filtreCategorie}
                   onChange={(e) => setFiltreCategorie(e.target.value)}
                   className="categorie-input"
@@ -258,18 +255,14 @@ function Inventaire() {
                   0 ? (
                     agenceFournitures
                       .filter((af) => !filtreDate || af.dateAssociation?.startsWith(filtreDate))
-                      .map((af, index) => {
-                        const fourniture = fournitures.find((f) => f.id === af.fournitureId)
-                        const agence = agences.find((a) => a.id === af.agenceId)
-                        return (
-                          <tr key={index}>
-                            <td>{fourniture?.nom || "-"}</td>
-                            <td>{agence?.nom || "-"}</td>
-                            <td>{af.quantite ?? "-"}</td>
-                            <td>{af.dateAssociation?.split("T")[0] ?? "-"}</td>
-                          </tr>
-                        )
-                      })
+                      .map((af, index) => (
+                        <tr key={index}>
+                          <td>{af.fournitureNom || "Fourniture inconnue"}</td>
+                          <td>{af.agenceNom || "Agence inconnue"}</td>
+                          <td>{af.quantite ?? "-"}</td>
+                          <td>{af.dateAssociation?.split("T")[0] ?? "-"}</td>
+                        </tr>
+                      ))
                   ) : (
                     <tr>
                       <td colSpan="4" className="no-data">

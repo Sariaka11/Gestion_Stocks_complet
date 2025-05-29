@@ -30,7 +30,7 @@ import UserImConsommation from "./pages/user/Immobiliers/UserImConsommation"
 import UserImDemande from "./pages/user/Immobiliers/UserImDemande"
 import Profile from "./pages/user/Profil/Profile"
 import { MockDataProvider} from "../app/MockDataProvider"; // ✅ corrige le chemin si nécessaire
-
+import { RefreshProvider } from './pages/admin/context/RefreshContext';
 import "./App.css"
 
 function App() {
@@ -43,6 +43,7 @@ function App() {
   // Composant Admin Dashboard simplifié
   function AdminDashboard() {
     return (
+      <RefreshProvider>
       <div className="dashboard-container">
         <AdminSidebar />
         <div className="dashboard-content">
@@ -60,6 +61,7 @@ function App() {
           </Routes>
         </div>
       </div>
+      </RefreshProvider>
     )
   }
 

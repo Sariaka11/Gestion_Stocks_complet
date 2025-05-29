@@ -23,7 +23,6 @@ function Amortissements() {
   // Charger les données au démarrage
   useEffect(() => {
     chargerDonnees()
-    
   }, [])
 
   // Fonction pour charger toutes les données
@@ -31,68 +30,15 @@ function Amortissements() {
     setLoading(true)
     setError(null)
 
-    // Si nous utilisons des données mockées, utilisez-les directement
-    if (useMock) {
-      console.log("Utilisation des données mockées pour Amortissements")
-
-      // Transformer les données mockées pour l'affichage
-      const immobiliersTransformes = mockData.immobiliers.map((item) => ({
-        id: item.idBien,
-        codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-        designation: item.nomBien || "",
-        typeImmobilier:
-          item.categorie?.nomCategorie ||
-          mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
-          "Non catégorisé",
-        dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-        prixAchat: item.valeurAcquisition || 0,
-        dureeAmortissement:
-          item.categorie?.dureeAmortissement ||
-          mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.dureeAmortissement ||
-          Math.ceil(100 / (item.tauxAmortissement || 1)),
-        tauxAmortissement: item.tauxAmortissement || 0,
-        statut: item.statut || "actif",
-        amortissements: [], // Sera rempli plus tard
-      }))
-
-      setImmobiliers(immobiliersTransformes)
-      setAmortissements(mockData.amortissements)
-
-      // Associer les amortissements aux immobiliers
-      const immobiliersAvecAmortissements = immobiliersTransformes.map((immobilier) => {
-        const amortissementsBien = mockData.amortissements.filter((a) => a.idBien === immobilier.id)
-
-        // Si aucun amortissement n'existe, calculer un tableau d'amortissement théorique
-        const tableauAmortissement =
-          amortissementsBien.length > 0
-            ? amortissementsBien.map((a) => ({
-                annee: a.annee,
-                baseAmortissable: immobilier.prixAchat,
-                dotation: a.montant,
-                valeurNetteComptable: a.valeurResiduelle,
-              }))
-            : calculerTableauAmortissement(immobilier)
-
-        return {
-          ...immobilier,
-          amortissements: tableauAmortissement,
-        }
-      })
-
-      setImmobiliers(immobiliersAvecAmortissements)
-      setLoading(false)
-      return
-    }
-
     try {
       // Charger les immobiliers
       try {
         const immobiliersRes = await getImmobiliers()
         console.log("Données immobiliers brutes:", immobiliersRes.data)
-
+        
         // Déterminer le format des données
         let immobiliersData = immobiliersRes.data
-
+        
         // Vérifier si les données sont dans un format spécifique (comme $values)
         if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
           immobiliersData = immobiliersRes.data.$values
@@ -103,7 +49,7 @@ function Amortissements() {
           console.warn("Les données immobiliers reçues ne sont pas un tableau:", immobiliersData)
           immobiliersData = []
         }
-
+        
         // Transformer les données pour l'affichage
         const immobiliersTransformes = immobiliersData.map((item) => ({
           id: item.idBien,
@@ -115,20 +61,43 @@ function Amortissements() {
           dureeAmortissement: item.categorie?.dureeAmortissement || Math.ceil(100 / (item.tauxAmortissement || 1)),
           tauxAmortissement: item.tauxAmortissement || 0,
           statut: item.statut || "actif",
-          amortissements: [], // Sera rempli plus tard
+          valeurNetteComptable: item.valeurNetteComptable || 0,
+          amortissementCumule: item.amortissementCumule || 0,
+          // Utiliser les amortissements déjà présents dans la réponse API
+          amortissements: item.amortissements ? item.amortissements.map(amort => ({
+            annee: amort.annee,
+            baseAmortissable: item.valeurAcquisition,
+            dotation: amort.montant,
+            valeurNetteComptable: amort.valeurResiduelle,
+          })) : [],
         }))
 
-        setImmobiliers(immobiliersTransformes)
+        console.log("Données immobiliers transformées:", immobiliersTransformes)
+
+        // Pour chaque immobilier, si pas d'amortissements dans l'API, calculer le tableau théorique
+        const immobiliersAvecAmortissements = immobiliersTransformes.map((immobilier) => {
+          if (immobilier.amortissements.length === 0) {
+            // Calculer un tableau d'amortissement théorique
+            const tableauAmortissement = calculerTableauAmortissement(immobilier)
+            return {
+              ...immobilier,
+              amortissements: tableauAmortissement,
+            }
+          }
+          return immobilier
+        })
+
+        setImmobiliers(immobiliersAvecAmortissements)
+
       } catch (error) {
         console.error("Erreur lors du chargement des immobiliers:", error)
         throw new Error(`Erreur lors du chargement des immobiliers: ${error.message}`)
       }
 
-      // Charger les amortissements
+      // Charger les amortissements supplémentaires si nécessaire
       try {
         const amortissementsRes = await getAmortissements()
-        console.log("Données amortissements brutes:", amortissementsRes.data)
-
+        
         // Déterminer le format des données
         let amortissementsData = amortissementsRes.data
 
@@ -150,31 +119,10 @@ function Amortissements() {
         setAmortissements(amortissementsData)
       } catch (error) {
         console.error("Erreur lors du chargement des amortissements:", error)
-        throw new Error(`Erreur lors du chargement des amortissements: ${error.message}`)
+        // Ne pas faire échouer tout le processus si seuls les amortissements échouent
+        console.warn("Utilisation des amortissements déjà chargés avec les immobiliers")
       }
 
-      // Associer les amortissements aux immobiliers
-      const immobiliersAvecAmortissements = immobiliers.map((immobilier) => {
-        const amortissementsBien = amortissements.filter((a) => a.idBien === immobilier.id)
-
-        // Si aucun amortissement n'existe, calculer un tableau d'amortissement théorique
-        const tableauAmortissement =
-          amortissementsBien.length > 0
-            ? amortissementsBien.map((a) => ({
-                annee: a.annee,
-                baseAmortissable: immobilier.prixAchat,
-                dotation: a.montant,
-                valeurNetteComptable: a.valeurResiduelle,
-              }))
-            : calculerTableauAmortissement(immobilier)
-
-        return {
-          ...immobilier,
-          amortissements: tableauAmortissement,
-        }
-      })
-
-      setImmobiliers(immobiliersAvecAmortissements)
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err)
       setError("Impossible de charger les données. Veuillez réessayer plus tard.")
@@ -314,7 +262,7 @@ function Amortissements() {
           </label>
           <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
             <option value="">Tous les types</option>
-            <option value="Informatique">Informatique</option>
+            <option value="Matériel informatique">Matériel informatique</option>
             <option value="Mobilier">Mobilier</option>
             <option value="Véhicule">Véhicule</option>
             <option value="Bâtiment">Bâtiment</option>
@@ -345,12 +293,8 @@ function Amortissements() {
           <tbody>
             {immobiliersFiltres.length > 0 ? (
               immobiliersFiltres.map((item) => {
-                // Calculer la VNC actuelle
-                const anneeActuelle = new Date().getFullYear()
-                const amortissementActuel =
-                  item.amortissements.find((a) => a.annee === anneeActuelle) ||
-                  item.amortissements[item.amortissements.length - 1]
-                const vncActuelle = amortissementActuel ? amortissementActuel.valeurNetteComptable : 0
+                // Utiliser la VNC directement depuis l'API ou calculer
+                const vncActuelle = item.valeurNetteComptable || 0
 
                 return (
                   <tr key={item.id}>
@@ -364,7 +308,7 @@ function Amortissements() {
                       </span>
                     </td>
                     <td>{item.dureeAmortissement} ans</td>
-                    <td>{item.tauxAmortissement}%</td>
+                    <td>{item.tauxAmortissement.toFixed(2)}%</td>
                     <td>{formaterPrix(vncActuelle)} Ar</td>
                     <td className="actions-cell">
                       <button className="btn-detail" onClick={() => ouvrirModalDetail(item)}>
@@ -414,7 +358,7 @@ function Amortissements() {
               </div>
               <div className="info-group">
                 <span className="info-label">Taux d'amortissement:</span>
-                <span className="info-value">{immobilierSelectionne.tauxAmortissement}%</span>
+                <span className="info-value">{immobilierSelectionne.tauxAmortissement.toFixed(2)}%</span>
               </div>
             </div>
 

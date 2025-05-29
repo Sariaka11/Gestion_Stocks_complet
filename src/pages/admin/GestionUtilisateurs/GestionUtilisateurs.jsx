@@ -55,13 +55,8 @@ function GestionUtilisateurs() {
       })
       const data = response.data
 
-      if (!data.$values || !Array.isArray(data.$values)) {
-        console.error("Réponse inattendue :", data)
-        throw new Error("La réponse de l'API ne contient pas un tableau d'utilisateurs")
-      }
-
       const usersWithDetails = await Promise.all(
-        data.$values.map(async (user) => {
+        data.map(async (user) => {
           const agenceResponse = await axios.get(`${API_URL}/Users/${user.id}/Agence`).catch(() => ({
             data: { nom: "N/A" },
           }))
@@ -110,7 +105,7 @@ function GestionUtilisateurs() {
           }
         })
       )
-
+      console.log("ici",  usersWithDetails)
       setUsers(usersWithDetails)
     } catch (err) {
       console.error("Erreur fetchUsers :", err)

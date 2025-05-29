@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash, Save } from "lucide-react";
+import { Search, Plus, Edit, Trash, Save, FileText } from "lucide-react";
 import {
   getAgences,
   deleteAgence,
@@ -9,13 +9,15 @@ import {
 import {
   getFournitures,
   updateFourniture,
-} from "../../../services/fournituresServices";
+} from "../../../services/fournituresServices.js";
 import {
-  createDispatch,
-} from "../../../services/agenceFournituresServices";
+  createAgenceFourniture,
+} from "../../../services/agenceFournituresServices.js";
+import { useRefresh } from "../context/RefreshContext.jsx";
 import "./css/Dispatche.css";
 
 function Dispatche() {
+  const { triggerRefresh } = useRefresh();
   const [agences, setAgences] = useState([]);
   const [agencesAffichees, setAgencesAffichees] = useState([]);
   const [fournitures, setFournitures] = useState([]);
@@ -27,6 +29,7 @@ function Dispatche() {
   const [filtreAgenceTableau, setFiltreAgenceTableau] = useState("");
   const [modalOuvert, setModalOuvert] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState([]);
 
   const [nouveauDispatch, setNouveauDispatch] = useState({
     fournitureId: "",
@@ -34,6 +37,21 @@ function Dispatche() {
     quantite: "",
     date: "",
   });
+
+  // Fonction pour afficher un toast
+  const afficherToast = (message, type) => {
+    const id = Date.now();
+    const nouveauToast = { id, message, type };
+    setToasts((prev) => [...prev, nouveauToast]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 5000);
+  };
+
+  // Supprimer un toast spécifique
+  const supprimerToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -64,7 +82,10 @@ function Dispatche() {
 
         setDispatches(lignes);
       })
-      .catch((err) => console.error("Erreur chargement:", err))
+      .catch((err) => {
+        console.error("Erreur chargement:", err);
+        afficherToast("Erreur lors du chargement des données", "erreur");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -88,23 +109,47 @@ function Dispatche() {
             consommations: d.consommations.filter((c) => c.agenceId !== id),
           }))
         );
+        afficherToast("Agence supprimée avec succès", "succes");
       })
-      .catch((err) => console.error("Erreur suppression agence:", err));
+      .catch((err) => {
+        console.error("Erreur suppression agence:", err);
+        afficherToast("Erreur lors de la suppression de l'agence", "erreur");
+      });
   };
 
   const toggleEditionDispatch = (id) => {
     if (dispatchEnEdition === id) {
       const ligne = dispatches.find((d) => d.id === id);
+      let totalQuantiteDeduite = 0;
+
+      // Calculer la quantité totale à déduire
       ligne.consommations.forEach((c) => {
         if (c.quantite > 0) {
-          createDispatch({
+          totalQuantiteDeduite += c.quantite;
+        }
+      });
+
+      // Vérifier si la quantité totale est valide
+      if (totalQuantiteDeduite > ligne.quantite) {
+        afficherToast("La quantité totale dépasse le stock restant", "erreur");
+        return;
+      }
+
+      // Envoyer les mises à jour pour chaque consommation
+      const promises = ligne.consommations
+        .filter((c) => c.quantite > 0)
+        .map((c) =>
+          createAgenceFourniture({
             agenceId: c.agenceId,
             fournitureId: ligne.id,
             quantite: c.quantite,
-            date: new Date().toISOString(),
-          });
+            dateAssociation: new Date().toISOString(),
+          })
+        );
 
-          const newRestante = ligne.quantite - c.quantite;
+      Promise.all(promises)
+        .then(() => {
+          const newRestante = ligne.quantite - totalQuantiteDeduite;
           updateFourniture(ligne.id, {
             id: ligne.id,
             nom: ligne.designation,
@@ -113,11 +158,35 @@ function Dispatche() {
             categorie: fournitures.find((f) => f.id === ligne.id)?.categorie || "",
             quantiteRestante: newRestante,
             date: new Date().toISOString(),
-          });
+          }).then(() => {
+            // Mettre à jour l'état local
+            setFournitures((prev) =>
+              prev.map((f) =>
+                f.id === ligne.id ? { ...f, quantiteRestante: newRestante } : f
+              )
+            );
+            setDispatches((prev) =>
+              prev.map((d) =>
+                d.id === ligne.id ? { ...d, quantite: newRestante } : d
+              )
+            );
 
-          ligne.quantite = newRestante;
-        }
-      });
+            afficherToast("Dispatch mis à jour avec succès", "succes");
+            triggerRefresh(); // Déclenche la mise à jour dans Inventaire.jsx
+          });
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la mise à jour du dispatch:", error);
+          if (error.code === "ECONNABORTED") {
+            afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi", "info");
+            triggerRefresh(); // Tente de synchroniser
+          } else if (error.response?.status === 400) {
+            afficherToast(error.response.data || "Données invalides", "erreur");
+          } else {
+            afficherToast("Erreur lors de la mise à jour du dispatch", "erreur");
+          }
+        });
+
       setDispatchEnEdition(null);
     } else {
       setDispatchEnEdition(id);
@@ -140,6 +209,7 @@ function Dispatche() {
 
   const supprimerDispatch = (id) => {
     setDispatches((prev) => prev.filter((d) => d.id !== id));
+    afficherToast("Dispatch supprimé avec succès", "succes");
   };
 
   const ouvrirModal = () => {
@@ -161,40 +231,74 @@ function Dispatche() {
   const sauvegarderDispatch = () => {
     const { fournitureId, agenceId, quantite, date } = nouveauDispatch;
     const fourniture = fournitures.find((f) => f.id === parseInt(fournitureId));
-    if (!fourniture || !agenceId || !quantite || !date) return;
+    if (!fourniture || !agenceId || !quantite || !date) {
+      afficherToast("Veuillez remplir tous les champs", "erreur");
+      return;
+    }
 
-    const quantiteRestante = fourniture.quantiteRestante - parseInt(quantite);
+    const quantiteInt = parseInt(quantite);
+    if (isNaN(quantiteInt) || quantiteInt <= 0) {
+      afficherToast("La quantité doit être un nombre positif", "erreur");
+      return;
+    }
 
-    createDispatch({
+    if (quantiteInt > fourniture.quantiteRestante) {
+      afficherToast("Quantité supérieure au stock restant", "erreur");
+      return;
+    }
+
+    const quantiteRestante = fourniture.quantiteRestante - quantiteInt;
+
+    createAgenceFourniture({
       agenceId: parseInt(agenceId),
       fournitureId: fourniture.id,
-      quantite: parseInt(quantite),
-      date,
-    }).then(() => {
-      updateFourniture(fourniture.id, {
-        ...fourniture,
-        quantiteRestante,
-        date: new Date().toISOString(),
+      quantite: quantiteInt,
+      dateAssociation: new Date(date).toISOString(),
+    })
+      .then(() => {
+        updateFourniture(fourniture.id, {
+          ...fourniture,
+          quantiteRestante,
+          date: new Date().toISOString(),
+        }).then(() => {
+          // Mettre à jour l'état local
+          setFournitures((prev) =>
+            prev.map((f) =>
+              f.id === fourniture.id ? { ...f, quantiteRestante } : f
+            )
+          );
+          setDispatches((prev) =>
+            prev.map((d) =>
+              d.id === fourniture.id
+                ? {
+                    ...d,
+                    quantite: quantiteRestante,
+                    consommations: d.consommations.map((c) =>
+                      c.agenceId === parseInt(agenceId)
+                        ? { ...c, quantite: c.quantite + quantiteInt }
+                        : c
+                    ),
+                  }
+                : d
+            )
+          );
+
+          setModalOuvert(false);
+          afficherToast("Dispatch enregistré avec succès", "succes");
+          triggerRefresh(); // Déclenche la mise à jour dans Inventaire.jsx
+        });
+      })
+      .catch((error) => {
+        console.error("Erreur lors de la création du dispatch:", error);
+        if (error.code === "ECONNABORTED") {
+          afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi", "info");
+          triggerRefresh(); // Tente de synchroniser
+        } else if (error.response?.status === 400) {
+          afficherToast(error.response.data || "Données invalides", "erreur");
+        } else {
+          afficherToast("Erreur lors de l'enregistrement du dispatch", "erreur");
+        }
       });
-
-      setDispatches((prev) =>
-        prev.map((d) =>
-          d.id === fourniture.id
-            ? {
-                ...d,
-                quantite: quantiteRestante,
-                consommations: d.consommations.map((c) =>
-                  c.agenceId === parseInt(agenceId)
-                    ? { ...c, quantite: c.quantite + parseInt(quantite) }
-                    : c
-                ),
-              }
-            : d
-        )
-      );
-
-      setModalOuvert(false);
-    });
   };
 
   const dispatchesFiltres = dispatches.filter((d) =>
@@ -432,6 +536,22 @@ function Dispatche() {
           </div>
         </div>
       )}
+
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            <div className="toast-icon">
+              <FileText size={20} />
+            </div>
+            <div className="toast-content">
+              <p>{toast.message}</p>
+            </div>
+            <button onClick={() => supprimerToast(toast.id)} className="toast-close">
+              <Trash size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
