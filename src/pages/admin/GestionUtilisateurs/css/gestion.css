@@ -245,6 +245,10 @@
   display: flex;
   justify-content: flex-end;
 }
+.user-actions-footer .action-btn{
+  background-color:#4f46e5;
+  color:white;
+}
 
 .view-details-btn {
   display: flex;

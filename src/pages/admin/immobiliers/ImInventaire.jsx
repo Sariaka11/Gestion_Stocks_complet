@@ -405,6 +405,7 @@ function ImInventaire() {
       </div>
 
       <div className="tableau-container">
+         <h3>Inventaire des biens</h3>
         <table className="tableau-inventaire">
           <thead>
             <tr>
@@ -451,8 +452,8 @@ function ImInventaire() {
 
       {/* Tableau de résumé des affectations */}
       <div className="tableau-container">
-        <h3>Résumé des Affectations</h3>
-       <table className="tableau-resume">
+        <h3>Inventaire des Affectations</h3>
+       <table className="tableau-inventaire">
   <thead>
     <tr>
       <th>Nom de l'Agence</th>

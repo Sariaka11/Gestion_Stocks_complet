@@ -2,13 +2,11 @@ import axios from "axios"
 
 const API_URL = "http://localhost:5000/api"
 
-// Configuration pour CORS
 axios.defaults.headers.common["Access-Control-Allow-Origin"] = "*"
 
-// Intercepteur pour gérer les erreurs et afficher les détails
 axios.interceptors.response.use(
   (response) => {
-    console.log("Réponse API réussie:", response.config.url)
+    console.log("Réponse API réussie:", response.config.url, response.data)
     return response
   },
   (error) => {
@@ -49,4 +47,21 @@ export const updateFourniture = (id, fournitureData) => {
 
 export const deleteFourniture = (id) => {
   return axios.delete(`${API_URL}/Fournitures/${id}`)
+}
+
+export const getAgences = () => {
+  return axios.get(`${API_URL}/Agences`)
+}
+
+export const getAgenceFournitures = () => {
+  return axios.get(`${API_URL}/AgenceFournitures`).then((response) => {
+    if (response.data && response.data.length > 0) {
+      console.log("Premier objet AgenceFournitures:", response.data[0])
+    }
+    return response
+  })
+}
+
+export const createEntreeFourniture = (id, entreeData) => {
+  return axios.post(`${API_URL}/Fournitures/${id}/Entrees`, entreeData)
 }

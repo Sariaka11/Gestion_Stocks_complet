@@ -99,8 +99,10 @@
 
 .actions-stock {
   display: flex;
-  gap: 1rem;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -111,17 +113,29 @@
 .champ-filtre {
   padding: 0.5rem 0.75rem;
   border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  border-radius: 15px;
   font-size: 0.875rem;
-  width: 250px;
+  width: 40%;
 }
 
-.bouton-ajouter {
+.modal-actions {
+  display: flex;
+  justify-content: flex-end; /* Aligne les boutons à droite. Change en "center" ou "space-between" si besoin */
+  gap: 10px; /* Espace entre les boutons */
+  padding: 1rem;
+}
+
+.modal-actions .btn-annuler{
+  background-color: linear-gradient(45deg, #f36262, #ec1c1c);;
+  color: white;
+}
+
+.bouton-ajouter-entree {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #cc0000;
-  color: white;
+  background-color: #53dce0;
+  color: rgb(32, 29, 29);
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -131,8 +145,14 @@
   transition: background-color 0.3s ease;
 }
 
-.bouton-ajouter:hover {
-  background-color: #a00000;
+.bouton-ajouter-entree:hover {
+  background-color: #2855b6;
+  color: wheat;
+}
+
+.actions-stock button .bouton-ajouter{
+  background-color: inear-gradient(45deg, #f36262, #ec1c1c);
+  color: whitesmoke;
 }
 
 .tableau-stock-wrapper {
@@ -180,7 +200,6 @@
   gap: 0.5rem;
 }
 
-.bouton-modifier,
 .bouton-supprimer {
   display: flex;
   align-items: center;
@@ -193,22 +212,27 @@
   transition: background-color 0.2s ease;
 }
 
-.bouton-modifier {
-  background-color: #f0f0f0;
-  color: #333;
+.actions-cellule .bouton-modifier {
+  background-color: #a7dd60;
+  color: #2c2525;
 }
 
-.bouton-modifier:hover {
-  background-color: #e0e0e0;
+.actions-cellule .bouton-modifier:hover {
+  background-color: #3b9442;
 }
 
 .bouton-supprimer {
-  background-color: #fff0f0;
-  color: #cc0000;
+  background-color: #e95555;
+  color: #0f0d0d;
+}
+
+.btn-annuler {
+   background-color: #4f46e5;
+  color: white;
 }
 
 .bouton-supprimer:hover {
-  background-color: #ffe0e0;
+  background-color: #9c2a2a;
 }
 
 .no-data {
@@ -584,7 +608,7 @@
   padding: 0.5rem 1rem;
   border-radius: 4px;
   border: none;
-  background-color: #ef4444;
+  background-color: linear-gradient(45deg, #f36262, #ec1c1c);;
   color: white;
   font-weight: 500;
   cursor: pointer;

@@ -6,6 +6,7 @@ import {
   createFourniture,
   updateFourniture,
   deleteFourniture,
+  createEntreeFourniture,
 } from "../../../services/fournituresServices"
 import {
   Plus,
@@ -39,6 +40,7 @@ function Stock() {
   const [articleASupprimer, setArticleASupprimer] = useState(null)
   const [articleEnEdition, setArticleEnEdition] = useState(null)
   const [toasts, setToasts] = useState([])
+  const [nouvelleEntree, setNouvelleEntree] = useState(null)
 
   const [nouvelArticle, setNouvelArticle] = useState({
     designation: "",
@@ -54,80 +56,76 @@ function Stock() {
     { id: 1, nom: "Fournitures de Bureau", icone: "FileText" },
     { id: 2, nom: "Matériel Informatique", icone: "Computer" },
     { id: 3, nom: "Fournitures d'Entretien", icone: "Package" },
-   // { id: 4, nom: "Matériels Informatiques", icone: "HardDrive" },
     { id: 4, nom: "Livret", icone: "Book" },
   ]
 
-  // Fonction pour afficher un toast
   const afficherToast = (message, type) => {
     const id = Date.now()
-    const nouveauToast = {
-      id,
-      message,
-      type,
-    }
-
+    const nouveauToast = { id, message, type }
     setToasts((prev) => [...prev, nouveauToast])
-
-    // Supprimer le toast après 5 secondes
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id))
-    }, 5000)
+    setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 5000)
   }
 
-  // Supprimer un toast spécifique
   const supprimerToast = (id) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
-  // Fonction pour afficher une boîte de dialogue de confirmation moderne
   const afficherConfirmation = (message, onConfirm) => {
     const confirmationId = Date.now()
     const confirmation = {
       id: confirmationId,
       message,
       onConfirm,
-      onCancel: () => {
-        setToasts((prev) => prev.filter((t) => t.id !== confirmationId))
-      },
+      onCancel: () => setToasts((prev) => prev.filter((t) => t.id !== confirmationId)),
     }
-
     setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
   }
 
   useEffect(() => {
     setLoading(true)
-
+    console.log("Début du chargement des données...")
     getFournitures()
       .then((res) => {
+        console.log("Réponse API:", res)
         const rawData = res.data
         const array = Array.isArray(rawData) ? rawData : rawData["$values"] || []
+        console.log("Données mappées:", array)
 
-        const mapped = array.map((item) => ({
-          id: item.id,
-          designation: item.nom,
-          categorie: item.categorie,
-          stockAvant: {
-            quantite: item.quantiteRestante,
-            montant: item.quantiteRestante * item.prixUnitaire,
-            cmup: item.cmup ?? 0,
-          },
-          stockActuel: {
-            date: item.date,
-            quantite: item.quantite,
-            prixUnitaire: item.prixUnitaire,
-            montant: item.quantite * item.prixUnitaire,
-          },
-          dateEntree: item.date,
-        }))
-
+        const mapped = array.map((item) => {
+          const latestEntree =
+            item.entreesFournitures && item.entreesFournitures.length > 0
+              ? item.entreesFournitures[item.entreesFournitures.length - 1]
+              : null
+          return {
+            id: item.id,
+            designation: item.nom || "Inconnu",
+            categorie: item.categorie || "Sans catégorie",
+            stockAvant: {
+              quantite: item.quantiteRestante || 0,
+              montant: (item.quantiteRestante || 0) * (item.prixUnitaire || 0),
+              cmup: item.cmup ?? 0,
+            },
+            stockActuel: {
+              date: latestEntree ? latestEntree.dateEntree : null,
+              quantite: latestEntree ? latestEntree.quantiteEntree : 0,
+              prixUnitaire: item.prixUnitaire || 0,
+              montant: latestEntree ? latestEntree.montant : 0,
+            },
+            dateEntree: latestEntree ? latestEntree.dateEntree : null,
+            entrees: item.entreesFournitures || [],
+          }
+        })
+        console.log("Articles mappés:", mapped)
         setArticles(mapped)
       })
       .catch((err) => {
         console.error("Erreur API:", err)
         afficherToast("Erreur lors du chargement des articles", "erreur")
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        console.log("Chargement terminé")
+        setLoading(false)
+      })
   }, [])
 
   const sauvegarderArticle = () => {
@@ -144,35 +142,41 @@ function Stock() {
       categorie: nouvelArticle.categorie,
       prixUnitaire,
       quantite,
-      date: nouvelArticle.date,
     }
 
     if (articleEnEdition) {
-      // Cas modification
       updateFourniture(articleEnEdition.id, { ...data, id: articleEnEdition.id })
         .then(() => {
-          const articleModifie = {
-            ...articleEnEdition,
-            designation: data.nom,
-            categorie: data.categorie,
-            stockActuel: {
-              date: data.date,
-              quantite: data.quantite,
-              prixUnitaire: data.prixUnitaire,
-              montant: data.quantite * data.prixUnitaire,
-            },
-            stockAvant: {
-              quantite: articleEnEdition.stockAvant.quantite + (data.quantite - articleEnEdition.stockActuel.quantite),
-              montant:
-                (articleEnEdition.stockAvant.quantite + (data.quantite - articleEnEdition.stockActuel.quantite)) *
-                data.prixUnitaire,
-              cmup: articleEnEdition.stockAvant.cmup,
-            },
-            dateEntree: data.date,
-          }
-
-          setArticles((prev) => prev.map((a) => (a.id === articleEnEdition.id ? articleModifie : a)))
-
+          return getFournitures()
+        })
+        .then((res) => {
+          const rawData = res.data
+          const array = Array.isArray(rawData) ? rawData : rawData["$values"] || []
+          const mapped = array.map((item) => {
+            const latestEntree =
+              item.entreesFournitures && item.entreesFournitures.length > 0
+                ? item.entreesFournitures[item.entreesFournitures.length - 1]
+                : null
+            return {
+              id: item.id,
+              designation: item.nom || "Inconnu",
+              categorie: item.categorie || "Sans catégorie",
+              stockAvant: {
+                quantite: item.quantiteRestante || 0,
+                montant: (item.quantiteRestante || 0) * (item.prixUnitaire || 0),
+                cmup: item.cmup ?? 0,
+              },
+              stockActuel: {
+                date: latestEntree ? latestEntree.dateEntree : null,
+                quantite: latestEntree ? latestEntree.quantiteEntree : 0,
+                prixUnitaire: item.prixUnitaire || 0,
+                montant: latestEntree ? latestEntree.montant : 0,
+              },
+              dateEntree: latestEntree ? latestEntree.dateEntree : null,
+              entrees: item.entreesFournitures || [],
+            }
+          })
+          setArticles(mapped)
           afficherToast("Article modifié avec succès!", "succes")
           setModalOuvert(false)
           setArticleEnEdition(null)
@@ -182,11 +186,13 @@ function Stock() {
           afficherToast("Erreur lors de la modification", "erreur")
         })
     } else {
-      // Cas création
       createFourniture(data)
         .then((res) => {
           const newItem = res.data
-
+          const latestEntree =
+            newItem.entreesFournitures && newItem.entreesFournitures.length > 0
+              ? newItem.entreesFournitures[newItem.entreesFournitures.length - 1]
+              : null
           const nouvelArticleMapped = {
             id: newItem.id,
             designation: newItem.nom,
@@ -197,14 +203,14 @@ function Stock() {
               cmup: newItem.cmup ?? 0,
             },
             stockActuel: {
-              date: newItem.date,
-              quantite: newItem.quantite,
+              date: latestEntree ? latestEntree.dateEntree : null,
+              quantite: latestEntree ? latestEntree.quantiteEntree : 0,
               prixUnitaire: newItem.prixUnitaire,
-              montant: newItem.quantite * newItem.prixUnitaire,
+              montant: latestEntree ? latestEntree.montant : 0,
             },
-            dateEntree: newItem.date,
+            dateEntree: latestEntree ? latestEntree.dateEntree : null,
+            entrees: newItem.entreesFournitures || [],
           }
-
           setArticles((prev) => [...prev, nouvelArticleMapped])
           afficherToast("Article ajouté avec succès!", "succes")
           setModalOuvert(false)
@@ -214,6 +220,67 @@ function Stock() {
           afficherToast("Erreur lors de la création", "erreur")
         })
     }
+  }
+
+  const ajouterEntree = (article) => {
+    setNouvelleEntree(article)
+    setNouvelArticle({
+      designation: article.designation,
+      categorie: article.categorie,
+      quantite: "",
+      prixUnitaire: "",
+      date: new Date().toISOString().split("T")[0],
+    })
+    setModalOuvert(true)
+  }
+
+  const sauvegarderEntree = () => {
+    if (!nouvelleEntree) return
+
+    const quantite = Number.parseInt(nouvelArticle.quantite, 10)
+    const prixUnitaire = Number.parseFloat(nouvelArticle.prixUnitaire)
+
+    if (!quantite || !prixUnitaire || !nouvelArticle.date) {
+      afficherToast("Quantité, prix unitaire et date sont obligatoires", "erreur")
+      return
+    }
+
+    const data = {
+      fournitureId: nouvelleEntree.id,
+      quantiteEntree: quantite,
+      prixUnitaire: prixUnitaire,
+      dateEntree: nouvelArticle.date,
+    }
+
+    createEntreeFourniture(nouvelleEntree.id, data)
+      .then((res) => {
+        const updatedItem = res.data
+        const latestEntree = updatedItem.entreesFournitures[updatedItem.entreesFournitures.length - 1]
+        const articleMisAJour = {
+          ...nouvelleEntree,
+          stockAvant: {
+            quantite: updatedItem.quantiteRestante,
+            montant: updatedItem.quantiteRestante * updatedItem.prixUnitaire,
+            cmup: updatedItem.cmup ?? 0,
+          },
+          stockActuel: {
+            date: latestEntree.dateEntree,
+            quantite: latestEntree.quantiteEntree,
+            prixUnitaire: latestEntree.prixUnitaire,
+            montant: latestEntree.montant,
+          },
+          dateEntree: latestEntree.dateEntree,
+          entrees: updatedItem.entreesFournitures || [],
+        }
+        setArticles((prev) => prev.map((a) => (a.id === nouvelleEntree.id ? articleMisAJour : a)))
+        afficherToast("Nouvelle entrée ajoutée avec succès!", "succes")
+        setModalOuvert(false)
+        setNouvelleEntree(null)
+      })
+      .catch((err) => {
+        console.error("Erreur lors de l'ajout de l'entrée:", err)
+        afficherToast("Erreur lors de l'ajout de l'entrée", "erreur")
+      })
   }
 
   const supprimerArticle = () => {
@@ -239,7 +306,7 @@ function Stock() {
       Computer: <Computer size={24} />,
       Brush: <Brush size={24} />,
       Package: <Package size={24} />,
-      FileText: <FileText size={24} />,
+      FileText: <FileText size={ 24} />,
       HardDrive: <HardDrive size={24} />,
       Book: <Book size={24} />,
     }
@@ -267,16 +334,13 @@ function Stock() {
 
     return articles.filter((article) => {
       if (!article.dateEntree) return false
-
       const dateEntree = new Date(article.dateEntree)
       const moisMatch = !filtreMois || (dateEntree.getMonth() + 1).toString() === filtreMois
       const anneeMatch = !filtreAnnee || dateEntree.getFullYear().toString() === filtreAnnee
-
       return moisMatch && anneeMatch
     })
   }
 
-  // Nouvelle fonction pour compter les articles par catégorie avec les filtres de date
   const getNombreArticlesParCategorie = (categorie) => {
     const articlesCategorie = getArticlesParCategorie(categorie)
     return filtrerArticlesParDate(articlesCategorie).length
@@ -295,6 +359,7 @@ function Stock() {
         </div>
       )}
       <h1 className="titre-page">Gestion du Stock</h1>
+      {articles.length === 0 && !loading && <p className="no-data">Aucune donnée disponible.</p>}
 
       <div className="categories-stock">
         {categoriesStock.map((cat) => (
@@ -356,60 +421,74 @@ function Stock() {
           </tr>
         </thead>
         <tbody>
-          {articlesFiltres.map((article) => (
-            <tr key={article.id}>
-              <td>{article.designation}</td>
-              <td>
-                <div className="categorie-cell">
-                  <span className="categorie-icon">{getIconeCategorie(article.categorie)}</span>
-                  <span>{article.categorie}</span>
-                </div>
-              </td>
-              <td>{article.stockAvant.quantite}</td>
-              <td>{article.stockAvant.montant.toFixed(2)}</td>
-              <td>{article.stockAvant.cmup.toFixed(2)}</td>
-              <td>{article.stockActuel.date?.split("T")[0]}</td>
-              <td>{article.stockActuel.quantite}</td>
-              <td>{article.stockActuel.prixUnitaire.toFixed(2)}</td>
-              <td>{article.stockActuel.montant.toFixed(2)}</td>
-              <td className="actions-cellule">
-                <button
-                  className="bouton-modifier"
-                  onClick={() => {
-                    setArticleEnEdition(article)
-                    setNouvelArticle({
-                      designation: article.designation,
-                      categorie: article.categorie,
-                      quantite: article.stockActuel.quantite,
-                      prixUnitaire: article.stockActuel.prixUnitaire,
-                      date: article.dateEntree,
-                    })
-                    setModalOuvert(true)
-                  }}
-                >
-                  <Edit size={14} /> Modifier
-                </button>
-                <button
-                  className="bouton-supprimer"
-                  onClick={() => {
-                    afficherConfirmation(`Voulez-vous vraiment supprimer "${article.designation}" ?`, () =>
-                      supprimerArticle(article),
-                    )
-                    setArticleASupprimer(article)
-                  }}
-                >
-                  <Trash size={14} /> Supprimer
-                </button>
+          {articlesFiltres.length > 0 ? (
+            articlesFiltres.map((article) => (
+              <tr key={article.id}>
+                <td>{article.designation}</td>
+                <td>
+                  <div className="categorie-cell">
+                    <span className="categorie-icon">{getIconeCategorie(article.categorie)}</span>
+                    <span>{article.categorie}</span>
+                  </div>
+                </td>
+                <td>{article.stockAvant.quantite}</td>
+                <td>{article.stockAvant.montant.toFixed(2)}</td>
+                <td>{article.stockAvant.cmup.toFixed(2)}</td>
+                <td>{article.stockActuel.date?.split("T")[0] || "N/A"}</td>
+                <td>{article.stockActuel.quantite}</td>
+                <td>{article.stockActuel.prixUnitaire.toFixed(2)}</td>
+                <td>{article.stockActuel.montant.toFixed(2)}</td>
+                <td className="actions-cellule">
+                  <button
+                    className="bouton-modifier"
+                    onClick={() => {
+                      setArticleEnEdition(article)
+                      setNouvelArticle({
+                        designation: article.designation,
+                        categorie: article.categorie,
+                        quantite: article.stockActuel.quantite,
+                        prixUnitaire: article.stockActuel.prixUnitaire,
+                        date: article.dateEntree?.split("T")[0] || new Date().toISOString().split("T")[0],
+                      })
+                      setModalOuvert(true)
+                    }}
+                  >
+                    <Edit size={14} /> Modifier
+                  </button>
+                  <button
+                    className="bouton-supprimer"
+                    onClick={() => {
+                      afficherConfirmation(`Voulez-vous vraiment supprimer "${article.designation}" ?`, () =>
+                        supprimerArticle(article),
+                      )
+                      setArticleASupprimer(article)
+                    }}
+                  >
+                    <Trash size={14} /> Supprimer
+                  </button>
+                  <button
+                    className="bouton-ajouter-entree"
+                    onClick={() => ajouterEntree(article)}
+                  >
+                    <Plus size={14} /> Ajouter
+                  </button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="10" className="no-data">
+                Aucun article trouvé avec les filtres appliqués.
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
 
       <Modal
         isOpen={modalOuvert}
         onClose={() => setModalOuvert(false)}
-        title={articleEnEdition ? "Modifier un article" : "Ajouter un article"}
+        title={articleEnEdition ? "Modifier un article" : nouvelleEntree ? "Ajouter une entrée" : "Ajouter un article"}
       >
         <div className="formulaire-modal">
           <div className="form-group">
@@ -418,6 +497,7 @@ function Stock() {
               placeholder="Désignation"
               value={nouvelArticle.designation}
               onChange={(e) => setNouvelArticle({ ...nouvelArticle, designation: e.target.value })}
+              disabled={!!articleEnEdition || !!nouvelleEntree}
             />
           </div>
 
@@ -426,6 +506,7 @@ function Stock() {
             <select
               value={nouvelArticle.categorie}
               onChange={(e) => setNouvelArticle({ ...nouvelArticle, categorie: e.target.value })}
+              disabled={!!articleEnEdition || !!nouvelleEntree}
             >
               <option value="">-- Catégorie --</option>
               {categoriesStock.map((cat) => (
@@ -472,7 +553,10 @@ function Stock() {
             <button className="btn-annuler" onClick={() => setModalOuvert(false)}>
               Annuler
             </button>
-            <button className="btn-sauvegarder" onClick={sauvegarderArticle}>
+            <button
+              className="btn-annuler"
+              onClick={nouvelleEntree ? sauvegarderEntree : sauvegarderArticle}
+            >
               <Save size={16} /> Sauvegarder
             </button>
           </div>

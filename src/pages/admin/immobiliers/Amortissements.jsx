@@ -389,9 +389,9 @@ function Amortissements() {
               <button className="bouton-fermer" onClick={fermerModal}>
                 Fermer
               </button>
-              <button className="bouton-exporter">
+              {/* <button className="bouton-exporter">
                 <FileDown size={16} /> Exporter
-              </button>
+              </button> */}
             </div>
           </div>
         </div>

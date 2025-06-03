@@ -59,6 +59,26 @@
   transition: background-color 0.2s;
 }
 
+.logo-text {
+  font-size: 22px;        /* Taille du titre */
+  font-weight: bold;      /* Texte en gras */
+  color: rgb(187, 27, 27);  
+  font-family: 'Times New Roman', Times, serif;           /* Couleur rouge */
+  padding: 10px 20px;     /* Espacement intérieur */
+  border-left: 6px solid rgb(131, 13, 13); /* Une touche décorative */
+  border-radius: 8px;     /* Coins légèrement arrondis */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Légère ombre */
+  margin-left: 8px;
+}
+
+.logo-icon {
+  width: 120px;     /* Largeur plus grande */
+  height: 68px;     /* Hauteur plus petite = forme rectangulaire */
+  object-fit: contain; /* Pour que l’image garde ses proportions sans déformation */
+  border-radius: 30%; 
+  margin-left: -40px;/* Optionnel : coins légèrement arrondis */
+}
+
 .toggle-sidebar-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
@@ -127,7 +147,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #c00000;
+  border: 2px solid #c55353;
 }
 
 /* Overlay pour mobile */
@@ -162,6 +182,7 @@
   right: 100%;
   height: 36px;
 }
+
 
 .search-container.search-open .search-input {
   width: 200px;
@@ -320,7 +341,8 @@
 }
 
 .logout-btn:hover {
-  background-color: #fff1f0;
+ background-color: rgba(192, 0, 0, 0.1); /* fond rouge clair au hover */
+  color: #a00000;
 }
 
 /* Notifications - Version optimisée */
@@ -545,8 +567,8 @@
   align-items: center;
   padding: 0 1.5rem;
   height: 70px;
-  background: linear-gradient(135deg, #c00000 0%, #a00000 100%);
-  color: white;
+  background: whitesmoke;
+  color: #000;
   position: fixed;
   top: 0;
   left: 0;
@@ -572,10 +594,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 40px;
+  
 }
 
 .sidebar-toggle:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(226, 96, 96, 0.1);
 }
 
 .header-brand h1 {
@@ -636,39 +660,44 @@
 .action-item {
   position: relative;
 }
-
 .action-btn {
-  background: none;
+  background-color: transparent;
+  color: red;
   border: none;
-  color: white;
-  cursor: pointer;
-  padding: 0.6rem;
-  border-radius: 50%;
-  transition: background-color 0.2s;
+  border-radius: 0;
+  width: 55px;
+  height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  cursor: pointer;
+  transition: color 0.3s;
 }
 
 .action-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  color: darkred;
 }
-
+/* Badge stylée */
 .badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  background: #ff4757;
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.2rem 0.4rem;
-  border-radius: 10px;
-  min-width: 18px;
-  text-align: center;
-  line-height: 1;
+  top: 3px;
+  right:3px;
+  background-color: rgb(218, 145, 145);
+  color: rgb(160, 107, 107);
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  padding: 2px 6px;
+  border: 1px solid rgb(207, 145, 145);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
 }
+
+
 
 /* Dropdowns simplifiés */
 .simple-dropdown {
@@ -872,3 +901,19 @@
     font-size: 1.1rem;
   }
 }
+
+.sidebar-toggle {
+/* background-color: #c00000;*/ /* rouge foncé */
+  color: #c00000;
+  border: none;
+ /* border-radius: 4px;*/
+  width: 65px;         /* Largeur augmentée */
+  height: 65px; 
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  background-color: #bbb4b4; /* rouge encore plus foncé au survol */
+}
+

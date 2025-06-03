@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { NavLink, useLocation } from "react-router-dom"
-import stockImage from '../../assets/logo.png';
-import { Package, ChevronDown, ChevronRight, Building2, BarChart3, Users } from "lucide-react"
+//import stockImage from '../../assets/logo.png'
+import {
+  Package,
+  ChevronDown,
+  ChevronRight,
+  Building2,
+  BarChart3,
+  Users,
+} from "lucide-react"
 import "./Sidebar.css"
 
 function Sidebar({ isOpen }) {
@@ -11,7 +18,7 @@ function Sidebar({ isOpen }) {
   const [immobiliersOpen, setImmobiliersOpen] = useState(false)
   const location = useLocation()
 
-  // Ouvrir automatiquement le menu correspondant à la route active
+  // Ouvre automatiquement les sections liées à la route active
   useEffect(() => {
     if (location.pathname.includes("/admin/consommables")) {
       setConsommablesOpen(true)
@@ -23,20 +30,30 @@ function Sidebar({ isOpen }) {
 
   return (
     <aside className={`app-sidebar ${isOpen ? "open" : "closed"}`}>
-      <div className="sidebar-header">
+      {/* Logo */}
+      {/* <div className="sidebar-header">
         <div className="logo">
-         <img src={stockImage} alt="CEM Logo" className="logo-icon" />   <span className="logo-text">Gestion Stock</span>
+          <img src={stockImage} alt="Logo" className="logo-icon" />
+          <span className="logo-text">Gestion Stock</span>
         </div>
-      </div>
+      </div> */}
+
+      {/* Navigation principale */}
       <nav className="sidebar-nav">
         <ul className="nav-list">
+
+          {/* Suivi des stocks */}
           <li className="nav-item">
-            <NavLink to="/admin/suivi-stock" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+            <NavLink
+              to="/admin/suivi-stock"
+              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+            >
               <BarChart3 className="nav-icon" size={20} />
               <span>Suivi des Stocks</span>
             </NavLink>
           </li>
 
+          {/* Consommables */}
           <li className="nav-item">
             <button
               className={`nav-link dropdown-toggle ${consommablesOpen ? "open" : ""}`}
@@ -48,12 +65,11 @@ function Sidebar({ isOpen }) {
                 {consommablesOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
             </button>
-
             <ul className={`sub-nav-list ${consommablesOpen ? "open" : ""}`}>
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/consommables/stock"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Stock
                 </NavLink>
@@ -61,7 +77,7 @@ function Sidebar({ isOpen }) {
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/consommables/inventaire"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Inventaire
                 </NavLink>
@@ -69,7 +85,7 @@ function Sidebar({ isOpen }) {
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/consommables/dispatche"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Dispatche
                 </NavLink>
@@ -77,6 +93,7 @@ function Sidebar({ isOpen }) {
             </ul>
           </li>
 
+          {/* Immobiliers */}
           <li className="nav-item">
             <button
               className={`nav-link dropdown-toggle ${immobiliersOpen ? "open" : ""}`}
@@ -88,12 +105,11 @@ function Sidebar({ isOpen }) {
                 {immobiliersOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
             </button>
-
             <ul className={`sub-nav-list ${immobiliersOpen ? "open" : ""}`}>
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/immobiliers/stock"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Stock
                 </NavLink>
@@ -101,7 +117,7 @@ function Sidebar({ isOpen }) {
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/immobiliers/inventaire"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Inventaire
                 </NavLink>
@@ -109,7 +125,7 @@ function Sidebar({ isOpen }) {
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/immobiliers/dispatche"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Dispatche
                 </NavLink>
@@ -117,7 +133,7 @@ function Sidebar({ isOpen }) {
               <li className="sub-nav-item">
                 <NavLink
                   to="/admin/immobiliers/amortissements"
-                  className={({ isActive }) => (isActive ? "sub-nav-link active" : "sub-nav-link")}
+                  className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Amortissements
                 </NavLink>
@@ -125,21 +141,31 @@ function Sidebar({ isOpen }) {
             </ul>
           </li>
 
+          {/* Utilisateurs */}
           <li className="nav-item">
-            <NavLink to="/admin/GestionUtilisateurs" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+            <NavLink
+              to="/admin/GestionUtilisateurs"
+              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+            >
               <Users className="nav-icon" size={20} />
               <span>Gestion des Utilisateurs</span>
             </NavLink>
           </li>
 
-           <li className="nav-item">
-            <NavLink to="/admin/register" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
+          <li className="nav-item">
+            <NavLink
+              to="/admin/register"
+              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+            >
               <Users className="nav-icon" size={20} />
               <span>Inscription</span>
             </NavLink>
           </li>
+
         </ul>
       </nav>
+
+      {/* Pied de page */}
       <div className="sidebar-footer">
         <div className="user-info">
           <div className="user-avatar">A</div>

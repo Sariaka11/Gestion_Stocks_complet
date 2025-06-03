@@ -123,6 +123,7 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  margin-top: 35px;
 }
 
 .tableau-inventaire {
@@ -630,4 +631,9 @@
 }
 .btn-supprimer:hover {
   background-color: #c0392b;
+}
+
+h3 {
+  padding: 20px;
+  color: var(--primary);
 }

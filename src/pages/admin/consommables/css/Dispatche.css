@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #4f46e5;
+  background-color: linear-gradient(45deg, #f36262, #ec1c1c);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -95,7 +95,7 @@
 }
 
 .bouton-ajouter-agence:hover {
-  background-color: #4338ca;
+  background-color: #e43838;
 }
 
 .bouton-ajouter-agence:disabled {
@@ -123,7 +123,7 @@
 }
 
 .bouton-supprimer-liste:hover {
-  background-color: #ffe0e0;
+  background-color: #e09191;
 }
 
 .dropdown-menu {
@@ -163,7 +163,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #cc0000;
+  background-color: linear-gradient(45deg, #f36262, #ec1c1c);;
   color: white;
   border: none;
   padding: 0.5rem 1rem;

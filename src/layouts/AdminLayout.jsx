@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Sidebar from "../components/admin/Sidebar"
 import { Menu, Bell, User, Search, LogOut, UserPlus } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import LoadingOverlay from "../components/LoadingOverlay"
 import "./Layout.css"
+import stockImage from '../assets/logo.png'
 
 function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -13,6 +14,10 @@ function AdminLayout({ children }) {
   const [showProfile, setShowProfile] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  
+  // Refs pour détecter les clics à l'extérieur
+  const notificationRef = useRef(null)
+  const profileRef = useRef(null)
 
   // Simuler un chargement lors du changement de route
   useEffect(() => {
@@ -26,23 +31,52 @@ function AdminLayout({ children }) {
     handleRouteChange()
   }, [])
 
+  // Fermer les dropdowns en cliquant à l'extérieur
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false)
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setShowProfile(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
   const handleLogout = (e) => {
-    console.log('handleLogout called') // Debug
+    console.log('handleLogout called')
     e.preventDefault()
     e.stopPropagation()
     
     try {
       setShowProfile(false)
       localStorage.removeItem('user')
-      console.log('About to navigate') // Debug
+      console.log('About to navigate')
       navigate("/auth/login-admin")
     } catch (error) {
       console.error('Error in handleLogout:', error)
     }
+  }
+
+  const toggleNotifications = (e) => {
+    e.stopPropagation()
+    setShowNotifications(!showNotifications)
+    setShowProfile(false)
+  }
+
+  const toggleProfile = (e) => {
+    e.stopPropagation()
+    setShowProfile(!showProfile)
+    setShowNotifications(false)
   }
 
   const notifications = [
@@ -68,28 +102,30 @@ function AdminLayout({ children }) {
 
       <header className="modern-header">
         <div className="header-left">
-          <button className="sidebar-toggle" onClick={toggleSidebar}>
+            <div className="logo">
+            <img src={stockImage} alt="Logo" className="logo-icon" />
+          </div>
+          <button className="sidebar-toggle" onClick={toggleSidebar} >
             <Menu size={20} />
           </button>
-          <div className="header-brand">
+            <span className="logo-text">Gestion des Stocks des consommables et des immobiliers</span>
+
+          {/* <div className="header-brand">
             <h1>Gestion de Stock</h1>
             <span>Système de gestion des stocks des Concommables et des Immobiliers</span>
-          </div>
+          </div> */}
         </div>
 
         <div className="header-right">
           <div className="header-actions">
 
             {/* Notifications */}
-            <div className="action-item">
+            <div className="action-item" ref={notificationRef}>
               <button
                 className="action-btn"
-                onClick={() => {
-                  setShowNotifications(!showNotifications)
-                  setShowProfile(false)
-                }}
+                onClick={toggleNotifications}
               >
-                <Bell size={18} />
+                <Bell size={20} />
                 <span className="badge">2</span>
               </button>
 
@@ -117,15 +153,12 @@ function AdminLayout({ children }) {
             </div>
 
             {/* Profil */}
-            <div className="action-item">
+            <div className="action-item" ref={profileRef}>
               <button
                 className="action-btn"
-                onClick={() => {
-                  setShowProfile(!showProfile)
-                  setShowNotifications(false)
-                }}
+                onClick={toggleProfile}
               >
-                <User size={18} />
+                <User size={20} />
               </button>
 
               {showProfile && (
@@ -135,7 +168,6 @@ function AdminLayout({ children }) {
                       <UserPlus size={16} />
                       <span>Inscription</span>
                     </Link>
-                    {/* Version 1: Bouton simple */}
                     <button 
                       className="dropdown-link logout" 
                       onClick={handleLogout}
@@ -144,16 +176,6 @@ function AdminLayout({ children }) {
                       <LogOut size={16} />
                       <span>Déconnexion</span>
                     </button>
-
-                    {/* Version 2: Alternative si la première ne marche pas */}
-                    {/* <div 
-                      className="dropdown-link logout" 
-                      onClick={handleLogout}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <LogOut size={16} />
-                      <span>Déconnexion</span>
-                    </div> */}
                   </div>
                 </div>
               )}
@@ -168,18 +190,6 @@ function AdminLayout({ children }) {
       <div className={`sidebar-overlay ${sidebarOpen ? "active" : ""}`} onClick={toggleSidebar}></div>
 
       <main className="admin-main">{children}</main>
-
-      {/* Overlay pour fermer les dropdowns - Modifié pour ne pas interférer */}
-      {(showNotifications || showProfile) && (
-        <div
-          className="dropdown-overlay"
-          onClick={() => {
-            setShowNotifications(false)
-            setShowProfile(false)
-          }}
-          style={{ zIndex: 999 }} // S'assurer que l'overlay est derrière le dropdown
-        ></div>
-      )}
     </div>
   )
 }
