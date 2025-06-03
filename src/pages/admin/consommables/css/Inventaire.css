@@ -19,7 +19,9 @@
 .page-title {
   font-size: 28px;
   font-weight: 600;
-  color: #2c3e50;
+  font-family: 'Times New Roman', Times, serif;
+  color: #d60303;
+  border-bottom: #d62d03;
 }
 
 .header-actions .btn-exporter {
@@ -38,6 +40,17 @@
 .header-actions .btn-exporter:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(239, 154, 154, 0.3);
+}
+
+ .btn-exporter2{
+ background-color: linear-gradient(45deg, #d35454, #ec1c1c);
+ color: rgb(185, 28, 17); 
+ margin-left: 60px;
+ margin-top: 35px;
+}
+
+.btn-exporter2:hover{
+border: #ec1c1c;
 }
 
 .filters-container {
@@ -115,12 +128,14 @@
 
 .section-title {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #2c3e50;
+}
+
+.section-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .table-container {
@@ -141,7 +156,7 @@
 .data-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ecf0f1;
+  border-bottom: 1px solid #f1edec;
   font-size: 14px;
 }
 

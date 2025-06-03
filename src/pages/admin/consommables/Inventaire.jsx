@@ -15,6 +15,8 @@ function Inventaire() {
   const [filtreAnneeStock, setFiltreAnneeStock] = useState("")
   const [filtreMoisEntree, setFiltreMoisEntree] = useState("")
   const [filtreAnneeEntree, setFiltreAnneeEntree] = useState("")
+  const [filtreMoisConsommation, setFiltreMoisConsommation] = useState("")
+  const [filtreAnneeConsommation, setFiltreAnneeConsommation] = useState("")
   const [toasts, setToasts] = useState([])
 
   const moisOptions = [
@@ -35,7 +37,6 @@ function Inventaire() {
         console.log("Raw Agences:", rawAgences)
 
         const mappedFournitures = rawFournitures.map((f, index) => {
-          // Calculer le CMUP
           const entrees = f.entreesFournitures || [];
           const totalMontant = entrees.reduce((sum, e) => sum + (e.quantiteEntree * e.prixUnitaire), 0);
           const totalQuantite = entrees.reduce((sum, e) => sum + e.quantiteEntree, 0);
@@ -44,11 +45,11 @@ function Inventaire() {
           return {
             id: f.id || `fourniture-${index}`,
             nom: f.nom ? f.nom.trim().toLowerCase() : `fourniture-${index}`,
-            categorie: f.categorie,
+            categorie: f.categorie || "Non catégorisé",
             quantite: f.quantiteRestante || 0,
             prixUnitaire: f.prixUnitaire || 0,
             prixTotal: f.prixTotal || 0,
-            cmup: cmup || f.cmup || 0, // Utiliser le CMUP calculé ou celui des données
+            cmup: cmup || f.cmup || 0,
             date: f.dateEntree || null,
             entreesFournitures: f.entreesFournitures || [],
           };
@@ -61,9 +62,9 @@ function Inventaire() {
           quantite: af.quantite || 0,
           prixUnitaire: af.prixUnitaire || 0,
           montant: (af.quantite || 0) * (af.prixUnitaire || 0),
+          dateAssociation: af.dateAssociation || null,
         }));
 
-        // Extraire les agences uniques à partir de agenceFournitures
         const uniqueAgences = [...new Set(rawAgenceFournitures.map(af => af.agenceNom))].map(nom => ({ nom }));
 
         setFournitures(mappedFournitures);
@@ -117,26 +118,29 @@ function Inventaire() {
         .filter((f) => {
           if (!filtreMoisStock || !filtreAnneeStock) return true;
           const moisIndex = moisOptions.indexOf(filtreMoisStock);
-          const dateFinFiltre = new Date(filtreAnneeStock, moisIndex, 0); // Dernier jour du mois filtré
+          const dateFinFiltre = new Date(filtreAnneeStock, moisIndex, 0);
           return f.entreesFournitures.some((e) => {
             const dateEntree = new Date(e.dateEntree);
             return dateEntree <= dateFinFiltre;
           });
         })
         .map((f) => {
-          const entree = f.entreesFournitures.find((e) => 
+          const entreesFiltrees = f.entreesFournitures.filter((e) => 
             !filtreMoisEntree || !filtreAnneeEntree || e.dateEntree.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)
-          ) || {}
-          console.log("Matching entree for", f.nom, ":", entree)
+          );
+          const totalQuantiteEntree = entreesFiltrees.reduce((sum, e) => sum + (e.quantiteEntree || 0), 0);
+          const totalMontantEntree = entreesFiltrees.reduce((sum, e) => sum + ((e.quantiteEntree || 0) * (e.prixUnitaire || 0)), 0);
+          const puMoyenEntree = totalQuantiteEntree > 0 ? totalMontantEntree / totalQuantiteEntree : 0;
+
           const row = [
             f.nom,
             f.quantite || 0,
-            f.cmup?.toFixed(2) || 0, // Utiliser CMUP au lieu de prixUnitaire
+            f.cmup?.toFixed(2) || 0,
             f.prixTotal?.toFixed(2) || 0,
-            entree.quantiteEntree || 0,
-            entree.prixUnitaire?.toFixed(2) || 0,
-            entree.montant?.toFixed(2) || 0,
-            (f.quantite || 0) + (entree.quantiteEntree || 0),
+            totalQuantiteEntree,
+            puMoyenEntree?.toFixed(2) || 0,
+            totalMontantEntree?.toFixed(2) || 0,
+            (f.quantite || 0) + totalQuantiteEntree,
           ]
 
           agences.forEach((agence) => {
@@ -144,7 +148,6 @@ function Inventaire() {
               (af) => af.fournitureNom === f.nom && af.agenceNom === agence.nom && 
               (!filtreMoisEntree || !filtreAnneeEntree || af.dateAssociation.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`))
             )
-            console.log("Matching af for", f.nom, "and", agence.nom, ":", af)
             row.push(af ? af.quantite : 0)
           })
           return row
@@ -185,6 +188,163 @@ function Inventaire() {
     }
   }
 
+const exporterExcelConsommation = () => {
+  try {
+    console.log("Filtres Consommation:", { filtreMoisConsommation, filtreAnneeConsommation });
+
+    const allCategories = [...new Set(fournitures.map(f => f.categorie))];
+    const categories = allCategories.length > 0 ? allCategories : [
+      "Fournitures de Bureau",
+      "Fournitures d'Entretien",
+      "Livret",
+      "Matériel Informatique"
+    ];
+
+    let excelData = [];
+    let currentRow = 0;
+    let merges = [];
+
+    categories.forEach((category) => {
+      const categoryFournitures = fournitures.filter(f => f.categorie === category);
+      excelData.push([category]);
+      currentRow++;
+
+  const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
+const dateFinMois = filtreMoisConsommation && filtreAnneeConsommation && moisIndex !== -1
+  ? `30/${String(moisIndex + 1).padStart(2, "0")}/${filtreAnneeConsommation}`
+  : "TOUT";
+
+const periode = filtreMoisConsommation && filtreAnneeConsommation
+  ? `${filtreMoisConsommation} ${filtreAnneeConsommation}`
+  : "TOUT";
+
+const header1 = [
+  "DÉSIGNATIONS",
+  `TOTAL CONSOMMATION ${periode}`, "", "",
+  `STOCKS AU ${dateFinMois}`, "", ""
+];
+
+
+      const header2 = [
+        "", // DÉSIGNATIONS
+        "Quantité", "CMUP", "Montant", 
+        "Quantité", "CMUP", "Montant"
+      ];
+
+      excelData.push(header1);
+      excelData.push(header2);
+      currentRow += 2;
+
+      const tableData = categoryFournitures.map((f) => {
+        const consommation = agenceFournitures
+          .filter((af) => {
+            if (!af.fournitureNom || !af.dateAssociation) return false;
+            if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
+            const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
+            if (moisIndex === -1) return false;
+            return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex + 1).padStart(2, "0")}`);
+          })
+          .reduce((sum, af) => sum + (af.quantite || 0), 0);
+
+        const cmupConsommation = consommation > 0 ? (f.cmup || 0) : 0;
+        const montantConsommation = consommation * cmupConsommation;
+        const stockAu = (f.quantite || 0) - consommation;
+
+        return [
+          f.nom,
+          consommation,
+          cmupConsommation.toFixed(2),
+          montantConsommation.toFixed(2),
+          stockAu,
+          (f.cmup || 0).toFixed(2),
+          (stockAu * (f.cmup || 0)).toFixed(2),
+        ];
+      });
+
+      console.log(`Table Data for ${category}:`, tableData);
+
+      if (tableData.length === 0) {
+        excelData.push(["Aucune donnée pour cette catégorie avec les filtres sélectionnés"]);
+        currentRow++;
+      } else {
+        excelData.push(...tableData);
+        currentRow += tableData.length;
+
+        const totalQuantiteConsommation = tableData.reduce((sum, row) => sum + row[1], 0);
+        const totalMontantConsommation = tableData.reduce((sum, row) => sum + parseFloat(row[3]), 0);
+        const totalStockAu = tableData.reduce((sum, row) => sum + row[4], 0);
+        const totalMontantStockAu = tableData.reduce((sum, row) => sum + parseFloat(row[6]), 0);
+
+        excelData.push([
+          "Total",
+          totalQuantiteConsommation,
+          "",
+          totalMontantConsommation.toFixed(2),
+          totalStockAu,
+          "",
+          totalMontantStockAu.toFixed(2)
+        ]);
+        currentRow++;
+      }
+
+      // Fusions des en-têtes (corrigées)
+      const hasData = tableData.length > 0;
+      if (hasData) {
+        const baseRow = currentRow - tableData.length - 4; 
+        // -1 pour ligne vide en fin
+        // -1 pour ligne "Total"
+        // -tableData.length
+        // -2 pour headers
+        // donc total = -tableData.length - 4
+
+        // Fusion du titre de catégorie sur toute la largeur
+        merges.push({
+          s: { r: baseRow, c: 0 },
+          e: { r: baseRow, c: 6 }
+        });
+
+        // Fusions des en-têtes
+        merges.push(
+          { s: { r: baseRow + 1, c: 0 }, e: { r: baseRow + 2, c: 0 } }, // DÉSIGNATIONS
+          { s: { r: baseRow + 1, c: 1 }, e: { r: baseRow + 1, c: 3 } }, // TOTAL CONSOMMATION
+          { s: { r: baseRow + 1, c: 4 }, e: { r: baseRow + 1, c: 6 } }  // STOCKS AU
+        );
+      }
+
+
+
+      excelData.push([]);
+      currentRow++;
+    });
+
+    if (excelData.length <= 1) {
+      excelData = [["Aucune donnée disponible pour les filtres sélectionnés"]];
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    ws['!merges'] = merges;
+
+    ws['!cols'] = [
+      { wch: 30 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 12 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Consommation");
+    XLSX.writeFile(wb, "consommation.xlsx");
+    afficherToast("Export Excel réalisé avec succès", "succes");
+  } catch (error) {
+    console.error("Erreur génération Excel :", error);
+    afficherToast("Une erreur est survenue lors de l'export", "erreur");
+  }
+}
+
+
   const getTotalByMonth = (field, data, mois, annee) => {
     let total = 0;
     data.forEach((fourniture) => {
@@ -222,6 +382,20 @@ function Inventaire() {
       .reduce((sum, af) => sum + (af.quantite || 0), 0)
   }
 
+  const totalQuantiteConsommation = agenceFournitures
+    .filter((af) => {
+      if (!af.dateAssociation) return false;
+      if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
+      const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
+      if (moisIndex === -1) return false;
+      return af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex).padStart(2, "0")}`);
+    })
+    .reduce((sum, af) => sum + (af.quantite || 0), 0);
+
+  const cmupConsommation = totalQuantiteConsommation > 0 ? fournitures.reduce((sum, f) => sum + ((f.cmup || 0) * (f.quantite || 0)), 0) / totalQuantiteStock : 0;
+  const totalMontantConsommation = totalQuantiteConsommation * cmupConsommation;
+  const totalStockAu = totalQuantiteStock - totalQuantiteConsommation;
+
   return (
     <div className="page-inventaire">
       {loading ? (
@@ -234,7 +408,7 @@ function Inventaire() {
       ) : (
         <div className="content-wrapper">
           <div className="page-header">
-            <h1 className="page-title">Résumé des Opérations</h1>
+            <h1 className="page-title">Inventaire des Fournitures Consommables</h1>
             <div className="header-actions">
               <button className="btn-exporter" onClick={exporterExcel}>
                 <FileDown size={18} />
@@ -294,11 +468,36 @@ function Inventaire() {
                 />
               </div>
             </div>
+            <div className="date-filter">
+              <label htmlFor="filtreMoisConsommation">Filtrer Consommation :</label>
+              <div className="filter-group">
+                <div className="select-wrapper">
+                  <select
+                    id="filtreMoisConsommation"
+                    value={filtreMoisConsommation}
+                    onChange={(e) => setFiltreMoisConsommation(e.target.value)}
+                    className="select-input"
+                  >
+                    {moisOptions.map((mois, index) => (
+                      <option key={index} value={mois}>{mois}</option>
+                    ))}
+                  </select>
+                </div>
+                <input
+                  type="number"
+                  id="filtreAnneeConsommation"
+                  value={filtreAnneeConsommation}
+                  onChange={(e) => setFiltreAnneeConsommation(e.target.value)}
+                  placeholder="Année"
+                  className="year-input"
+                />
+              </div>
+            </div>
           </div>
 
           <section className="stock-section">
             <div className="section-title">
-              <Package size={20} />
+              <Package size={23} />
               <h2>Stock enregistrés</h2>
             </div>
             <div className="table-container">
@@ -335,19 +534,23 @@ function Inventaire() {
                       });
                     })
                     .map((f, index) => {
-                      const entree = f.entreesFournitures.find((e) => 
+                      const entreesFiltrees = f.entreesFournitures.filter((e) => 
                         !filtreMoisEntree || !filtreAnneeEntree || e.dateEntree.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)
-                      ) || {}
+                      );
+                      const totalQuantiteEntree = entreesFiltrees.reduce((sum, e) => sum + (e.quantiteEntree || 0), 0);
+                      const totalMontantEntree = entreesFiltrees.reduce((sum, e) => sum + ((e.quantiteEntree || 0) * (e.prixUnitaire || 0)), 0);
+                      const puMoyenEntree = totalQuantiteEntree > 0 ? totalMontantEntree / totalQuantiteEntree : 0;
+
                       return (
                         <tr key={`row-${f.id}-${index}`}>
                           <td>{f.nom}</td>
                           <td>{f.quantite}</td>
                           <td>{f.cmup?.toFixed(2)}</td>
                           <td>{f.prixTotal?.toFixed(2)}</td>
-                          <td>{entree.quantiteEntree || 0}</td>
-                          <td>{entree.prixUnitaire?.toFixed(2) || 0}</td>
-                          <td>{entree.montant?.toFixed(2) || 0}</td>
-                          <td>{(f.quantite || 0) + (entree.quantiteEntree || 0)}</td>
+                          <td>{totalQuantiteEntree || 0}</td>
+                          <td>{puMoyenEntree?.toFixed(2) || 0}</td>
+                          <td>{totalMontantEntree?.toFixed(2) || 0}</td>
+                          <td>{(f.quantite || 0) + (totalQuantiteEntree || 0)}</td>
                           {agences.map((agence, agenceIndex) => {
                             const af = agenceFournitures.find(
                               (af) => af.fournitureNom === f.nom && af.agenceNom === agence.nom && 
@@ -372,6 +575,80 @@ function Inventaire() {
                     {agences.map((agence) => (
                       <td key={agence.nom}>{getTotalByAgence(agence.nom)}</td>
                     ))}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          <section className="stock-section">
+           <div className="section-title">
+  <div className="section-left">
+    <Package size={20} />
+    <h2>Stock enregistré - Total Consommation</h2>
+  </div>
+  <div className="header2-actions">
+    <button className="btn-exporter2" onClick={exporterExcelConsommation}>
+      <FileDown size={22} />
+      Exporter Excel
+    </button>
+  </div>
+</div>
+
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th rowSpan="2">DÉSIGNATIONS</th>
+                    <th colSpan="3">TOTAL CONSOMMATION {filtreMoisConsommation && filtreAnneeConsommation ? `${filtreMoisConsommation} ${filtreAnneeConsommation}` : "TOUT"}</th>
+                    <th colSpan="3">STOCKS AU {filtreMoisConsommation && filtreAnneeConsommation ? `30/${String(moisOptions.indexOf(filtreMoisConsommation)).padStart(2, "0")}/${filtreAnneeConsommation}` : "TOUT"}</th>
+                  </tr>
+                  <tr>
+                    <th>Quantité</th>
+                    <th>CMUP</th>
+                    <th>Montant</th>
+                    <th>Quantité</th>
+                    <th>CMUP</th>
+                    <th>Montant</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fournitures.map((f, index) => {
+                    const consommation = agenceFournitures
+                      .filter((af) => {
+                        if (!af.fournitureNom || !af.dateAssociation) return false;
+                        if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
+                        const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
+                        if (moisIndex === -1) return false;
+                        return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex).padStart(2, "0")}`);
+                      })
+                      .reduce((sum, af) => sum + (af.quantite || 0), 0);
+
+                    const cmupConsommation = consommation > 0 ? (f.cmup || 0) : 0;
+                    const montantConsommation = consommation * cmupConsommation;
+                    const stockAu = (f.quantite || 0) - consommation;
+                    return (
+                      <tr key={`cons-row-${f.id}-${index}`}>
+                        <td>{f.nom}</td>
+                        <td>{consommation}</td>
+                        <td>{cmupConsommation.toFixed(2)}</td>
+                        <td>{montantConsommation.toFixed(2)}</td>
+                        <td>{stockAu}</td>
+                        <td>{(f.cmup || 0).toFixed(2)}</td>
+                        <td>{(stockAu * (f.cmup || 0)).toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total</td>
+                    <td>{totalQuantiteConsommation}</td>
+                    <td>{cmupConsommation.toFixed(2)}</td>
+                    <td>{totalMontantConsommation.toFixed(2)}</td>
+                    <td>{totalStockAu}</td>
+                    <td>{fournitures.length > 0 ? (fournitures[0].cmup || 0).toFixed(2) : 0}</td>
+                    <td>{(totalStockAu * (fournitures.length > 0 ? (fournitures[0].cmup || 0) : 0)).toFixed(2)}</td>
                   </tr>
                 </tfoot>
               </table>
