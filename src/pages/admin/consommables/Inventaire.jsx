@@ -409,12 +409,7 @@ const header1 = [
         <div className="content-wrapper">
           <div className="page-header">
             <h1 className="page-title">Inventaire des Fournitures Consommables</h1>
-            <div className="header-actions">
-              <button className="btn-exporter" onClick={exporterExcel}>
-                <FileDown size={18} />
-                Exporter Excel
-              </button>
-            </div>
+            
           </div>
 
           <div className="filters-container">
@@ -468,37 +463,20 @@ const header1 = [
                 />
               </div>
             </div>
-            <div className="date-filter">
-              <label htmlFor="filtreMoisConsommation">Filtrer Consommation :</label>
-              <div className="filter-group">
-                <div className="select-wrapper">
-                  <select
-                    id="filtreMoisConsommation"
-                    value={filtreMoisConsommation}
-                    onChange={(e) => setFiltreMoisConsommation(e.target.value)}
-                    className="select-input"
-                  >
-                    {moisOptions.map((mois, index) => (
-                      <option key={index} value={mois}>{mois}</option>
-                    ))}
-                  </select>
-                </div>
-                <input
-                  type="number"
-                  id="filtreAnneeConsommation"
-                  value={filtreAnneeConsommation}
-                  onChange={(e) => setFiltreAnneeConsommation(e.target.value)}
-                  placeholder="Année"
-                  className="year-input"
-                />
-              </div>
-            </div>
           </div>
 
           <section className="stock-section">
             <div className="section-title">
+              <div className="section-left">
               <Package size={23} />
               <h2>Stock enregistrés</h2>
+              </div>
+              <div className="header-actions">
+              <button className="btn-exporter" onClick={exporterExcel}>
+                <FileDown size={18} />
+                Exporter Excel
+              </button>
+            </div>
             </div>
             <div className="table-container">
               <table className="data-table">
@@ -582,18 +560,48 @@ const header1 = [
           </section>
 
           <section className="stock-section">
-           <div className="section-title">
-  <div className="section-left">
-    <Package size={20} />
-    <h2>Stock enregistré - Total Consommation</h2>
-  </div>
-  <div className="header2-actions">
-    <button className="btn-exporter2" onClick={exporterExcelConsommation}>
-      <FileDown size={22} />
-      Exporter Excel
-    </button>
+          
+          <div className="consommation-filter-container">
+  <label htmlFor="filtreMoisConsommation" className="consommation-filter-label">
+    Filtrer Consommation :
+  </label>
+  <div className="consommation-filter-group">
+    <div className="consommation-select-wrapper">
+      <select
+        id="filtreMoisConsommation"
+        value={filtreMoisConsommation}
+        onChange={(e) => setFiltreMoisConsommation(e.target.value)}
+        className="consommation-select"
+      >
+        {moisOptions.map((mois, index) => (
+          <option key={index} value={mois}>{mois}</option>
+        ))}
+      </select>
+    </div>
+    <input
+      type="number"
+      id="filtreAnneeConsommation"
+      value={filtreAnneeConsommation}
+      onChange={(e) => setFiltreAnneeConsommation(e.target.value)}
+      placeholder="Année"
+      className="consommation-year-input"
+    />
   </div>
 </div>
+
+           
+           <div className="section-title">
+        <div className="section-left">
+          <Package size={20} />
+          <h2>Stock enregistrés - Total Consommation</h2>
+        </div>
+        <div className="header-actions">
+          <button className="btn-exporter" onClick={exporterExcelConsommation}>
+                  <FileDown size={22} />
+            Exporter Excel
+          </button>
+        </div>
+      </div>
 
             <div className="table-container">
               <table className="data-table">

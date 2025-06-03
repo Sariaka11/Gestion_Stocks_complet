@@ -55,81 +55,65 @@ border: #ec1c1c;
 
 .filters-container {
   display: flex;
-  gap: 20px;
-  margin-bottom: 30px;
+  justify-content: flex-start;
+  gap: 50px;
   flex-wrap: wrap;
+  margin: 24px 0;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .date-filter {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
 }
 
 .date-filter label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #34495e;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #222;
 }
 
 .filter-group {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .select-wrapper {
-  position: relative;
+  flex-shrink: 0;
+}
+
+.select-input,
+.year-input {
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background-color: #fff;
+  transition: border 0.3s;
 }
 
 .select-input {
-  appearance: none;
-  background: white;
-  border: 1px solid #dfe6e9;
-  border-radius: 8px;
-  padding: 10px 35px 10px 15px;
-  font-size: 14px;
-  color: #2d3436;
-  width: 150px;
-  cursor: pointer;
-  transition: border-color 0.3s;
-}
-
-.select-input:focus {
-  outline: none;
-  border-color: #ef9a9a;
-  box-shadow: 0 0 0 3px rgba(239, 154, 154, 0.1);
-}
-
-.select-wrapper::after {
-  content: '▼';
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #7f8c8d;
-  pointer-events: none;
+  width: 125px;
 }
 
 .year-input {
-  border: 1px solid #dfe6e9;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-  color: #2d3436;
-  width: 100px;
-  transition: border-color 0.3s;
+  width: 125px;
 }
 
+.select-input:focus,
 .year-input:focus {
+  border-color: #fd0d0d;
   outline: none;
-  border-color: #ef9a9a;
-  box-shadow: 0 0 0 3px rgba(239, 154, 154, 0.1);
 }
+
 
 .section-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+  margin-top: 35px;
 }
 
 .section-left {
@@ -145,6 +129,53 @@ border: #ec1c1c;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   background: white;
 }
+
+.consommation-filter-container {
+  margin: 24px 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.consommation-filter-label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 10px;
+  color: #222;
+}
+
+.consommation-filter-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.consommation-select {
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  width: 125px;
+  box-sizing: border-box;
+  background-color: #fff;
+  transition: border 0.3s;
+}
+
+.consommation-year-input {
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  width: 120px;
+  box-sizing: border-box;
+  background-color: #fff;
+  transition: border 0.3s;
+}
+
+.consommation-select:focus,
+.consommation-year-input:focus {
+  border-color: #fd0d21;
+  outline: none;
+}
+
 
 .data-table {
   width: 100%;

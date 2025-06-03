@@ -20,7 +20,6 @@ function ImStock() {
     nomBien: "",
     codeBarre: "",
     valeurAcquisition: 0,
-    tauxAmortissement: 0,
     quantite: 1,
     statut: "actif",
     idCategorie: "",
@@ -94,8 +93,7 @@ function ImStock() {
           nomBien: item.nomBien || "",
           dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
           valeurAcquisition: item.valeurAcquisition ?? 0,
-          tauxAmortissement: item.tauxAmortissement ?? 0,
-          statut: item.statut || "actif",
+           statut: item.statut || "actif",
           categorie: item.categorie?.nomCategorie || `Catégorie #${item.idCategorie}`,
           codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
           codeBarre: item.codeBarre || "0000000000000",
@@ -120,7 +118,6 @@ function ImStock() {
             nomBien: item.nomBien || "",
             dateAcquisition: item.dateAcquisition || "",
             valeurAcquisition: item.valeurAcquisition || 0,
-            tauxAmortissement: item.tauxAmortissement || 0,
             statut: item.statut || "actif",
             categorie:
               item.categorie?.nomCategorie ||
@@ -276,8 +273,7 @@ function ImStock() {
       nomBien: immobilier.nomBien,
       codeBarre: immobilier.codeBarre,
       valeurAcquisition: immobilier.valeurAcquisition.toString(),
-      tauxAmortissement: immobilier.tauxAmortissement,
-      dateAcquisition: immobilier.dateAcquisition,
+       dateAcquisition: immobilier.dateAcquisition,
       quantite: immobilier.quantite.toString(),
       idCategorie: immobilier.idCategorie,
       statut: immobilier.statut,
@@ -294,8 +290,7 @@ const sauvegarderImmobilier = () => {
   if (
     !nouvelImmobilier.nomBien ||
     !nouvelImmobilier.valeurAcquisition ||
-    !nouvelImmobilier.tauxAmortissement ||
-    !nouvelImmobilier.quantite ||
+     !nouvelImmobilier.quantite ||
     !nouvelImmobilier.idCategorie
   ) {
     afficherToast("Veuillez remplir tous les champs obligatoires.", "erreur");
@@ -306,7 +301,6 @@ const sauvegarderImmobilier = () => {
     idBien: immobilierEnEdition?.id || 0,
     nomBien: nouvelImmobilier.nomBien,
     valeurAcquisition: Number.parseFloat(nouvelImmobilier.valeurAcquisition),
-    tauxAmortissement: Number.parseFloat(nouvelImmobilier.tauxAmortissement),
     quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
     statut: nouvelImmobilier.statut,
     idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
@@ -548,8 +542,7 @@ const sauvegarderImmobilier = () => {
               <th>Date d'acquisition</th>
               <th>Catégorie</th>
               <th>Valeur d'acquisition</th>
-              <th>Taux d'amortissement</th>
-              <th>Quantité</th>
+               <th>Quantité</th>
               <th>Statut</th>
               <th>Actions</th>
             </tr>
@@ -563,8 +556,7 @@ const sauvegarderImmobilier = () => {
                   <td>{item.dateAcquisition}</td>
                   <td>{item.categorie}</td>
                   <td>{item.valeurAcquisition.toLocaleString()} Ar</td>
-                  <td>{item.tauxAmortissement}%</td>
-                  <td>{item.quantite}</td>
+                    <td>{item.quantite}</td>
                   <td>{item.statut}</td>
                   <td className="actions">
                     <button onClick={() => ouvrirModalEdition(item)} className="btn-icon">
@@ -678,26 +670,6 @@ const sauvegarderImmobilier = () => {
                   setNouvelImmobilier({
                     ...nouvelImmobilier,
                     quantite: Number.parseInt(e.target.value, 10) || 1,
-                  })
-                }
-                required
-              />
-            </div>
-
-            {/* Taux d'amortissement */}
-            <div className="groupe-champ">
-              <label htmlFor="taux">Taux d'amortissement (%)</label>
-              <input
-                id="taux"
-                name="tauxAmortissement"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={nouvelImmobilier.tauxAmortissement}
-                onChange={(e) =>
-                  setNouvelImmobilier({
-                    ...nouvelImmobilier,
-                    tauxAmortissement: Number.parseFloat(e.target.value) || 0,
                   })
                 }
                 required
