@@ -72,6 +72,11 @@ export const getUserAgenceByUserId = (userId) => {
   return axios.get(`${API_URL}/UserAgences/user/${userId}`);
 };
 
+
+export const getAgenceIdByUserId = (userId) => {
+  return axios.get(`${API_URL}/UserAgences/GetAgenceByUserId/${userId}`); 
+};
+
 export const createAgenceFourniture = (data) => {
   return axios.post(`${API_URL}/AgenceFournitures`, data, {
     headers: { "Content-Type": "application/json" },

@@ -97,7 +97,7 @@ function ImInventaire() {
       const inventaireItems = immobiliersData.map((item) => {
         const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.idBien)
         const affectationsBien = affectationsData.filter((a) => a.idBien === item.idBien)
-        const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
+     //   const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
 
         return {
           id: item.idBien,
@@ -108,7 +108,7 @@ function ImInventaire() {
           typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
           dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
           quantite: item.quantite || 1,
-          statut: estAmorti ? "amorti" : item.statut || "actif",
+          statut: item.statut ,
           affectations: affectationsBien,
         }
       })

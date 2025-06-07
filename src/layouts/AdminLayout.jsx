@@ -61,7 +61,7 @@ function AdminLayout({ children }) {
       setShowProfile(false)
       localStorage.removeItem('user')
       console.log('About to navigate')
-      navigate("/auth/login-admin")
+      navigate("/auth/login")
     } catch (error) {
       console.error('Error in handleLogout:', error)
     }

@@ -83,13 +83,17 @@
 .amortissements-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f
 }
 
 .amortissements-table th {
   background-color: #f9fafb;
   font-weight: 600;
   color: #374151;
+}
+
+.amortissements-table th td .type{
+  width: 50px;
 }
 
 .amortissements-table tr:hover {
@@ -114,10 +118,11 @@
   color: #ef4444;
 }
 
-.actions-cell {
+/* .actions-cell {
   display: flex;
   gap: 5px;
-}
+  margin-bottom: 15px;
+} 
 
 .btn-detail {
   display: flex;
@@ -131,10 +136,10 @@
   font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s;
-}
+}*/
 
 .btn-detail:hover {
-  background-color:#64e981;
+  background-color:#f17979;
 }
 
 .modal-overlay {

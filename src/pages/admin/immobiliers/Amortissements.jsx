@@ -5,6 +5,7 @@ import { Search, Filter, FileDown, Calculator, RefreshCw, AlertCircle } from "lu
 import "./css/Amortissements.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAmortissements, calculerTableauAmortissement } from "../../../services/amortissementServices"
+import { getCategories } from "../../../services/categorieServices"
 import { useMockData } from "../../../../app/MockDataProvider"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -18,13 +19,20 @@ function Amortissements() {
   const [immobilierSelectionne, setImmobilierSelectionne] = useState(null)
   const [immobiliers, setImmobiliers] = useState([])
   const [amortissements, setAmortissements] = useState([])
-
+  const [categories, setCategories] = useState([])
   // Récupérer le contexte des données mockées
   const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
   // Charger les données au démarrage
   useEffect(() => {
     chargerDonnees()
+    getCategories()
+      .then((response) => {
+        setCategories(response.data)
+      })
+      .catch((error) => {
+        console.error("Erreur lors du chargement des catégories", error)
+      })
   }, [])
 
   // Fonction pour charger toutes les données
@@ -51,28 +59,44 @@ function Amortissements() {
         }
 
         // Transformer les données pour l'affichage
-        const immobiliersTransformes = immobiliersData.map((item) => ({
-          id: item.idBien,
-          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-          designation: item.nomBien || "",
-          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
-          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-          dateFinAmortissement: item.dateFinAmortissement?.split("T")[0] || "",
-          prixAchat: item.valeurAcquisition || 0,
-          dureeAmortissement: item.categorie?.dureeAmortissement || 5, // Valeur par défaut si non défini
-          statut: item.statut || "actif",
-          valeurNetteComptable: item.valeurNetteComptable || 0,
-          amortissementCumule: item.amortissementCumule || 0,
-          // Utiliser les amortissements déjà présents dans la réponse API
-          amortissements: item.amortissements ? item.amortissements.map(amort => ({
-            annee: amort.annee,
-            baseAmortissable: item.valeurAcquisition,
-            dotation: amort.montant,
-            valeurNetteComptable: amort.valeurResiduelle,
-            amortissementCumule: item.amortissements.slice(0, item.amortissements.findIndex(a => a.annee === amort.annee) + 1)
-              .reduce((sum, a) => sum + a.montant, 0),
-          })) : [],
-        }))
+        // Transformer les données pour l'affichage
+  const immobiliersTransformes = immobiliersData.map((item) => {
+  const dateAcquisition = new Date(item.dateAcquisition || new Date());
+  const today = new Date();
+  const isNewThisYear = dateAcquisition.getFullYear() === today.getFullYear();
+
+  // Calculer la VNC et l'amortissement cumulé
+  let amortissementCumule = item.amortissementCumule || 0;
+  let valeurNetteComptable = item.valeurNetteComptable || item.valeurAcquisition || 0;
+  
+  // Si le bien est acquis cette année, pas d'amortissement pour l'année en cours
+  if (isNewThisYear) {
+    amortissementCumule = 0;
+    valeurNetteComptable = item.valeurAcquisition || 0;
+  }
+
+  return {
+    id: item.idBien,
+    codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+    designation: item.nomBien || "",
+    typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
+    dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+    dateFinAmortissement: item.dateFinAmortissement?.split("T")[0] || "",
+    prixAchat: item.valeurAcquisition || 0,
+    dureeAmortissement: item.categorie?.dureeAmortissement || 5,
+    statut: isNewThisYear || valeurNetteComptable > 0 ? "Actif" : "Amorti",
+    valeurNetteComptable,
+    amortissementCumule,
+    amortissements: item.amortissements ? item.amortissements.map(amort => ({
+      annee: amort.annee,
+      baseAmortissable: item.valeurAcquisition,
+      dotation: amort.montant,
+      valeurNetteComptable: amort.valeurResiduelle,
+      amortissementCumule: item.amortissements.slice(0, item.amortissements.findIndex(a => a.annee === amort.annee) + 1)
+        .reduce((sum, a) => sum + a.montant, 0),
+    })) : [],
+  }
+})
 
         console.log("Données immobiliers transformées:", immobiliersTransformes)
 
@@ -205,148 +229,167 @@ function Amortissements() {
     setImmobilierSelectionne(null)
   }
 
-  // Formater le prix
-  const formaterPrix = (valeur) => {
-    return valeur.toLocaleString("fr-FR", { style: "currency", currency: "MGA" }).replace("MGA", "Ar")
-  }
+  // // Formater le prix
+  // const formaterPrix = (valeur) => {
+  //   return valeur.toLocaleString("fr-FR", { style: "currency", currency: "MGA" }).replace("MGA", "Ar")
+  // }
 
   // Exporter les données globales en PDF
-  const exporterDonnees = () => {
-    try {
-      const doc = new jsPDF()
-      
-      // Ajouter un titre
-      doc.setFontSize(16)
-      doc.text("Amortissements des immobilisations", 14, 20)
-      
-      // Ajouter la date
-      const today = new Date().toLocaleDateString("fr-FR")
-      doc.setFontSize(12)
-      doc.text(`Date d'exportation: ${today}`, 14, 30)
+  // Exporter les données globales en PDF
+const exporterDonnees = () => {
+  try {
+    const doc = new jsPDF()
+    
+    // Ajouter un titre
+    doc.setFontSize(16)
+    doc.text("Amortissements des immobilisations", 14, 20)
+    
+    // Ajouter la date
+    const today = new Date().toLocaleDateString("fr-FR")
+    doc.setFontSize(12)
+    doc.text(`Date d'exportation : ${today}`, 14, 30)
 
-      // Préparer les données pour le tableau
-      const tableData = immobiliersFiltres.map(item => [
-        item.codeArticle,
-        item.designation,
-        item.typeImmobilier,
-        item.dateAcquisition,
-        `${item.dureeAmortissement} ans`,
-        formaterPrix(item.amortissementCumule),
-        formaterPrix(item.valeurNetteComptable),
-        item.valeurNetteComptable === 0 ? "Amorti" : "Actif",
-      ])
+    // Préparer les données pour le tableau
+    const tableData = immobiliersFiltres.map(item => [
+      item.codeArticle,
+      item.designation,
+      item.typeImmobilier,
+      item.dateAcquisition,
+      `${item.dureeAmortissement} ans`,
+      formaterPrixPDF(item.amortissementCumule),
+      formaterPrixPDF(item.valeurNetteComptable),
+      item.valeurNetteComptable === 0 ? "Amorti" : "Actif",
+    ])
 
-      // Créer le tableau avec AutoTable
-      autoTable(doc,{
-        startY: 40,
-        head: [["Code Article", "Désignation", "Type", "Date d'acquisition", "Durée d'amortissement", "Amortissement cumulé", "Valeur nette comptable", "État"]],
-        body: tableData,
-        theme: "striped",
-        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontSize: 10 },
-        bodyStyles: { fontSize: 9 },
-        columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 40 },
-          2: { cellWidth: 30 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 20 },
-          5: { cellWidth: 25 },
-          6: { cellWidth: 25 },
-          7: { cellWidth: 15 },
-        },
-      })
+    // Créer le tableau avec AutoTable
+    autoTable(doc, {
+      startY: 40,
+      head: [["Code Article", "Désignation", "Type", "Date d'acquisition", "Durée d'amortissement", "Amortissement cumulé", "Valeur nette comptable", "État"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontSize: 10 },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 25 },
+        7: { cellWidth: 15 },
+      },
+    })
 
-      // Enregistrer le PDF
-      doc.save(`amortissements_${today.replace(/\//g, "-")}.pdf`)
-    } catch (error) {
-      console.error("Erreur lors de l'exportation en PDF:", error)
-      alert("Une erreur s'est produite lors de l'exportation. Veuillez réessayer.")
-    }
+    // Enregistrer le PDF
+    doc.save(`amortissements_${today.replace(/\//g, "-")}.pdf`)
+  } catch (error) {
+    console.error("Erreur lors de l'exportation en PDF :", error)
+    alert("Une erreur s'est produite lors de l'exportation. Veuillez réessayer.")
   }
+}
 
   // Exporter les détails de l'immobilisation sélectionnée en PDF
-  const exporterDetails = () => {
-    if (!immobilierSelectionne) return
+// Exporter les détails de l'immobilisation sélectionnée en PDF
+// Exporter les détails de l'immobilisation sélectionnée en PDF
+const exporterDetails = () => {
+  if (!immobilierSelectionne) return
 
-    try {
-      const doc = new jsPDF()
+  try {
+    const doc = new jsPDF()
 
-      // Ajouter un titre
-      doc.setFontSize(16)
-      doc.text(`Tableau d'amortissement - ${immobilierSelectionne.designation}`, 14, 20)
+    // Ajouter un titre
+    doc.setFontSize(16)
+    doc.text(`Tableau d'amortissement - ${immobilierSelectionne.designation}`, 14, 20)
 
-      // Ajouter les informations générales
-      doc.setFontSize(12)
-      let y = 30
-      doc.text("Informations générales", 14, y)
-      y += 10
+    // Ajouter les informations générales
+    doc.setFontSize(12)
+    let y = 30
+    doc.text("Informations générales", 14, y)
+    y += 10
 
-      const infoData = [
-        ["Code Article", immobilierSelectionne.codeArticle],
-        ["Type", immobilierSelectionne.typeImmobilier],
-        ["Date d'acquisition", immobilierSelectionne.dateAcquisition],
-        ["Prix d'achat", formaterPrix(immobilierSelectionne.prixAchat)],
-        ["Durée d'amortissement", `${immobilierSelectionne.dureeAmortissement} ans`],
-        ["Date de fin d'amortissement", immobilierSelectionne.dateFinAmortissement || "Non calculée"],
-        ["Taux annuel", `${(100 / immobilierSelectionne.dureeAmortissement).toFixed(2)}%`],
-        ["Statut actuel", immobilierSelectionne.valeurNetteComptable === 0 ? "Amorti" : "Actif"],
-      ]
+    const infoData = [
+      ["Code Article", immobilierSelectionne.codeArticle],
+      ["Type", immobilierSelectionne.typeImmobilier],
+      ["Date d'acquisition", immobilierSelectionne.dateAcquisition],
+      ["Prix d'achat", formaterPrixPDF(immobilierSelectionne.prixAchat)],
+      ["Durée d'amortissement", `${immobilierSelectionne.dureeAmortissement} ans`],
+      ["Date de fin d'amortissement", immobilierSelectionne.dateFinAmortissement || "Non calculée"],
+      ["Taux annuel", `${(100 / immobilierSelectionne.dureeAmortissement).toFixed(2)}%`],
+      ["Statut actuel", immobilierSelectionne.valeurNetteComptable === 0 ? "Amorti" : "Actif"],
+    ]
 
-      autoTable(doc, {
-        startY: y,
-        body: infoData,
-        theme: "plain",
-        styles: { fontSize: 10, cellPadding: 2 },
-        columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 }, 1: { cellWidth: 100 } },
-      })
+    autoTable(doc, {
+      startY: y,
+      body: infoData,
+      theme: "plain",
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 }, 1: { cellWidth: 100 } },
+    })
 
-      // Ajouter le tableau d'amortissement
-      y = doc.lastAutoTable.finalY + 10
-      doc.setFontSize(12)
-      doc.text("Tableau d'amortissement", 14, y)
-      y += 10
+    // Ajouter le tableau d'amortissement
+    y = doc.lastAutoTable.finalY + 10
+    doc.setFontSize(12)
+    doc.text("Tableau d'amortissement", 14, y)
+    y += 10
 
-      const tableData = immobilierSelectionne.amortissements.map(amort => [
-        amort.annee,
-        formaterPrix(amort.baseAmortissable),
-        formaterPrix(amort.dotation),
-        formaterPrix(amort.amortissementCumule),
-        formaterPrix(amort.valeurNetteComptable),
-      ])
+   const tableData = immobilierSelectionne.amortissements
+  .slice()
+  .sort((a, b) => a.annee - b.annee)
+  .map((item) => [
+    item.annee,
+    formaterPrixPDF(item.baseAmortissable),
+    formaterPrixPDF(item.dotation),
+    formaterPrixPDF(item.amortissementCumule),
+    formaterPrixPDF(item.valeurNetteComptable),
+  ])
 
-      // Ajouter la ligne de total
-      tableData.push([
-        "Total",
-        "-",
-        formaterPrix(immobilierSelectionne.amortissements.reduce((sum, a) => sum + a.dotation, 0)),
-        formaterPrix(immobilierSelectionne.amortissementCumule),
-        formaterPrix(immobilierSelectionne.valeurNetteComptable),
-      ])
+    // Ajouter la ligne de total
+    tableData.push([
+      "Total",
+      "-",
+      formaterPrixPDF(immobilierSelectionne.amortissements.reduce((sum, a) => sum + a.dotation, 0)),
+      formaterPrixPDF(immobilierSelectionne.amortissementCumule),
+      formaterPrixPDF(immobilierSelectionne.valeurNetteComptable),
+    ])
 
-      doc.autoTable({
-        startY: y,
-        head: [["Année", "Base amortissable", "Dotation annuelle", "Amortissement cumulé", "Valeur nette comptable"]],
-        body: tableData,
-        theme: "striped",
-        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontSize: 10 },
-        bodyStyles: { fontSize: 9 },
-        columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 35 },
-          2: { cellWidth: 35 },
-          3: { cellWidth: 35 },
-          4: { cellWidth: 35 },
-        },
-      })
+    autoTable(doc, {
+      startY: y,
+      head: [["Année", "Base amortissable", "Dotation annuelle", "Amortissement cumulé", "Valeur nette comptable"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontSize: 10 },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 35 },
+      },
+    })
 
-      // Enregistrer le PDF
-      const fileName = `amortissement_${immobilierSelectionne.codeArticle}_${new Date().toLocaleDateString("fr-FR").replace(/\//g, "-")}.pdf`
-      doc.save(fileName)
-    } catch (error) {
-      console.error("Erreur lors de l'exportation des détails en PDF:", error)
-      alert("Une erreur s'est produite lors de l'exportation des détails. Veuillez réessayer.")
-    }
+    // Enregistrer le PDF
+    const fileName = `amortissement_${immobilierSelectionne.codeArticle}_${new Date().toLocaleDateString("fr-FR").replace(/\//g, "-")}.pdf`
+    doc.save(fileName)
+  } catch (error) {
+    console.error("Erreur lors de l'exportation des détails en PDF :", error)
+    alert("Une erreur s'est produite lors de l'exportation des détails. Veuillez réessayer.")
   }
+}
+
+
+// Formater le prix pour l'interface
+const formaterPrix = (valeur) => {
+  return valeur.toLocaleString("fr-FR", { style: "currency", currency: "MGA" }).replace("MGA", "Ar")
+}
+
+// Ajoutez ici :
+// Formater le prix pour le PDF
+// Formater le prix pour le PDF
+const formaterPrixPDF = (valeur) => {
+  return valeur.toString() + " Ar"
+}
 
   // Filtrer les immobiliers
   const immobiliersFiltres = immobiliers.filter((item) => {
@@ -403,19 +446,19 @@ function Amortissements() {
           />
         </div>
 
-        <div className="filter-group">
-          <label>
-            <Filter size={16} /> Type:
-          </label>
-          <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
-            <option value="">Tous les types</option>
-            <option value="Matériel informatique">Matériel informatique</option>
-            <option value="Mobilier">Mobilier</option>
-            <option value="Véhicule">Véhicule</option>
-            <option value="Bâtiment">Bâtiment</option>
-            <option value="Équipement">Équipement</option>
-          </select>
-        </div>
+         <div className="filter-group">
+      <label>
+        <Filter size={16} /> Type:
+      </label>
+      <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
+        <option value="">Toutes les catégories</option>
+        {categories.map((cat) => (
+          <option key={cat.id} value={cat.nomCategorie}>
+            {cat.nomCategorie}
+          </option>
+        ))}
+      </select>
+    </div>
 
         <button className="btn-export" onClick={exporterDonnees}>
           <FileDown size={16} /> Exporter
@@ -428,7 +471,7 @@ function Amortissements() {
             <tr>
   <th>Code Article</th>
   <th>Désignation</th>
-  <th>Type</th>
+  <th className="type">Type</th>
   <th>Date d'acquisition</th>
   <th>Durée d'amortissement</th>
   <th>Amortissement cumulé</th>
@@ -443,11 +486,11 @@ function Amortissements() {
                 <tr key={item.id}>
                   <td>{item.codeArticle}</td>
                   <td>{item.designation}</td>
-                  <td>{item.typeImmobilier}</td>
+                  <td className="type">{item.typeImmobilier}</td>
                   <td>{item.dateAcquisition}</td>
                   <td>{item.dureeAmortissement} ans</td>
-                  <td>{formaterPrix(item.amortissementCumule)} Ar</td>
-                  <td>{formaterPrix(item.valeurNetteComptable)} Ar</td>
+                  <td>{formaterPrix(item.amortissementCumule)} </td>
+                  <td>{formaterPrix(item.valeurNetteComptable)}</td>
                   <td>
                     <span className={`etat-amortissement ${item.valeurNetteComptable === 0 ? "amorti" : "actif"}`}>
                       {item.valeurNetteComptable === 0 ? "Amorti" : "Actif"}
@@ -492,7 +535,7 @@ function Amortissements() {
               </div>
               <div className="info-group">
                 <span className="info-label">Prix d'achat:</span>
-                <span className="info-value">{formaterPrix(immobilierSelectionne.prixAchat)} Ar</span>
+                <span className="info-value">{formaterPrixPDF(immobilierSelectionne.prixAchat)} Ar</span>
               </div>
               <div className="info-group">
                 <span className="info-label">Durée d'amortissement:</span>
@@ -526,28 +569,31 @@ function Amortissements() {
                   </tr>
                 </thead>
                 <tbody>
-                  {immobilierSelectionne.amortissements.map((amort, index) => (
+                  {immobilierSelectionne.amortissements
+                  .slice()
+                  .sort((a, b) => a.annee - b.annee)
+                  .map((amort, index) => (
                     <tr key={index}>
                       <td>{amort.annee}</td>
-                      <td>{formaterPrix(amort.baseAmortissable)} Ar</td>
-                      <td>{formaterPrix(amort.dotation)} Ar</td>
-                      <td>{formaterPrix(amort.amortissementCumule)} Ar</td>
-                      <td>{formaterPrix(amort.valeurNetteComptable)} Ar</td>
+                      <td>{formaterPrix(amort.baseAmortissable)}</td>
+                      <td>{formaterPrix(amort.dotation)}</td>
+                      <td>{formaterPrix(amort.amortissementCumule)}</td>
+                      <td>{formaterPrix(amort.valeurNetteComptable)}</td>
                     </tr>
-                  ))}
-                  <tr className="total-row">
+                ))}
+                      <tr className="total-row">
                     <td><strong>Total</strong></td>
                     <td>-</td>
-                    <td><strong>{formaterPrix(immobilierSelectionne.amortissements.reduce((sum, a) => sum + a.dotation, 0))} Ar</strong></td>
-                    <td><strong>{formaterPrix(immobilierSelectionne.amortissementCumule)} Ar</strong></td>
-                    <td><strong>{formaterPrix(immobilierSelectionne.valeurNetteComptable)} Ar</strong></td>
+                    <td><strong>{formaterPrixPDF(immobilierSelectionne.amortissements.reduce((sum, a) => sum + a.dotation, 0))} Ar</strong></td>
+                    <td><strong>{formaterPrixPDF(immobilierSelectionne.amortissementCumule)} Ar</strong></td>
+                    <td><strong>{formaterPrixPDF(immobilierSelectionne.valeurNetteComptable)} Ar</strong></td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <div className="actions-modal">
-              <button className="bouton-fermer" onClick={fermerModal}>
+              <button className="bouton-fermer" onClick={fermerModalOuvert}>
                 Fermer
               </button>
               <button className="bouton-exporter" onClick={exporterDetails}>

@@ -53,14 +53,17 @@ export const getAgences = () => {
   return axios.get(`${API_URL}/Agences`)
 }
 
-export const getAgenceFournitures = () => {
-  return axios.get(`${API_URL}/AgenceFournitures`).then((response) => {
-    if (response.data && response.data.length > 0) {
-      console.log("Premier objet AgenceFournitures:", response.data[0])
-    }
-    return response
-  })
-}
+export const getAgenceFournitures = (agenceId) => {
+  return axios.get(`${API_URL}/AgenceFournitures/ByAgence/${agenceId}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+};
+
+export const getAgenceFourniture = () => {
+  return axios.get(`${API_URL}/AgenceFournitures`, {
+    headers: { "Content-Type": "application/json" },
+  });
+};
 
 export const createEntreeFourniture = (id, entreeData) => {
   return axios.post(`${API_URL}/Fournitures/${id}/Entrees`, entreeData)

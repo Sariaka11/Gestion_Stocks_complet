@@ -52,32 +52,29 @@ export const deleteAmortissement = (id) => {
 }
 
 // Fonction utilitaire pour calculer un tableau d'amortissement
-export const calculerTableauAmortissement = (bien) => {
-  const prixAchat = bien.valeurAcquisition
-  const tauxAmortissement = bien.tauxAmortissement / 100
-  const dureeAmortissement = Math.ceil(1 / tauxAmortissement)
-  const dateAcquisition = new Date(bien.dateAcquisition)
-  const anneeAcquisition = dateAcquisition.getFullYear()
-
-  const tableau = []
-  let valeurResiduelle = prixAchat
-
-  for (let i = 0; i < dureeAmortissement; i++) {
-    const annee = anneeAcquisition + i
-    const dotation = i === dureeAmortissement - 1 ? valeurResiduelle : Math.round(prixAchat * tauxAmortissement)
-
-    valeurResiduelle = Math.max(0, valeurResiduelle - dotation)
-
+export const calculerTableauAmortissement = (immobilier) => {
+  const prixAchat = immobilier.prixAchat || 0;
+  const duree = immobilier.dureeAmortissement || 5;
+  const dateAcquisition = new Date(immobilier.dateAcquisition || new Date());
+  const today = new Date();
+  const startYear = dateAcquisition.getFullYear() + (dateAcquisition.getFullYear() === today.getFullYear() ? 1 : 0);
+  
+  const tableau = [];
+  let baseAmortissable = prixAchat;
+  let valeurNette = prixAchat;
+  
+  for (let i = 0; i < duree; i++) {
+    const annee = startYear + i;
+    const dotation = prixAchat / duree;
+    valeurNette -= dotation;
+    
     tableau.push({
       annee,
-      baseAmortissable: prixAchat,
+      baseAmortissable,
       dotation,
-      valeurResiduelle,
-      valeurNetteComptable: valeurResiduelle,
-    })
-
-    if (valeurResiduelle === 0) break
+      valeurNetteComptable: Math.max(0, valeurNette),
+    });
   }
-
-  return tableau
-}
+  
+  return tableau;
+};

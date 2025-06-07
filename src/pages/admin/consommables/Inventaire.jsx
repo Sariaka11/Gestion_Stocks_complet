@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { FileDown, Package, Calendar, Loader2, FileText, X } from "lucide-react"
-import { getFournitures, getAgenceFournitures, getAgences } from "../../../services/fournituresServices"
+import { getFournitures, getAgenceFourniture, getAgences } from "../../../services/fournituresServices"
 import * as XLSX from "xlsx"
 import "./css/Inventaire.css"
 
@@ -26,7 +26,7 @@ function Inventaire() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([getFournitures(), getAgenceFournitures(), getAgences()])
+    Promise.all([getFournitures(), getAgenceFourniture(), getAgences()])
       .then(([resF, resAF, resAgences]) => {
         const rawFournitures = Array.isArray(resF.data) ? resF.data : resF.data?.["$values"] || []
         const rawAgenceFournitures = Array.isArray(resAF.data) ? resAF.data : resAF.data?.["$values"] || []
@@ -188,162 +188,158 @@ function Inventaire() {
     }
   }
 
-const exporterExcelConsommation = () => {
-  try {
-    console.log("Filtres Consommation:", { filtreMoisConsommation, filtreAnneeConsommation });
+  const exporterExcelConsommation = () => {
+    try {
+      console.log("Filtres Consommation:", { filtreMoisConsommation, filtreAnneeConsommation });
 
-    const allCategories = [...new Set(fournitures.map(f => f.categorie))];
-    const categories = allCategories.length > 0 ? allCategories : [
-      "Fournitures de Bureau",
-      "Fournitures d'Entretien",
-      "Livret",
-      "Matériel Informatique"
-    ];
-
-    let excelData = [];
-    let currentRow = 0;
-    let merges = [];
-
-    categories.forEach((category) => {
-      const categoryFournitures = fournitures.filter(f => f.categorie === category);
-      excelData.push([category]);
-      currentRow++;
-
-  const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
-const dateFinMois = filtreMoisConsommation && filtreAnneeConsommation && moisIndex !== -1
-  ? `30/${String(moisIndex + 1).padStart(2, "0")}/${filtreAnneeConsommation}`
-  : "TOUT";
-
-const periode = filtreMoisConsommation && filtreAnneeConsommation
-  ? `${filtreMoisConsommation} ${filtreAnneeConsommation}`
-  : "TOUT";
-
-const header1 = [
-  "DÉSIGNATIONS",
-  `TOTAL CONSOMMATION ${periode}`, "", "",
-  `STOCKS AU ${dateFinMois}`, "", ""
-];
-
-
-      const header2 = [
-        "", // DÉSIGNATIONS
-        "Quantité", "CMUP", "Montant", 
-        "Quantité", "CMUP", "Montant"
+      const allCategories = [...new Set(fournitures.map(f => f.categorie))];
+      const categories = allCategories.length > 0 ? allCategories : [
+        "Fournitures de Bureau",
+        "Fournitures d'Entretien",
+        "Livret",
+        "Matériel Informatique"
       ];
 
-      excelData.push(header1);
-      excelData.push(header2);
-      currentRow += 2;
+      let excelData = [];
+      let currentRow = 0;
+      let merges = [];
 
-      const tableData = categoryFournitures.map((f) => {
-        const consommation = agenceFournitures
-          .filter((af) => {
-            if (!af.fournitureNom || !af.dateAssociation) return false;
-            if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
-            const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
-            if (moisIndex === -1) return false;
-            return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex + 1).padStart(2, "0")}`);
-          })
-          .reduce((sum, af) => sum + (af.quantite || 0), 0);
+      categories.forEach((category) => {
+        const categoryFournitures = fournitures.filter(f => f.categorie === category);
+        excelData.push([category]);
+        currentRow++;
 
-        const cmupConsommation = consommation > 0 ? (f.cmup || 0) : 0;
-        const montantConsommation = consommation * cmupConsommation;
-        const stockAu = (f.quantite || 0) - consommation;
+        const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
+        const dateFinMois = filtreMoisConsommation && filtreAnneeConsommation && moisIndex !== -1
+          ? `30/${String(moisIndex + 1).padStart(2, "0")}/${filtreAnneeConsommation}`
+          : "TOUT";
 
-        return [
-          f.nom,
-          consommation,
-          cmupConsommation.toFixed(2),
-          montantConsommation.toFixed(2),
-          stockAu,
-          (f.cmup || 0).toFixed(2),
-          (stockAu * (f.cmup || 0)).toFixed(2),
+        const periode = filtreMoisConsommation && filtreAnneeConsommation
+          ? `${filtreMoisConsommation} ${filtreAnneeConsommation}`
+          : "TOUT";
+
+        const header1 = [
+          "DÉSIGNATIONS",
+          `TOTAL CONSOMMATION ${periode}`, "", "",
+          `STOCKS AU ${dateFinMois}`, "", ""
         ];
-      });
 
-      console.log(`Table Data for ${category}:`, tableData);
+        const header2 = [
+          "", // DÉSIGNATIONS
+          "Quantité", "CMUP", "Montant", 
+          "Quantité", "CMUP", "Montant"
+        ];
 
-      if (tableData.length === 0) {
-        excelData.push(["Aucune donnée pour cette catégorie avec les filtres sélectionnés"]);
-        currentRow++;
-      } else {
-        excelData.push(...tableData);
-        currentRow += tableData.length;
+        excelData.push(header1);
+        excelData.push(header2);
+        currentRow += 2;
 
-        const totalQuantiteConsommation = tableData.reduce((sum, row) => sum + row[1], 0);
-        const totalMontantConsommation = tableData.reduce((sum, row) => sum + parseFloat(row[3]), 0);
-        const totalStockAu = tableData.reduce((sum, row) => sum + row[4], 0);
-        const totalMontantStockAu = tableData.reduce((sum, row) => sum + parseFloat(row[6]), 0);
+        const tableData = categoryFournitures.map((f) => {
+          const consommation = agenceFournitures
+            .filter((af) => {
+              if (!af.fournitureNom || !af.dateAssociation) return false;
+              if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
+              const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
+              if (moisIndex === -1) return false;
+              return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex + 1).padStart(2, "0")}`);
+            })
+            .reduce((sum, af) => sum + (af.quantite || 0), 0);
 
-        excelData.push([
-          "Total",
-          totalQuantiteConsommation,
-          "",
-          totalMontantConsommation.toFixed(2),
-          totalStockAu,
-          "",
-          totalMontantStockAu.toFixed(2)
-        ]);
-        currentRow++;
-      }
+          const cmupConsommation = consommation > 0 ? (f.cmup || 0) : 0;
+          const montantConsommation = consommation * cmupConsommation;
+          const stockAu = (f.quantite || 0) - consommation;
 
-      // Fusions des en-têtes (corrigées)
-      const hasData = tableData.length > 0;
-      if (hasData) {
-        const baseRow = currentRow - tableData.length - 4; 
-        // -1 pour ligne vide en fin
-        // -1 pour ligne "Total"
-        // -tableData.length
-        // -2 pour headers
-        // donc total = -tableData.length - 4
-
-        // Fusion du titre de catégorie sur toute la largeur
-        merges.push({
-          s: { r: baseRow, c: 0 },
-          e: { r: baseRow, c: 6 }
+          return [
+            f.nom,
+            consommation,
+            cmupConsommation.toFixed(2),
+            montantConsommation.toFixed(2),
+            stockAu,
+            (f.cmup || 0).toFixed(2),
+            (stockAu * (f.cmup || 0)).toFixed(2),
+          ];
         });
 
-        // Fusions des en-têtes
-        merges.push(
-          { s: { r: baseRow + 1, c: 0 }, e: { r: baseRow + 2, c: 0 } }, // DÉSIGNATIONS
-          { s: { r: baseRow + 1, c: 1 }, e: { r: baseRow + 1, c: 3 } }, // TOTAL CONSOMMATION
-          { s: { r: baseRow + 1, c: 4 }, e: { r: baseRow + 1, c: 6 } }  // STOCKS AU
-        );
+        console.log(`Table Data for ${category}:`, tableData);
+
+        if (tableData.length === 0) {
+          excelData.push(["Aucune donnée pour cette catégorie avec les filtres sélectionnés"]);
+          currentRow++;
+        } else {
+          excelData.push(...tableData);
+          currentRow += tableData.length;
+
+          const totalQuantiteConsommation = tableData.reduce((sum, row) => sum + row[1], 0);
+          const totalMontantConsommation = tableData.reduce((sum, row) => sum + parseFloat(row[3]), 0);
+          const totalStockAu = tableData.reduce((sum, row) => sum + row[4], 0);
+          const totalMontantStockAu = tableData.reduce((sum, row) => sum + parseFloat(row[6]), 0);
+
+          excelData.push([
+            "Total",
+            totalQuantiteConsommation,
+            "",
+            totalMontantConsommation.toFixed(2),
+            totalStockAu,
+            "",
+            totalMontantStockAu.toFixed(2)
+          ]);
+          currentRow++;
+        }
+
+        // Fusions des en-têtes (corrigées)
+        const hasData = tableData.length > 0;
+        if (hasData) {
+          const baseRow = currentRow - tableData.length - 4; 
+          // -1 pour ligne vide en fin
+          // -1 pour ligne "Total"
+          // -tableData.length
+          // -2 pour headers
+          // donc total = -tableData.length - 4
+
+          // Fusion du titre de catégorie sur toute la largeur
+          merges.push({
+            s: { r: baseRow, c: 0 },
+            e: { r: baseRow, c: 6 }
+          });
+
+          // Fusions des en-têtes
+          merges.push(
+            { s: { r: baseRow + 1, c: 0 }, e: { r: baseRow + 2, c: 0 } }, // DÉSIGNATIONS
+            { s: { r: baseRow + 1, c: 1 }, e: { r: baseRow + 1, c: 3 } }, // TOTAL CONSOMMATION
+            { s: { r: baseRow + 1, c: 4 }, e: { r: baseRow + 1, c: 6 } }  // STOCKS AU
+          );
+        }
+
+        excelData.push([]);
+        currentRow++;
+      });
+
+      if (excelData.length <= 1) {
+        excelData = [["Aucune donnée disponible pour les filtres sélectionnés"]];
       }
 
+      const ws = XLSX.utils.aoa_to_sheet(excelData);
+      ws['!merges'] = merges;
 
+      ws['!cols'] = [
+        { wch: 30 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 12 }
+      ];
 
-      excelData.push([]);
-      currentRow++;
-    });
-
-    if (excelData.length <= 1) {
-      excelData = [["Aucune donnée disponible pour les filtres sélectionnés"]];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Consommation");
+      XLSX.writeFile(wb, "consommation.xlsx");
+      afficherToast("Export Excel réalisé avec succès", "succes");
+    } catch (error) {
+      console.error("Erreur génération Excel :", error);
+      afficherToast("Une erreur est survenue lors de l'export", "erreur");
     }
-
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
-    ws['!merges'] = merges;
-
-    ws['!cols'] = [
-      { wch: 30 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 12 }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Consommation");
-    XLSX.writeFile(wb, "consommation.xlsx");
-    afficherToast("Export Excel réalisé avec succès", "succes");
-  } catch (error) {
-    console.error("Erreur génération Excel :", error);
-    afficherToast("Une erreur est survenue lors de l'export", "erreur");
   }
-}
-
 
   const getTotalByMonth = (field, data, mois, annee) => {
     let total = 0;
@@ -409,7 +405,6 @@ const header1 = [
         <div className="content-wrapper">
           <div className="page-header">
             <h1 className="page-title">Inventaire des Fournitures Consommables</h1>
-            
           </div>
 
           <div className="filters-container">
@@ -468,15 +463,15 @@ const header1 = [
           <section className="stock-section">
             <div className="section-title">
               <div className="section-left">
-              <Package size={23} />
-              <h2>Stock enregistrés</h2>
+                <Package size={23} />
+                <h2>Stock enregistrés</h2>
               </div>
               <div className="header-actions">
-              <button className="btn-exporter" onClick={exporterExcel}>
-                <FileDown size={18} />
-                Exporter Excel
-              </button>
-            </div>
+                <button className="btn-exporter" onClick={exporterExcel}>
+                  <FileDown size={18} />
+                  Exporter Excel
+                </button>
+              </div>
             </div>
             <div className="table-container">
               <table className="data-table">
@@ -560,48 +555,46 @@ const header1 = [
           </section>
 
           <section className="stock-section">
-          
-          <div className="consommation-filter-container">
-  <label htmlFor="filtreMoisConsommation" className="consommation-filter-label">
-    Filtrer Consommation :
-  </label>
-  <div className="consommation-filter-group">
-    <div className="consommation-select-wrapper">
-      <select
-        id="filtreMoisConsommation"
-        value={filtreMoisConsommation}
-        onChange={(e) => setFiltreMoisConsommation(e.target.value)}
-        className="consommation-select"
-      >
-        {moisOptions.map((mois, index) => (
-          <option key={index} value={mois}>{mois}</option>
-        ))}
-      </select>
-    </div>
-    <input
-      type="number"
-      id="filtreAnneeConsommation"
-      value={filtreAnneeConsommation}
-      onChange={(e) => setFiltreAnneeConsommation(e.target.value)}
-      placeholder="Année"
-      className="consommation-year-input"
-    />
-  </div>
-</div>
-
-           
-           <div className="section-title">
-        <div className="section-left">
-          <Package size={20} />
-          <h2>Stock enregistrés - Total Consommation</h2>
-        </div>
-        <div className="header-actions">
-          <button className="btn-exporter" onClick={exporterExcelConsommation}>
+            <div className="consommation-filter-container">
+              <label htmlFor="filtreMoisConsommation" className="consommation-filter-label">
+                Filtrer Consommation :
+              </label>
+              <div className="consommation-filter-group">
+                <div className="consommation-select-wrapper">
+                  <select
+                    id="filtreMoisConsommation"
+                    value={filtreMoisConsommation}
+                    onChange={(e) => setFiltreMoisConsommation(e.target.value)}
+                    className="consommation-select"
+                  >
+                    {moisOptions.map((mois, index) => (
+                      <option key={index} value={mois}>{mois}</option>
+                    ))}
+                  </select>
+                </div>
+                <input
+                  type="number"
+                  id="filtreAnneeConsommation"
+                  value={filtreAnneeConsommation}
+                  onChange={(e) => setFiltreAnneeConsommation(e.target.value)}
+                  placeholder="Année"
+                  className="consommation-year-input"
+                />
+              </div>
+            </div>
+            
+            <div className="section-title">
+              <div className="section-left">
+                <Package size={20} />
+                <h2>Stock enregistrés - Total Consommation</h2>
+              </div>
+              <div className="header-actions">
+                <button className="btn-exporter" onClick={exporterExcelConsommation}>
                   <FileDown size={22} />
-            Exporter Excel
-          </button>
-        </div>
-      </div>
+                  Exporter Excel
+                </button>
+              </div>
+            </div>
 
             <div className="table-container">
               <table className="data-table">

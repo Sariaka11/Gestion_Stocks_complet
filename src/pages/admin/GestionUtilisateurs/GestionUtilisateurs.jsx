@@ -39,6 +39,7 @@ import {
 import { afficherMessage } from "../../../components/utils";
 import "./css/gestion.css";
 import axios from "axios";
+import { getFournitures } from "../../../services/fournituresServices";
 
 function GestionUtilisateurs() {
   const navigate = useNavigate();
@@ -408,17 +409,32 @@ const openUserDetails = async (user) => {
     }));
 
     // Utiliser getUserFournitures au lieu de getAgenceFournitures
-    const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
+    const fournituresResponse = await getFournitures().catch(() => ({
       data: [],
     }));
     
     let stockItems = fournituresResponse.data;
-    console.log("Données fournitures reçues:", stockItems);
+    console.log("Données fournitures reçues:", stockItems, agenceResponse.data);
 
     // La réponse semble être un tableau direct, pas besoin de vérifier $values
     if (!Array.isArray(stockItems)) {
-      console.warn(`stockItems non valide pour user ${user.id} :`, stockItems);
+      console.warn(`stockItems non valide pour user ${user.agence} :`, stockItems);
       stockItems = [];
+    }else{
+     stockItems = stockItems.flatMap(item => {
+      const agencyData = item.agenceFournitures.find(el => el.agenceId == agenceResponse.data.id);
+      return agencyData ? [{
+        // Données de l'agence
+        ...agencyData,
+        // Infos de la fourniture
+        nom: item.nom,
+        prixUnitaire: item.prixUnitaire,
+        quantiteRestante: item.quantiteRestante,
+        categorie: item.categorie,
+        cmup: item.cmup
+      }] : [];
+});
+      console.log("********************--********", stockItems)
     }
 
     const updatedUser = {

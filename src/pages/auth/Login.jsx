@@ -8,18 +8,22 @@ import stockImage from "../../assets/stock.png"
 
 const API_URL = "http://localhost:5000/api" // Adjust to your backend URL
 
-function LoginAdmin() {
+function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  // Check if user is already logged in
+  // Check if user is already logged in and redirect based on role
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"))
-    if (user && user.fonction === "admin") {
-      navigate("/admin/suivi-stock", { replace: true })
+    if (user) {
+      if (user.fonction === "admin") {
+        navigate("/admin/suivi-stock", { replace: true })
+      } else if (user.fonction === "utilisateur") {
+        navigate("/user/consommables/stock", { replace: true })
+      }
     }
   }, [navigate])
 
@@ -48,16 +52,19 @@ function LoginAdmin() {
       }
 
       const user = await response.json()
-      if (user.fonction !== "admin") {
-        throw new Error("Accès réservé aux administrateurs")
-      }
 
       // Store user data in localStorage
       localStorage.setItem("user", JSON.stringify(user))
 
-      // Redirect after successful login
+      // Redirect based on user role
       setTimeout(() => {
-        navigate("/admin/suivi-stock", { replace: true })
+        if (user.fonction === "admin") {
+          navigate("/admin/suivi-stock", { replace: true })
+        } else if (user.fonction === "utilisateur") {
+          navigate("/user/consommables/stock", { replace: true })
+        } else {
+          throw new Error("Rôle utilisateur non reconnu")
+        }
       }, 1000)
     } catch (err) {
       setError(err.message)
@@ -89,7 +96,7 @@ function LoginAdmin() {
             <div className="auth-logo">
               <img src={stockImage || "/placeholder.svg"} alt="CEM Logo" className="logo-large" />
             </div>
-            <h2>Connexion Administrateur</h2>
+            <h2>Connexion</h2>
             {error && <div className="error-message">{error}</div>}
 
             <form onSubmit={handleSubmit} className="auth-form">
@@ -142,4 +149,4 @@ function LoginAdmin() {
   )
 }
 
-export default LoginAdmin
+export default Login

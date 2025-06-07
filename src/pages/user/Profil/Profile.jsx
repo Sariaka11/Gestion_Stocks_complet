@@ -1,53 +1,80 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getUserById, getUserAgence, getUserFournitures } from "../../../services/userServices"
 import "./css/Profile.css"
 
 function Profile() {
   const [activeTab, setActiveTab] = useState("info")
+  const [user, setUser] = useState(null)
+  //const [agence, setAgence] = useState(null)
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  // Données simulées pour l'utilisateur
-  const user = {
-    nom: "Jean Dupont",
-    email: "jean.dupont@example.com",
-    fonction: "Comptable",
-    departement: "Finance",
-    agence: "Paris",
-    dateInscription: "15/01/2023",
-  }
-
-  // Données simulées pour l'historique des activités
-  const activities = [
-    {
-      id: 1,
-      action: "Demande de stock",
-      item: "Papier A4",
-      date: "2023-05-05T10:30:00",
-      details: "Demande de 5 ramettes",
-    },
-    {
-      id: 2,
-      action: "Consommation",
-      item: "Stylos",
-      date: "2023-05-03T09:45:00",
-      details: "Utilisation de 3 stylos",
-    },
-    {
-      id: 3,
-      action: "Demande d'immobilier",
-      item: "Écran 24 pouces",
-      date: "2023-05-01T16:20:00",
-      details: "Demande approuvée",
-    },
-  ]
-
-  // Données simulées pour les préférences
+  // Données statiques pour les préférences (en attendant un endpoint API)
   const preferences = {
     notifications: true,
     emailAlerts: true,
     language: "Français",
     theme: "Clair",
   }
+
+  // Récupérer l'utilisateur connecté depuis localStorage
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user"))
+        if (!storedUser || !storedUser.id) {
+          setError("Utilisateur non connecté")
+          setLoading(false)
+          return
+        }
+
+        // Récupérer les informations de l'utilisateur
+        const userResponse = await getUserById(storedUser.id)
+        const userData = userResponse.data
+
+        // Récupérer l'agence de l'utilisateur
+        const agenceResponse = await getUserAgence(storedUser.id)
+        const agenceData = agenceResponse.data
+
+        // Récupérer l'historique des fournitures/activités
+        const fournituresResponse = await getUserFournitures(storedUser.id)
+        const fournituresData = fournituresResponse.data
+
+        // Mapper les données utilisateur
+        setUser({
+          nom: `${userData.prenom} ${userData.nom}`,
+          email: userData.email,
+          fonction: userData.fonction,
+          departement: agenceData.departement || "Non spécifié", // Supposons que l'API retourne un département
+          agence: agenceData.nom || "Non spécifié", // Supposons que l'API retourne un nom d'agence
+          dateInscription: userData.dateInscription
+            ? new Date(userData.dateInscription).toLocaleDateString("fr-FR")
+            : "Non spécifié",
+        })
+
+        // Mapper les données des fournitures pour l'historique des activités
+        setActivities(
+          fournituresData.map((item, index) => ({
+            id: index + 1,
+            action: item.typeAction || "Action inconnue", // Ajuster selon la structure de l'API
+            item: item.nom || "Article inconnu",
+            date: item.dateAction || new Date().toISOString(),
+            details: item.details || "Aucun détail",
+          }))
+        )
+
+        setLoading(false)
+      } catch (err) {
+        setError("Erreur lors de la récupération des données: " + err.message)
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [])
 
   const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -58,6 +85,18 @@ function Profile() {
       hour: "2-digit",
       minute: "2-digit",
     })
+  }
+
+  if (loading) {
+    return <div className="profile-page">Chargement...</div>
+  }
+
+  if (error) {
+    return <div className="profile-page error">{error}</div>
+  }
+
+  if (!user) {
+    return <div className="profile-page error">Aucune donnée utilisateur disponible</div>
   }
 
   return (
@@ -123,13 +162,13 @@ function Profile() {
                 </div>
               </div>
 
-              <div className="info-item">
+              {/* <div className="info-item">
                 <div className="info-icon">🏢</div>
                 <div className="info-content">
                   <h4>Département</h4>
                   <p>{user.departement}</p>
                 </div>
-              </div>
+              </div> */}
 
               <div className="info-item">
                 <div className="info-icon">📍</div>
@@ -154,18 +193,22 @@ function Profile() {
           <div className="activity-history">
             <h3>Historique des activités</h3>
             <div className="activity-timeline">
-              {activities.map((activity) => (
-                <div key={activity.id} className="activity-item">
-                  <div className="activity-date">{formatDate(activity.date)}</div>
-                  <div className="activity-content">
-                    <h4>{activity.action}</h4>
-                    <p>
-                      <strong>Article:</strong> {activity.item}
-                    </p>
-                    <p>{activity.details}</p>
+              {activities.length === 0 ? (
+                <p>Aucune activité enregistrée</p>
+              ) : (
+                activities.map((activity) => (
+                  <div key={activity.id} className="activity-item">
+                    <div className="activity-date">{formatDate(activity.date)}</div>
+                    <div className="activity-content">
+                      <h4>{activity.action}</h4>
+                      <p>
+                        <strong>Article:</strong> {activity.item}
+                      </p>
+                      <p>{activity.details}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}

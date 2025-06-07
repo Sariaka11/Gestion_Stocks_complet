@@ -116,7 +116,7 @@ function Register() {
 
       setSuccess("Utilisateur créé avec succès!")
       setTimeout(() => {
-        navigate(formData.fonction === "admin" ? "/auth/login-admin" : "/auth/login-user")
+        navigate("/auth/login")
       }, 1000)
     } catch (err) {
       setError(err.message)
