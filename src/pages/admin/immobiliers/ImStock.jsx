@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import { Plus, Search, Save, AlertCircle, RefreshCw, Trash2, Edit, X, CheckCircle, AlertTriangle } from "lucide-react"
 import "./css/ImStock.css"
-import { getImmobiliers, createImmobilier, deleteImmobilier,updateImmobilier } from "../../../services/immobilierServices"
+import { getImmobiliers, createImmobilier, deleteImmobilier, updateImmobilier } from "../../../services/immobilierServices"
 import { getCategories, createCategorie, updateCategorie, deleteCategorie } from "../../../services/categorieServices"
-import { useMockData } from "../../../../app/MockDataProvider"
 
 function ImStock() {
   const [loading, setLoading] = useState(false)
@@ -14,6 +13,7 @@ function ImStock() {
   const [modalOuvert, setModalOuvert] = useState(false)
   const [immobilierEnEdition, setImmobilierEnEdition] = useState(null)
   const [toasts, setToasts] = useState([])
+  
   const objetVideImmobilier = {
     idBien: 0,
     codeArticle: "",
@@ -35,22 +35,16 @@ function ImStock() {
   const [categorieEnEdition, setCategorieEnEdition] = useState(null)
   const [alerteCategorie, setAlerteCategorie] = useState(null)
 
-  // Tableau vide pour les immobiliers (à remplir avec des données réelles)
   const [immobilierItems, setImmobilierItems] = useState([])
-
-  // Récupérer le contexte des données mockées
-  const { useMockData: useMock, mockData, apiStatus, toggleMockData } = useMockData()
 
   // Fonction pour vérifier la connexion à l'API
   const verifierConnexionApi = async () => {
     try {
-      // Vérifiez si le serveur est accessible avec un simple fetch
       const response = await fetch("http://localhost:5000/api/Categories", {
         method: "GET",
         mode: "cors",
       })
       console.log("Test de connexion API:", response)
-      setCategories(response.json())
       return response.ok
     } catch (error) {
       console.error("Erreur de connexion à l'API:", error)
@@ -60,29 +54,26 @@ function ImStock() {
       return false
     }
   }
-  useEffect(()=>{
+
+  useEffect(() => {
     verifierConnexionApi()
-  },[])
+  }, [])
+
   // Fonction pour charger les immobiliers
   const chargerImmobiliers = () => {
     setLoading(true)
     setError(null)
 
- 
-    // Sinon, essayez de charger depuis l'API
     getImmobiliers()
       .then((res) => {
         console.log("Données immobiliers brutes:", res.data)
 
-        // Déterminer le format des données
         let immRaw = res.data
 
-        // Vérifier si les données sont dans un format spécifique (comme $values)
         if (res.data && typeof res.data === "object" && "$values" in res.data) {
           immRaw = res.data.$values
         }
 
-        // S'assurer que immRaw est un tableau
         if (!Array.isArray(immRaw)) {
           console.warn("Les données reçues ne sont pas un tableau:", immRaw)
           immRaw = []
@@ -93,7 +84,7 @@ function ImStock() {
           nomBien: item.nomBien || "",
           dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
           valeurAcquisition: item.valeurAcquisition ?? 0,
-           statut: item.statut || "actif",
+          statut: item.statut || "actif",
           categorie: item.categorie?.nomCategorie || `Catégorie #${item.idCategorie}`,
           codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
           codeBarre: item.codeBarre || "0000000000000",
@@ -109,27 +100,6 @@ function ImStock() {
         setError(
           `Impossible de charger les immobiliers: ${err.message}. Vérifiez que votre serveur API est en cours d'exécution.`,
         )
-
-        // Si l'API échoue, basculez vers les données mockées
-        if (!useMock) {
-          console.log("Basculement vers les données mockées après échec de l'API")
-          const items = mockData.immobiliers.map((item) => ({
-            id: item.idBien,
-            nomBien: item.nomBien || "",
-            dateAcquisition: item.dateAcquisition || "",
-            valeurAcquisition: item.valeurAcquisition || 0,
-            statut: item.statut || "actif",
-            categorie:
-              item.categorie?.nomCategorie ||
-              mockData.categories.find((c) => c.idCategorie === item.idCategorie)?.nomCategorie ||
-              `Catégorie #${item.idCategorie}`,
-            codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-            codeBarre: item.codeBarre || "0000000000000",
-            quantite: item.quantite || 1,
-            idCategorie: item.idCategorie,
-          }))
-          setImmobilierItems(items)
-        }
       })
       .finally(() => {
         setLoading(false)
@@ -138,38 +108,27 @@ function ImStock() {
 
   // Fonction pour charger les catégories
   const chargerCategories = () => {
-    
-
-    // Sinon, essayez de charger depuis l'API
     getCategories()
       .then((res) => {
         console.log("Données catégories brutes:", res.data)
 
-        // Déterminer le format des données
         let catRaw = res.data
 
-        // Vérifier si les données sont dans un format spécifique (comme $values)
         if (res.data && typeof res.data === "object" && "$values" in res.data) {
           catRaw = res.data.$values
         }
 
-        // S'assurer que catRaw est un tableau
         if (!Array.isArray(catRaw)) {
           console.warn("Les données reçues ne sont pas un tableau:", catRaw)
           catRaw = []
         }
+        
         console.log("test", catRaw)
         setCategories(catRaw)
       })
       .catch((err) => {
         console.error("Erreur chargement catégories:", err)
         afficherToast("Impossible de charger les catégories", "erreur")
-
-        // Si l'API échoue, basculez vers les données mockées
-        if (!useMock) {
-          console.log("Basculement vers les données mockées après échec de l'API")
-          setCategories(mockData.categories)
-        }
       })
   }
 
@@ -237,13 +196,11 @@ function ImStock() {
 
   // Générer un code barre EAN-13
   const genererCodeBarre = () => {
-    // Générer 12 chiffres aléatoires
-    let code = "978" // Préfixe pour les livres (juste pour l'exemple)
+    let code = "978"
     for (let i = 0; i < 9; i++) {
       code += Math.floor(Math.random() * 10)
     }
 
-    // Calculer le chiffre de contrôle
     let somme = 0
     for (let i = 0; i < 12; i++) {
       somme += Number.parseInt(code[i]) * (i % 2 === 0 ? 1 : 3)
@@ -273,7 +230,7 @@ function ImStock() {
       nomBien: immobilier.nomBien,
       codeBarre: immobilier.codeBarre,
       valeurAcquisition: immobilier.valeurAcquisition.toString(),
-       dateAcquisition: immobilier.dateAcquisition,
+      dateAcquisition: immobilier.dateAcquisition,
       quantite: immobilier.quantite.toString(),
       idCategorie: immobilier.idCategorie,
       statut: immobilier.statut,
@@ -286,74 +243,75 @@ function ImStock() {
     setModalOuvert(false)
   }
 
-const sauvegarderImmobilier = () => {
-  if (
-    !nouvelImmobilier.nomBien ||
-    !nouvelImmobilier.valeurAcquisition ||
-     !nouvelImmobilier.quantite ||
-    !nouvelImmobilier.idCategorie
-  ) {
-    afficherToast("Veuillez remplir tous les champs obligatoires.", "erreur");
-    return;
-  }
+  const sauvegarderImmobilier = () => {
+    if (
+      !nouvelImmobilier.nomBien ||
+      !nouvelImmobilier.valeurAcquisition ||
+      !nouvelImmobilier.quantite ||
+      !nouvelImmobilier.idCategorie
+    ) {
+      afficherToast("Veuillez remplir tous les champs obligatoires.", "erreur")
+      return
+    }
 
-  const data = {
-    idBien: immobilierEnEdition?.id || 0,
-    nomBien: nouvelImmobilier.nomBien,
-    valeurAcquisition: Number.parseFloat(nouvelImmobilier.valeurAcquisition),
-    quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
-    statut: nouvelImmobilier.statut,
-    idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
-    dateAcquisition: nouvelImmobilier.dateAcquisition,
-    codeBarre: nouvelImmobilier.codeBarre,
-  };
+    const data = {
+      idBien: immobilierEnEdition?.id || 0,
+      nomBien: nouvelImmobilier.nomBien,
+      valeurAcquisition: Number.parseFloat(nouvelImmobilier.valeurAcquisition),
+      quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
+      statut: nouvelImmobilier.statut,
+      idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
+      dateAcquisition: nouvelImmobilier.dateAcquisition,
+      codeBarre: nouvelImmobilier.codeBarre,
+    }
 
-  setLoading(true);
-  const promise = immobilierEnEdition
-    ? updateImmobilier(immobilierEnEdition.id, data)
-    : createImmobilier(data);
+    setLoading(true)
+    const promise = immobilierEnEdition
+      ? updateImmobilier(immobilierEnEdition.id, data)
+      : createImmobilier(data)
 
-  promise
-    .then((res) => {
-      afficherToast(
-        immobilierEnEdition ? "Immobilier modifié avec succès!" : "Immobilier enregistré avec succès!",
-        "succes"
-      );
-      setNouvelImmobilier(objetVideImmobilier);
-      setImmobilierEnEdition(null);
-      setModalOuvert(false);
-      setTimeout(() => chargerImmobiliers(), 500);
-    })
-    .catch((err) => {
-      console.error("Erreur sauvegarde immobilier:", err);
-      afficherToast("Erreur lors de l'enregistrement.", "erreur");
-    })
-    .finally(() => {
-      setLoading(false);
-    });
-};
-
-  const supprimerImmobilier = (id) => {
-  afficherConfirmation("Êtes-vous sûr de vouloir supprimer cet immobilier ?", () => {
-    setLoading(true);
-    deleteImmobilier(id)
-      .then(() => {
-        setImmobilierItems((prev) => prev.filter((item) => item.id !== id));
-        afficherToast("Immobilier supprimé avec succès !", "succes");
+    promise
+      .then((res) => {
+        afficherToast(
+          immobilierEnEdition ? "Immobilier modifié avec succès!" : "Immobilier enregistré avec succès!",
+          "succes"
+        )
+        setNouvelImmobilier(objetVideImmobilier)
+        setImmobilierEnEdition(null)
+        setModalOuvert(false)
+        setTimeout(() => chargerImmobiliers(), 500)
       })
       .catch((err) => {
-        console.error("Erreur suppression immobilier:", err);
-        if (err.response?.status === 400) {
-          afficherToast("Impossible de supprimer : cet immobilier est associé à des affectations.", "erreur");
-        } else {
-          afficherToast("Erreur lors de la suppression de l'immobilier.", "erreur");
-        }
+        console.error("Erreur sauvegarde immobilier:", err)
+        afficherToast("Erreur lors de l'enregistrement.", "erreur")
       })
       .finally(() => {
-        setLoading(false);
-      });
-  });
-};
+        setLoading(false)
+      })
+  }
+
+  const supprimerImmobilier = (id) => {
+    afficherConfirmation("Êtes-vous sûr de vouloir supprimer cet immobilier ?", () => {
+      setLoading(true)
+      deleteImmobilier(id)
+        .then(() => {
+          setImmobilierItems((prev) => prev.filter((item) => item.id !== id))
+          afficherToast("Immobilier supprimé avec succès !", "succes")
+        })
+        .catch((err) => {
+          console.error("Erreur suppression immobilier:", err)
+          if (err.response?.status === 400) {
+            afficherToast("Impossible de supprimer : cet immobilier est associé à des affectations.", "erreur")
+          } else {
+            afficherToast("Erreur lors de la suppression de l'immobilier.", "erreur")
+          }
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    })
+  }
+
   // Fonction pour afficher une boîte de dialogue de confirmation moderne
   const afficherConfirmation = (message, onConfirm) => {
     const confirmationId = Date.now()
@@ -380,7 +338,6 @@ const sauvegarderImmobilier = () => {
 
     setToasts((prev) => [...prev, nouveauToast])
 
-    // Supprimer le toast après 5 secondes
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 5000)
@@ -409,18 +366,6 @@ const sauvegarderImmobilier = () => {
       )}
 
       <h2 className="page-title">Gestion du stock des immobiliers</h2>
-
-      {apiStatus !== "available" && (
-        <div className="api-status-warning">
-          <AlertCircle size={20} />
-          <span>
-            {apiStatus === "checking"
-              ? "Vérification de la connexion à l'API..."
-              : "Mode hors ligne: utilisation de données de démonstration. L'API n'est pas accessible."}
-          </span>
-          <button onClick={toggleMockData}>{useMock ? "Essayer l'API" : "Utiliser les données de démo"}</button>
-        </div>
-      )}
 
       {error && (
         <div className="error-message">
@@ -494,7 +439,6 @@ const sauvegarderImmobilier = () => {
           )}
         </div>
 
-      
         <table className="table-categorie">
           <thead>
             <tr>
@@ -542,7 +486,7 @@ const sauvegarderImmobilier = () => {
               <th>Date d'acquisition</th>
               <th>Catégorie</th>
               <th>Valeur d'acquisition</th>
-               <th>Quantité</th>
+              <th>Quantité</th>
               <th>Statut</th>
               <th>Actions</th>
             </tr>
@@ -556,7 +500,7 @@ const sauvegarderImmobilier = () => {
                   <td>{item.dateAcquisition}</td>
                   <td>{item.categorie}</td>
                   <td>{item.valeurAcquisition.toLocaleString()} Ar</td>
-                    <td>{item.quantite}</td>
+                  <td>{item.quantite}</td>
                   <td>{item.statut}</td>
                   <td className="actions">
                     <button onClick={() => ouvrirModalEdition(item)} className="btn-icon">
@@ -570,7 +514,7 @@ const sauvegarderImmobilier = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="9" className="no-data">
+                <td colSpan="8" className="no-data">
                   {loading ? "Chargement..." : "Aucun bien immobilier trouvé"}
                 </td>
               </tr>
@@ -585,7 +529,6 @@ const sauvegarderImmobilier = () => {
           <div className="modal-contenu">
             <h2>{immobilierEnEdition ? "Modifier" : "Ajouter"} un immobilier</h2>
 
-            {/* Désignation */}
             <div className="groupe-champ">
               <label htmlFor="nomBien">Désignation</label>
               <input
@@ -598,7 +541,6 @@ const sauvegarderImmobilier = () => {
               />
             </div>
 
-            {/* Prix d'achat */}
             <div className="groupe-champ">
               <label htmlFor="valeurAcquisition">Valeur d'acquisition (Ar)</label>
               <input
@@ -639,7 +581,6 @@ const sauvegarderImmobilier = () => {
               </select>
             </div>
 
-            {/* Date d'acquisition */}
             <div className="groupe-champ">
               <label htmlFor="dateAcquisition">Date d'acquisition</label>
               <input
@@ -657,7 +598,6 @@ const sauvegarderImmobilier = () => {
               />
             </div>
 
-            {/* Quantité */}
             <div className="groupe-champ">
               <label htmlFor="quantite">Quantité</label>
               <input
@@ -676,7 +616,6 @@ const sauvegarderImmobilier = () => {
               />
             </div>
 
-            {/* Statut */}
             <div className="groupe-champ">
               <label htmlFor="statut">Statut</label>
               <select

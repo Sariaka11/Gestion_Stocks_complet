@@ -123,6 +123,7 @@ function UserStock() {
     <div className="user-stock-container">
       <div className="user-stock-header">
         <h2>Stock des consommables disponibles</h2>
+       
         <div className="user-stock-actions">
           <div className="search-bar">
             <select
@@ -146,7 +147,6 @@ function UserStock() {
         <table className="user-stock-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Nom</th>
               <th>Quantité</th>
               <th>Catégorie</th>
@@ -157,7 +157,6 @@ function UserStock() {
           <tbody>
             {filteredStockItems.map((item) => (
               <tr key={item.id}>
-                <td>{item.id}</td>
                 <td>{item.nom}</td>
                 <td>{item.quantite}</td>
                 <td>{item.categorie}</td>
@@ -178,31 +177,38 @@ function UserStock() {
       </div>
 
       {detailsVisible && selectedItem && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>Détails de {selectedItem.nom}</h3>
-            <table className="details-table">
-              <thead>
-                <tr>
-                  <th>Quantité</th>
-                  <th>Date d'association</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detailedItems.map((detail, index) => (
-                  <tr key={index}>
-                    <td>{detail.quantite}</td>
-                    <td>{new Date(detail.date).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button className="btn-close" onClick={() => setDetailsVisible(false)}>
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
+  <div
+    className="modal"
+    onClick={() => setDetailsVisible(false)} // Ferme quand on clique sur le fond
+  >
+    <div
+      className="modal-content"
+      onClick={(e) => e.stopPropagation()} // Empêche la fermeture quand on clique sur le contenu
+    >
+      <h3>Détails de {selectedItem.nom}</h3>
+      <table className="details-table">
+        <thead>
+          <tr>
+            <th>Quantité</th>
+            <th>Date d'association</th>
+          </tr>
+        </thead>
+        <tbody>
+          {detailedItems.map((detail, index) => (
+            <tr key={index}>
+              <td>{detail.quantite}</td>
+              <td>{new Date(detail.date).toLocaleDateString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <button className="btn-close" onClick={() => setDetailsVisible(false)}>
+        Fermer
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

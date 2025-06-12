@@ -54,3 +54,27 @@ export const deleteBienAgence = (idBien, idAgence, date) => {
   console.log("Suppression demandée:", { idBien, idAgence, formattedDate });
   return axios.delete(`${API_URL}/BienAgences/Bien/${idBien}/Agence/${idAgence}/Date/${formattedDate}`);
 };
+
+export const getBienByAgence = (agenceId) => {
+  return axios.get(`${API_URL}/BienAgences/ByAgence/${agenceId}`);
+};
+
+export const createBienConsommation = (data) => {
+  console.log("Envoi de la requête POST à:", `${API_URL}/BienAgences/Consommation`, "avec les données:", data);
+  return axios.post(`${API_URL}/BienAgences/Consommation`, {
+    agenceId: data.agenceId,
+    bienId: data.bienId,
+    quantiteConso: data.quantiteConso,
+    dateAffectation: data.dateAffectation
+  });
+};
+
+export const addBienConsommation = (data) => {
+  console.log("Envoi de la requête POST à:", `${API_URL}/BienAgences/Consommation/Add`, "avec les données:", data);
+  return axios.post(`${API_URL}/BienAgences/Consommation/Add`, {
+    agenceId: data.agenceId,
+    bienId: data.bienId,
+    quantiteConso: data.quantiteConso,
+    dateAffectation: data.dateAffectation
+  });
+};
