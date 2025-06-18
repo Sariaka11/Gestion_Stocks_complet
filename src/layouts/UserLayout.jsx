@@ -10,14 +10,12 @@ import stockImage from '../assets/logo.png'
 
 function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showProfile, setShowProfile] = useState(false)
+   const [showProfile, setShowProfile] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   
   // Refs pour détecter les clics à l'extérieur
-  const notificationRef = useRef(null)
-  const profileRef = useRef(null)
+   const profileRef = useRef(null)
 
   // Simuler un chargement lors du changement de route
   useEffect(() => {
@@ -34,9 +32,6 @@ function AdminLayout({ children }) {
   // Fermer les dropdowns en cliquant à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setShowNotifications(false)
-      }
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setShowProfile(false)
       }
@@ -67,34 +62,13 @@ function AdminLayout({ children }) {
     }
   }
 
-  const toggleNotifications = (e) => {
-    e.stopPropagation()
-    setShowNotifications(!showNotifications)
-    setShowProfile(false)
-  }
+  
 
   const toggleProfile = (e) => {
     e.stopPropagation()
     setShowProfile(!showProfile)
-    setShowNotifications(false)
   }
 
-  const notifications = [
-    {
-      id: 1,
-      title: "Stock critique",
-      message: "Cartouches d'encre en stock critique (20 unités)",
-      time: "Il y a 2 heures",
-      type: "warning",
-    },
-    {
-      id: 2,
-      title: "Nouvelle livraison",
-      message: "Livraison de papier A4 reçue (150 ramettes)",
-      time: "Il y a 5 heures",
-      type: "info",
-    },
-  ]
 
   return (
     <div className={`admin-layout ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
@@ -119,7 +93,7 @@ function AdminLayout({ children }) {
         <div className="header-right">
           <div className="header-actions">
 
-            {/* Notifications */}
+            {/* Notifications
             <div className="action-item" ref={notificationRef}>
               <button
                 className="action-btn"
@@ -150,7 +124,7 @@ function AdminLayout({ children }) {
                   </div>
                 </div>
               )}
-            </div>
+            </div> */}
 
             {/* Profil */}
             <div className="action-item" ref={profileRef}>

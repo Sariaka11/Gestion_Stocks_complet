@@ -12,7 +12,7 @@ function UserStock() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
-  const [selectedCategory, setSelectedCategory] = useState("") // Nouvel état pour le filtre
+  const [selectedCategory, setSelectedCategory] = useState("Toutes") // Initialisé à "Toutes"
 
   useEffect(() => {
     const fetchBienAgences = async () => {

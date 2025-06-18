@@ -1,80 +1,123 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .user-stock-container {
-  padding: 2rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 0; /* Supprime le padding pour maximiser la largeur */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f6f8;
+  background-color: #fff;
   color: #333;
-  min-height: 100vh;
 }
 
 .user-stock-header {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
+  padding: 1rem; /* Padding déplacé ici */
 }
 
 .user-stock-header h2 {
+  margin: 0;
+  color: #333;
   font-size: 1.8rem;
-  color: #2c3e50;
 }
 
 .user-stock-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 1rem;
   align-items: center;
-  flex-wrap: wrap;
 }
 
 .search-bar {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
 .category-filter {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+}
+
+.category-select {
+  padding: 8px 12px; /* Plus généreux pour un look moderne */
+  font-size: 14px;
+  border: 1.5px solid #ccc; /* Bordure légèrement plus épaisse */
+  border-radius: 6px; /* Coins plus arrondis */
+  outline: none;
+  background-color: #f9f9f9; /* Fond léger */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease; /* Transitions douces */
+  cursor: pointer; /* Indique qu'il est cliquable */
+}
+
+.category-select:hover {
+  background-color: #f0f0f0; /* Fond au survol */
+  border-color: #aaa;
+}
+
+.category-select:focus {
+  border-color: #16a085;
+  box-shadow: 0 0 6px rgba(22, 160, 133, 0.4);
+  background-color: #fff; /* Fond blanc au focus */
 }
 
 .btn-export {
-  background-color: #2980b9;
+  background-color: #16a085;
   color: white;
   padding: 0.5rem 1.2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.3s;
+  font-size: 14px;
+  transition: background-color 0.3s;
 }
 
 .btn-export:hover {
-  background-color: #1c6693;
+  background-color: #12876f;
 }
 
 .user-stock-table-container {
-  overflow-x: auto;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  margin: 0;
+  padding: 0 1rem; /* Padding déplacé ici */
 }
 
 .user-stock-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
 }
 
 .user-stock-table th,
 .user-stock-table td {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .user-stock-table th {
-  background-color: #ecf0f1;
-  color: #2c3e50;
+  background-color: #f5f5f5;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.user-stock-table tbody tr:hover {
+  background-color: #f9f9f9;
 }
 
 .status-badge {
@@ -100,74 +143,79 @@
   color: white;
   padding: 0.4rem 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.3s;
 }
 
 .actions-cell .btn-details:hover {
   background-color: #d68910;
 }
 
-/* Modal Styles */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 999;
+  align-items: center;
+  z-index: 1000;
 }
 
 .modal-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 600px;
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  width: 50%;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .modal-content h3 {
   margin-top: 0;
   font-size: 1.5rem;
-  color: #34495e;
+  color: #333;
 }
 
 .details-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  margin-top: 10px;
 }
 
 .details-table th,
 .details-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid #ddd;
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.details-table th {
+  background-color: #f2f2f2;
 }
 
 .btn-close {
-  background-color: #ec7063;
-  color: white;
+  position: absolute;
+  top: 10px;
+  right: 10px;
   border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  margin-top: 1rem;
+  background: #ff4444;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background-color 0.3s;
 }
 
 .btn-close:hover {
-  background-color: #a93226;
+  background-color: #cc0000;
 }
 
-/* Loading and Error */
 .loading-overlay,
 .error-message {
   text-align: center;
@@ -176,21 +224,41 @@
   color: #555;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
+  .user-stock-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
   .user-stock-actions {
     flex-direction: column;
     align-items: flex-start;
+    width: 100%;
   }
 
   .search-bar {
-    width: 100%;
     flex-direction: column;
-    gap: 0.5rem;
+    width: 100%;
   }
 
-  .btn-export,
-  .category-filter {
+  .category-select,
+  .btn-export {
     width: 100%;
+  }
+
+  .user-stock-table-container {
+    overflow-x: auto;
+    padding: 0;
+  }
+
+  .user-stock-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .modal-content {
+    width: 90%;
   }
 }

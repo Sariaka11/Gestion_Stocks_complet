@@ -1,390 +1,571 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BarChart3, Filter, Search, FileDown, Bell, AlertTriangle, CheckCircle, Clock, X } from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
+
+// Importez vos services API
+import { getFournitures, getAgenceFourniture, getAgences } from "../../../services/fournituresServices"
+import { getImmobiliers } from "../../../services/immobilierServices"
+import { getAmortissements } from "../../../services/amortissementServices"
+import { getBienAgences } from "../../../services/bienAgenceServices"
+import { RefreshCw, AlertCircle, CheckCircle, X } from "lucide-react"
 import "./css/Suivi.css"
 
-function SuiviStock() {
-  const [categorie, setCategorie] = useState("all")
-  const [periode, setPeriode] = useState("trimestre")
-  const [recherche, setRecherche] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "warning",
-      title: "Stock critique",
-      message: "Cartouches d'encre en stock critique (20 unités)",
-      time: "Il y a 2 heures",
-      read: false,
-    },
-    {
-      id: 2,
-      type: "info",
-      title: "Nouvelle livraison",
-      message: "Livraison de papier A4 reçue (150 ramettes)",
-      time: "Il y a 5 heures",
-      read: true,
-    },
-    {
-      id: 3,
-      type: "success",
-      title: "Inventaire terminé",
-      message: "L'inventaire mensuel a été complété avec succès",
-      time: "Hier",
-      read: false,
-    },
-    {
-      id: 4,
-      type: "warning",
-      title: "Stock bas",
-      message: "Le stock de stylos est bas (25 unités)",
-      time: "Il y a 2 jours",
-      read: false,
-    },
-    {
-      id: 5,
-      type: "info",
-      title: "Commande en attente",
-      message: "Commande de fournitures en attente de validation",
-      time: "Il y a 3 jours",
-      read: true,
-    },
-  ])
+const COLORS = ["#FF8C42", "#FFD23F", "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"]
 
-  // Simuler un chargement lors du montage du composant
-  useEffect(() => {
+export default function DashboardGraphs() {
+  // États pour les données
+  const [fournitures, setFournitures] = useState([])
+  const [agenceFournitures, setAgenceFournitures] = useState([])
+  const [agences, setAgences] = useState([])
+  const [immobiliers, setImmobiliers] = useState([])
+  const [amortissements, setAmortissements] = useState([])
+  const [affectations, setAffectations] = useState([])
+
+  // États pour les graphiques
+  const [fournituresAgenceData, setFournituresAgenceData] = useState([])
+  const [biensAgenceData, setBiensAgenceData] = useState([])
+  const [topImmobiliersData, setTopImmobiliersData] = useState([])
+  const [topFournituresData, setTopFournituresData] = useState([])
+  const [dynamicsData, setDynamicsData] = useState([])
+  const [activityData, setActivityData] = useState([])
+
+  // États pour les contrôles
+  const [loading, setLoading] = useState(true)
+  const [selectedAgence, setSelectedAgence] = useState("all")
+  const [error, setError] = useState(null)
+  const [toasts, setToasts] = useState([])
+
+  // Fonction pour afficher les toasts
+  const afficherToast = (message, type) => {
+    const id = Date.now()
+    setToasts((prev) => [...prev, { id, message, type }])
+    setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), 5000)
+  }
+
+  // Fonction pour supprimer un toast
+  const supprimerToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }
+
+  // Fonction pour normaliser les données API (gérer $values)
+  const normalizeApiData = (data) => {
+    if (Array.isArray(data)) return data
+    if (data && typeof data === "object" && "$values" in data) return data.$values
+    return []
+  }
+
+  // Fonction pour charger toutes les données
+  const chargerDonnees = async () => {
     setLoading(true)
-    setTimeout(() => {
+    setError(null)
+
+    try {
+      console.log("Début du chargement des données...")
+
+      // Charger toutes les données en parallèle
+      const [fournituresRes, agenceFournituresRes, agencesRes, immobiliersRes, amortissementsRes, affectationsRes] =
+        await Promise.all([
+          getFournitures(),
+          getAgenceFourniture(),
+          getAgences(),
+          getImmobiliers(),
+          getAmortissements(),
+          getBienAgences(),
+        ])
+
+      // Normaliser les données
+      const rawFournitures = normalizeApiData(fournituresRes.data)
+      const rawAgenceFournitures = normalizeApiData(agenceFournituresRes.data)
+      const rawAgences = normalizeApiData(agencesRes.data)
+      const rawImmobiliers = normalizeApiData(immobiliersRes.data)
+      const rawAmortissements = normalizeApiData(amortissementsRes.data)
+      const rawAffectations = normalizeApiData(affectationsRes.data)
+
+      console.log("Données chargées:", {
+        fournitures: rawFournitures.length,
+        agenceFournitures: rawAgenceFournitures.length,
+        agences: rawAgences.length,
+        immobiliers: rawImmobiliers.length,
+        amortissements: rawAmortissements.length,
+        affectations: rawAffectations.length,
+      })
+
+      // Mapper les fournitures
+      const mappedFournitures = rawFournitures.map((f, index) => {
+        const entrees = f.entreesFournitures || []
+        const totalMontant = entrees.reduce((sum, e) => sum + e.quantiteEntree * e.prixUnitaire, 0)
+        const totalQuantite = entrees.reduce((sum, e) => sum + e.quantiteEntree, 0)
+        const cmup = totalQuantite > 0 ? totalMontant / totalQuantite : 0
+
+        return {
+          id: f.id || `fourniture-${index}`,
+          nom: f.nom ? f.nom.trim() : `fourniture-${index}`,
+          categorie: f.categorie || "Non catégorisé",
+          quantite: f.quantiteRestante || 0,
+          prixUnitaire: f.prixUnitaire || 0,
+          prixTotal: f.prixTotal || 0,
+          cmup: cmup || f.cmup || 0,
+          date: f.dateEntree || null,
+          entreesFournitures: f.entreesFournitures || [],
+        }
+      })
+
+      // Mapper les agence-fournitures
+      const mappedAgenceFournitures = rawAgenceFournitures.map((af) => ({
+        ...af,
+        fournitureNom: af.fournitureNom ? af.fournitureNom.trim() : "",
+        agenceNom: af.agenceNom ? af.agenceNom.trim() : "",
+        quantite: af.quantite || 0,
+        prixUnitaire: af.prixUnitaire || 0,
+        montant: (af.quantite || 0) * (af.prixUnitaire || 0),
+        dateAssociation: af.dateAssociation || null,
+      }))
+
+      // Mapper les agences
+      const mappedAgences = rawAgences.map((agence) => ({
+        id: agence.id || agence.idAgence,
+        nom: agence.nom || agence.nomAgence || "Agence sans nom",
+        adresse: agence.adresse || "",
+        telephone: agence.telephone || "",
+      }))
+
+      // Mapper les immobiliers
+      const mappedImmobiliers = rawImmobiliers.map((item) => {
+        const amortissementsBien = rawAmortissements.filter((a) => a.idBien === item.idBien)
+        const affectationsBien = rawAffectations.filter((a) => a.idBien === item.idBien)
+
+        return {
+          id: item.idBien,
+          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          designation: item.nomBien || "",
+          codeBarre: item.codeBarre || "0000000000000",
+          prixAchat: item.valeurAcquisition || 0,
+          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
+          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          quantite: item.quantite || 1,
+          statut: item.statut,
+          affectations: affectationsBien,
+          amortissements: amortissementsBien,
+        }
+      })
+
+      // Mettre à jour les états
+      setFournitures(mappedFournitures)
+      setAgenceFournitures(mappedAgenceFournitures)
+      setAgences(mappedAgences)
+      setImmobiliers(mappedImmobiliers)
+      setAmortissements(rawAmortissements)
+      setAffectations(rawAffectations)
+
+      // Générer les données des graphiques
+      genererDonneesGraphiques(
+        mappedFournitures,
+        mappedAgenceFournitures,
+        mappedAgences,
+        mappedImmobiliers,
+        selectedAgence,
+      )
+
+      afficherToast("Données chargées avec succès", "success")
+    } catch (err) {
+      console.error("Erreur chargement:", err)
+      setError(`Erreur lors du chargement des données: ${err.message}`)
+      afficherToast("Erreur lors du chargement des données", "error")
+    } finally {
       setLoading(false)
-    }, 1000)
-  }, [])
-
-  // Données simulées pour le tableau de suivi
-  const mouvementsStock = [
-    {
-      id: 1,
-      designation: "Papier A4",
-      categorie: "Fournitures",
-      stockInitial: 100,
-      entrees: 200,
-      sorties: 150,
-      stockFinal: 150,
-    },
-    {
-      id: 2,
-      designation: "Stylos",
-      categorie: "Fournitures",
-      stockInitial: 50,
-      entrees: 100,
-      sorties: 75,
-      stockFinal: 75,
-    },
-    {
-      id: 3,
-      designation: "Cartouches d'encre",
-      categorie: "Fournitures",
-      stockInitial: 30,
-      entrees: 50,
-      sorties: 60,
-      stockFinal: 20,
-    },
-    {
-      id: 4,
-      designation: "Ordinateurs",
-      categorie: "Informatique",
-      stockInitial: 10,
-      entrees: 5,
-      sorties: 3,
-      stockFinal: 12,
-    },
-    {
-      id: 5,
-      designation: "Produits nettoyants",
-      categorie: "Entretien",
-      stockInitial: 20,
-      entrees: 30,
-      sorties: 25,
-      stockFinal: 25,
-    },
-  ]
-
-  // Filtrer les mouvements selon les critères
-  const mouvementsFiltres = mouvementsStock.filter((mouvement) => {
-    const matchCategorie = categorie === "all" || mouvement.categorie.toLowerCase() === categorie.toLowerCase()
-    const matchRecherche = mouvement.designation.toLowerCase().includes(recherche.toLowerCase())
-    return matchCategorie && matchRecherche
-  })
-
-  // Fonction pour appliquer les filtres
-  const appliquerFiltres = () => {
-    console.log("Filtres appliqués:", { categorie, periode })
-    // Ici vous pourriez charger les données depuis une API avec ces filtres
-  }
-
-  // Fonction pour exporter les données
-  const exporterDonnees = () => {
-    // Créer l'alerte de confirmation
-    const alerteElement = document.createElement("div")
-    alerteElement.className = "alerte-confirmation"
-    alerteElement.innerHTML = `
-      <div class="alerte-contenu">
-        <div class="alerte-titre">Exportation des données</div>
-        <div class="alerte-message">L'exportation des données a été initiée. Le fichier sera téléchargé dans quelques instants.</div>
-        <div class="alerte-actions">
-          <button class="bouton-confirmer-alerte">OK</button>
-        </div>
-      </div>
-    `
-    document.body.appendChild(alerteElement)
-
-    // Animation d'entrée
-    setTimeout(() => {
-      alerteElement.classList.add("visible")
-    }, 10)
-
-    // Gérer les actions
-    const boutonConfirmer = alerteElement.querySelector(".bouton-confirmer-alerte")
-
-    boutonConfirmer.addEventListener("click", () => {
-      // Animation de sortie
-      alerteElement.classList.remove("visible")
-      setTimeout(() => {
-        document.body.removeChild(alerteElement)
-      }, 300)
-    })
-  }
-
-  // Marquer une notification comme lue
-  const marquerCommeLue = (id) => {
-    setNotifications(notifications.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)))
-  }
-
-  // Supprimer une notification
-  const supprimerNotification = (id) => {
-    setNotifications(notifications.filter((notif) => notif.id !== id))
-  }
-
-  // Obtenir l'icône pour le type de notification
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case "warning":
-        return <AlertTriangle className="notification-icon warning" />
-      case "success":
-        return <CheckCircle className="notification-icon success" />
-      case "info":
-        return <Bell className="notification-icon info" />
-      default:
-        return <Bell className="notification-icon" />
     }
   }
 
-  // Compter les notifications non lues
-  const nonLues = notifications.filter((notif) => !notif.read).length
+  // Fonction pour générer les données des graphiques
+  const genererDonneesGraphiques = (fournitures, agenceFournitures, agences, immobiliers, agenceSelectionnee) => {
+    // 1. Fournitures de l'agence sélectionnée par catégorie
+    let fournituresAgence = []
+    if (agenceSelectionnee !== "all") {
+      const agenceNom = agences.find((a) => a.id.toString() === agenceSelectionnee)?.nom
+      const fournituresAgenceFiltered = agenceFournitures.filter((af) => af.agenceNom === agenceNom)
+
+      // Grouper par catégorie
+      const fournituresParCategorie = {}
+      fournituresAgenceFiltered.forEach((af) => {
+        // Trouver la fourniture correspondante pour avoir la catégorie
+        const fourniture = fournitures.find((f) => f.nom.toLowerCase() === af.fournitureNom.toLowerCase())
+        const categorie = fourniture?.categorie || "Non catégorisé"
+
+        if (!fournituresParCategorie[categorie]) {
+          fournituresParCategorie[categorie] = 0
+        }
+        fournituresParCategorie[categorie] += af.quantite
+      })
+
+      fournituresAgence = Object.entries(fournituresParCategorie).map(([categorie, quantite]) => ({
+        name: categorie,
+        quantite: quantite,
+      }))
+    } else {
+      // Toutes les agences - grouper toutes les fournitures par catégorie
+      const fournituresParCategorie = fournitures.reduce((acc, f) => {
+        const categorie = f.categorie || "Non catégorisé"
+        if (!acc[categorie]) {
+          acc[categorie] = 0
+        }
+        acc[categorie] += f.quantite
+        return acc
+      }, {})
+
+      fournituresAgence = Object.entries(fournituresParCategorie).map(([categorie, quantite]) => ({
+        name: categorie,
+        quantite: quantite,
+      }))
+    }
+
+    // 2. Biens de l'agence sélectionnée par catégorie
+    let biensAgence = []
+    if (agenceSelectionnee !== "all") {
+      const immobiliersFiltres = immobiliers.filter((im) =>
+        im.affectations.some((aff) => aff.idAgence.toString() === agenceSelectionnee),
+      )
+
+      const biensParCategorie = immobiliersFiltres.reduce((acc, bien) => {
+        const categorie = bien.typeImmobilier || "Non catégorisé"
+        if (!acc[categorie]) {
+          acc[categorie] = 0
+        }
+        acc[categorie] += bien.quantite
+        return acc
+      }, {})
+
+      biensAgence = Object.entries(biensParCategorie).map(([categorie, quantite]) => ({
+        name: categorie,
+        quantite: quantite,
+      }))
+    } else {
+      // Toutes les agences - grouper tous les biens par catégorie
+      const biensParCategorie = immobiliers.reduce((acc, bien) => {
+        const categorie = bien.typeImmobilier || "Non catégorisé"
+        if (!acc[categorie]) {
+          acc[categorie] = 0
+        }
+        acc[categorie] += bien.quantite
+        return acc
+      }, {})
+
+      biensAgence = Object.entries(biensParCategorie).map(([categorie, quantite]) => ({
+        name: categorie,
+        quantite: quantite,
+      }))
+    }
+
+    // 3. Top immobiliers (diagramme circulaire)
+    const topImmobiliers = immobiliers
+      .sort((a, b) => b.quantite - a.quantite)
+      .slice(0, 8)
+      .map((im) => ({
+        name: im.designation.substring(0, 20) || `Bien ${im.id}`,
+        value: im.quantite,
+      }))
+
+    // 4. Top fournitures (diagramme circulaire)
+    const topFournitures = fournitures
+      .sort((a, b) => b.quantite - a.quantite)
+      .slice(0, 8)
+      .map((f) => ({
+        name: f.nom.substring(0, 20),
+        value: f.quantite,
+      }))
+
+    // 5. Données d'évolution temporelle (garder comme avant)
+    const derniersMois = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date()
+      date.setMonth(date.getMonth() - i)
+      return {
+        month: date.toLocaleDateString("fr-FR", { month: "short" }),
+        fournitures: Math.round(Math.random() * 1000 + 500),
+        immobiliers: Math.round(Math.random() * 100 + 50),
+        consommation: Math.round(Math.random() * 800 + 200),
+      }
+    }).reverse()
+
+    // 6. Données d'activité (garder comme avant)
+    const semaines = Array.from({ length: 8 }, (_, i) => {
+      const semaine = `S${i + 1}`
+      const data = { name: semaine }
+
+      // Ajouter les données des top 3 fournitures
+      topFournitures.slice(0, 3).forEach((f, index) => {
+        data[`fourniture${index + 1}`] = Math.round(f.value * (0.7 + Math.random() * 0.6))
+      })
+
+      return data
+    })
+
+    // Mettre à jour les états des graphiques
+    setFournituresAgenceData(fournituresAgence)
+    setBiensAgenceData(biensAgence)
+    setTopImmobiliersData(topImmobiliers)
+    setTopFournituresData(topFournitures)
+    setDynamicsData(derniersMois)
+    setActivityData(semaines)
+  }
+
+  // Charger les données au montage
+  useEffect(() => {
+    chargerDonnees()
+  }, [])
+
+  // Régénérer les graphiques quand l'agence change
+  useEffect(() => {
+    if (fournitures.length > 0) {
+      genererDonneesGraphiques(fournitures, agenceFournitures, agences, immobiliers, selectedAgence)
+    }
+  }, [selectedAgence, fournitures, agenceFournitures, agences, immobiliers])
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <RefreshCw className="loading-spinner" />
+        <div className="loading-text">Chargement des données...</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="suivi-container">
-      {loading && (
-        <div className="loading-overlay">
-          <div className="spinner"></div>
-          <p>Chargement en cours...</p>
-        </div>
-      )}
-
-      <h2>Suivi des Stocks</h2>
-
-      <div className="suivi-layout">
-        <div className="suivi-main">
-          <div className="suivi-filters">
-            <div className="filter-group">
-              <label>
-                <Filter size={16} /> Catégorie:
-              </label>
-              <select value={categorie} onChange={(e) => setCategorie(e.target.value)}>
-                <option value="all">Tous</option>
-                <option value="fournitures">Fournitures</option>
-                <option value="informatique">Informatique</option>
-                <option value="entretien">Entretien</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>
-                <Filter size={16} /> Période:
-              </label>
-              <select value={periode} onChange={(e) => setPeriode(e.target.value)}>
-                <option value="mois">Ce mois</option>
-                <option value="trimestre">Ce trimestre</option>
-                <option value="semestre">Ce semestre</option>
-                <option value="annee">Cette année</option>
-              </select>
-            </div>
-
-            <div className="filter-group search">
-              <label>
-                <Search size={16} /> Recherche:
-              </label>
-              <input
-                type="text"
-                placeholder="Rechercher un article..."
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-              />
-            </div>
-
-            <button className="btn-apply" onClick={appliquerFiltres}>
-              Appliquer
-            </button>
-
-            <button className="btn-export" onClick={exporterDonnees}>
-              <FileDown size={16} /> Exporter
+    <div className="dashboard-container">
+      {/* Système de toasts */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            {toast.type === "success" && <CheckCircle size={20} />}
+            {toast.type === "error" && <AlertCircle size={20} />}
+            <span>{toast.message}</span>
+            <button onClick={() => supprimerToast(toast.id)} className="toast-close">
+              <X size={16} />
             </button>
           </div>
+        ))}
+      </div>
 
-          <div className="suivi-section">
-            <div className="section-header">
-              <h3>
-                <BarChart3 size={18} /> Tableau de Suivi des Stocks
-              </h3>
-            </div>
-
-            <div className="table-container">
-              <table className="suivi-table">
-                <thead>
-                  <tr>
-                    <th>Désignation</th>
-                    <th>Catégorie</th>
-                    <th>Stock Initial</th>
-                    <th>Entrées</th>
-                    <th>Sorties</th>
-                    <th>Stock Final</th>
-                    <th>Variation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mouvementsFiltres.length > 0 ? (
-                    mouvementsFiltres.map((mouvement) => {
-                      const variation = mouvement.stockFinal - mouvement.stockInitial
-                      return (
-                        <tr key={mouvement.id}>
-                          <td>{mouvement.designation}</td>
-                          <td>{mouvement.categorie}</td>
-                          <td>{mouvement.stockInitial}</td>
-                          <td className="entrees">{mouvement.entrees}</td>
-                          <td className="sorties">{mouvement.sorties}</td>
-                          <td>{mouvement.stockFinal}</td>
-                          <td className={variation >= 0 ? "positive" : "negative"}>
-                            {variation > 0 ? "+" : ""}
-                            {variation}
-                          </td>
-                        </tr>
-                      )
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="7" className="no-data">
-                        Aucune donnée trouvée pour les critères sélectionnés
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="suivi-summary">
-            <div className="summary-card">
-              <h4>Total Entrées</h4>
-              <div className="summary-value">385</div>
-            </div>
-            <div className="summary-card">
-              <h4>Total Sorties</h4>
-              <div className="summary-value">313</div>
-            </div>
-            <div className="summary-card">
-              <h4>Balance</h4>
-              <div className="summary-value positive">+72</div>
-            </div>
-            <div className="summary-card">
-              <h4>Articles Critiques</h4>
-              <div className="summary-value warning">2</div>
-            </div>
-          </div>
-
-          <div className="suivi-alerts">
-            <h3>Alertes de stock</h3>
-            <div className="alert-list">
-              <div className="alert-item">
-                <div className="alert-icon">⚠️</div>
-                <div className="alert-details">
-                  <p className="alert-title">Cartouches d'encre</p>
-                  <p className="alert-description">Stock critique (20 unités restantes)</p>
-                </div>
-                <button className="btn-secondary">Commander</button>
-              </div>
-              <div className="alert-item">
-                <div className="alert-icon">⚠️</div>
-                <div className="alert-details">
-                  <p className="alert-title">Papier A4</p>
-                  <p className="alert-description">Stock bas (150 ramettes restantes)</p>
-                </div>
-                <button className="btn-secondary">Commander</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="suivi-sidebar">
-          <div className="notifications-header">
-            <h3>
-              <Bell size={18} /> Notifications
-              {nonLues > 0 && <span className="badge">{nonLues}</span>}
-            </h3>
-          </div>
-          <div className="notifications-list">
-            {notifications.length > 0 ? (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`notification-item ${notification.read ? "read" : "unread"}`}
-                  onClick={() => marquerCommeLue(notification.id)}
-                >
-                  <div className="notification-icon-container">{getNotificationIcon(notification.type)}</div>
-                  <div className="notification-content">
-                    <div className="notification-title">{notification.title}</div>
-                    <div className="notification-message">{notification.message}</div>
-                    <div className="notification-time">
-                      <Clock size={12} /> {notification.time}
-                    </div>
-                  </div>
-                  <button
-                    className="notification-close"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      supprimerNotification(notification.id)
-                    }}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="no-notifications">Aucune notification</div>
-            )}
-          </div>
-          <div className="notifications-footer">
-            <button
-              className="btn-mark-all-read"
-              onClick={() => setNotifications(notifications.map((notif) => ({ ...notif, read: true })))}
-              disabled={nonLues === 0}
+      {/* En-tête avec contrôles */}
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">
+          Tableau de Bord Dynamique
+          {selectedAgence !== "all" && (
+            <span className="selected-agency">- {agences.find((a) => a.id.toString() === selectedAgence)?.nom}</span>
+          )}
+        </h1>
+        <div className="dashboard-controls">
+          <div className="select-container">
+            <select
+              value={selectedAgence}
+              onChange={(e) => setSelectedAgence(e.target.value)}
+              className="custom-select"
             >
-              Marquer tout comme lu
-            </button>
+              <option value="all">Toutes les agences</option>
+              {agences.map((agence) => (
+                <option key={agence.id} value={agence.id}>
+                  {agence.nom}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button onClick={chargerDonnees} disabled={loading} className="custom-button">
+            <RefreshCw size={16} className={loading ? "spinning" : ""} />
+            {loading ? "Chargement..." : "Actualiser"}
+          </button>
+        </div>
+      </div>
+
+      {/* Affichage des erreurs */}
+      {error && <div className="error-message">{error}</div>}
+
+      {/* Première ligne - Fournitures et Biens par catégorie */}
+      <div className="charts-row">
+        {/* Fournitures par catégorie */}
+        <div className="chart-card">
+          <div className="card-header">
+            <h3 className="card-title">Fournitures par Catégorie</h3>
+            <p className="card-description">
+              {selectedAgence === "all" ? "Toutes les agences" : "Agence sélectionnée"}
+            </p>
+          </div>
+          <div className="card-content">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={fournituresAgenceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`${value} unités`, "Quantité"]} />
+                <Bar dataKey="quantite" fill="#45B7D1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Biens par catégorie */}
+        <div className="chart-card">
+          <div className="card-header">
+            <h3 className="card-title">Biens par Catégorie</h3>
+            <p className="card-description">
+              {selectedAgence === "all" ? "Toutes les agences" : "Agence sélectionnée"}
+            </p>
+          </div>
+          <div className="card-content">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={biensAgenceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`${value} unités`, "Quantité"]} />
+                <Bar dataKey="quantite" fill="#FF8C42" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Deuxième ligne - Répartition et Top fournitures */}
+      <div className="charts-row">
+        {/* Top immobiliers en diagramme circulaire */}
+        <div className="chart-card">
+          <div className="card-header">
+            <h3 className="card-title">Top Immobiliers</h3>
+            <p className="card-description">Les biens les plus importants par quantité</p>
+          </div>
+          <div className="card-content">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={topImmobiliersData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  {topImmobiliersData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value} unités`, "Quantité"]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top fournitures en diagramme circulaire */}
+        <div className="chart-card">
+          <div className="card-header">
+            <h3 className="card-title">Top Fournitures</h3>
+            <p className="card-description">Les fournitures les plus importantes</p>
+          </div>
+          <div className="card-content">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={topFournituresData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  {topFournituresData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value} unités`, "Quantité"]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Troisième ligne - Évolution temporelle */}
+      <div className="charts-row-full">
+        <div className="chart-card-full">
+          <div className="card-header">
+            <h3 className="card-title">Évolution sur 12 Mois</h3>
+            <p className="card-description">Tendances des stocks et consommation</p>
+          </div>
+          <div className="card-content">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={dynamicsData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="fournitures" stroke="#45B7D1" strokeWidth={3} name="Fournitures" />
+                <Line type="monotone" dataKey="immobiliers" stroke="#FF6B6B" strokeWidth={3} name="Immobiliers" />
+                <Line type="monotone" dataKey="consommation" stroke="#FFD23F" strokeWidth={3} name="Consommation" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Quatrième ligne - Activité hebdomadaire */}
+      <div className="charts-row-full">
+        <div className="chart-card-full">
+          <div className="card-header">
+            <h3 className="card-title">Activité Hebdomadaire</h3>
+            <p className="card-description">Évolution des principales fournitures sur 8 semaines</p>
+          </div>
+          <div className="card-content">
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={activityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="fourniture1"
+                  stackId="1"
+                  stroke="#45B7D1"
+                  fill="#45B7D1"
+                  name="Fourniture 1"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fourniture2"
+                  stackId="1"
+                  stroke="#FF6B6B"
+                  fill="#FF6B6B"
+                  name="Fourniture 2"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fourniture3"
+                  stackId="1"
+                  stroke="#FFD23F"
+                  fill="#FFD23F"
+                  name="Fourniture 3"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
     </div>
   )
 }
-
-export default SuiviStock

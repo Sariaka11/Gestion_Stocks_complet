@@ -35,7 +35,7 @@ export const getBienAgences = () => {
   return axios.get(`${API_URL}/BienAgences`);
 };
 
-export const getBienAgenceByIds = (idBien, idAgence) => {
+export const getBienAgenceById = (idBien, idAgence) => {
   return axios.get(`${API_URL}/BienAgences/Bien/${idBien}/Agence/${idAgence}`);
 };
 
@@ -60,7 +60,7 @@ export const getBienByAgence = (agenceId) => {
 };
 
 export const createBienConsommation = (data) => {
-  console.log("Envoi de la requête POST à:", `${API_URL}/BienAgences/Consommation`, "avec les données:", data);
+  console.log("Envoi de la requête POST à:", `${API_URL}/BienAgences/Consommation`, "avec les données:", JSON.stringify(data));
   return axios.post(`${API_URL}/BienAgences/Consommation`, {
     agenceId: data.agenceId,
     bienId: data.bienId,
@@ -70,7 +70,7 @@ export const createBienConsommation = (data) => {
 };
 
 export const addBienConsommation = (data) => {
-  console.log("Envoi de la requête POST à:", `${API_URL}/BienAgences/Consommation/Add`, "avec les données:", data);
+  console.log("Envoi de la requête POST à:", `${API_URL}/BienAgences/Consommation/Add`, "avec les données:", JSON.stringify(data));
   return axios.post(`${API_URL}/BienAgences/Consommation/Add`, {
     agenceId: data.agenceId,
     bienId: data.bienId,

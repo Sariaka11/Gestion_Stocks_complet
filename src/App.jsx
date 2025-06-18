@@ -24,30 +24,18 @@ import UserImConsommation from "./pages/user/Immobiliers/UserImConsommation"
 import UserImDemande from "./pages/user/Immobiliers/UserImDemande"
 import Profile from "./pages/user/Profil/Profile"
 import { RefreshProvider } from "./pages/admin/context/RefreshContext"
-import { AuthProvider } from "./Context/AuthContext"; // Chemin vers AuthContext
+import { AuthProvider, useAuth } from "./Context/AuthContext";
 import "./App.css"
 
 function App() {
-  // Fonction pour vérifier si l'utilisateur est connecté
-  const isAuthenticated = () => {
-    return localStorage.getItem("user") !== null
-  }
-
-  // Fonction de déconnexion
-  const handleLogout = () => {
-    localStorage.removeItem("user")
-    console.log("Déconnexion effectuée")
-    // Forcer un rechargement pour rediriger vers login
-    window.location.href = "/auth/login"
-  }
-
   // Composant de protection des routes
   const ProtectedRoute = ({ children }) => {
-    if (!isAuthenticated()) {
-      return <Navigate to="/auth/login" replace />
+    const { user } = useAuth();
+    if (!user) {
+      return <Navigate to="/auth/login" replace />;
     }
-    return children
-  }
+    return children;
+  };
 
   // Composant Admin Dashboard
   function AdminDashboard() {
@@ -70,15 +58,13 @@ function App() {
             </Routes>
           </div>
         </div>
-        
       </RefreshProvider>
-    )
+    );
   }
 
   // Composant User Dashboard
   function UserDashboard() {
     return (
-        <AuthProvider>
       <div className="dashboard-container">
         <UserSidebar />
         <div className="dashboard-content">
@@ -86,7 +72,7 @@ function App() {
             <Route
               index
               element={<div className="dashboard-welcome">Bienvenue dans le tableau de bord utilisateur</div>}
-              />
+            />
             <Route path="consommables/stock" element={<UserStock />} />
             <Route path="consommables/consommation" element={<UserConsommation />} />
             <Route path="consommables/demande" element={<UserDemande />} />
@@ -97,45 +83,46 @@ function App() {
           </Routes>
         </div>
       </div>
-    </AuthProvider>
-    )
+    );
   }
 
   return (
-    <div className="app">
-      <Routes>
-        {/* Route par défaut - redirection vers login */}
-        <Route path="/" element={<Navigate to="/auth/login" replace />} />
+    <AuthProvider>
+      <div className="app">
+        <Routes>
+          {/* Route par défaut - redirection vers login */}
+          <Route path="/" element={<Navigate to="/auth/login" replace />} />
 
-        {/* Route d'authentification - publique */}
-        <Route path="/auth/login" element={<Login />} />
+          {/* Route d'authentification - publique */}
+          <Route path="/auth/login" element={<Login />} />
 
-        {/* Routes admin - protégées */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute>
-              <AdminLayout onLogout={handleLogout}>
-                <AdminDashboard />
-              </AdminLayout>
-            </ProtectedRoute>
-          }
-        />
+          {/* Routes admin - protégées */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminDashboard />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Routes utilisateur - protégées */}
-        <Route
-          path="/user/*"
-          element={
-            <ProtectedRoute>
-              <UserLayout onLogout={handleLogout}>
-                <UserDashboard />
-              </UserLayout>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </div>
-  )
+          {/* Routes utilisateur - protégées */}
+          <Route
+            path="/user/*"
+            element={
+              <ProtectedRoute>
+                <UserLayout>
+                  <UserDashboard />
+                </UserLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </div>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

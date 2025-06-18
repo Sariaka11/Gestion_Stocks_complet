@@ -55,14 +55,14 @@ function UserSidebar({ isOpen }) {
                   Consommation
                 </NavLink>
               </li>
-              <li className="sub-nav-item">
+              {/* <li className="sub-nav-item">
                 <NavLink
                   to="/user/consommables/demande"
                   className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Demande
                 </NavLink>
-              </li>
+              </li> */}
             </ul>
           </li>
 
@@ -95,14 +95,14 @@ function UserSidebar({ isOpen }) {
                   Consommation
                 </NavLink>
               </li>
-              <li className="sub-nav-item">
+              {/* <li className="sub-nav-item">
                 <NavLink
                   to="/user/immobiliers/demande"
                   className={({ isActive }) => isActive ? "sub-nav-link active" : "sub-nav-link"}
                 >
                   Demande
                 </NavLink>
-              </li>
+              </li> */}
             </ul>
           </li>
 

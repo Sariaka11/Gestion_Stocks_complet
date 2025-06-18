@@ -1,31 +1,30 @@
-// AuthContext.js
 import { createContext, useContext, useState, useEffect } from "react";
-import { getAgenceIdByUserId } from "../services/userServices"; // Ajustez le chemin si nécessaire
+import { getAgenceIdByUserId } from "../services/userServices";
 
-// Créer le contexte
 const AuthContext = createContext();
 
-// Fournisseur du contexte
 export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [userAgenceId, setUserAgenceId] = useState(null);
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    console.log("Données brutes du localStorage :", user);
+    const storedUser = localStorage.getItem("user");
+    console.log("Données brutes du localStorage :", storedUser);
 
     const fetchAgenceId = async () => {
-      if (user) {
+      if (storedUser) {
         try {
-          const userData = JSON.parse(user);
+          const userData = JSON.parse(storedUser);
           console.log("Données parsées du localStorage :", userData);
+          setUser(userData);
 
-          const userId = userData.id; // Utiliser l'id de l'utilisateur comme UserId
+          const userId = userData.id;
           console.log("UserId extrait :", userId);
 
           if (userId) {
-            const agenceResponse = await getAgenceIdByUserId(userId); // Appel API
-            console.log("Réponse de getAgenceIdByUserId :", agenceResponse); // Correction du nom
-            const agenceId = agenceResponse?.data?.agenceId || null; // Accéder à data pour Axios
+            const agenceResponse = await getAgenceIdByUserId(userId);
+            console.log("Réponse de getAgenceIdByUserId :", agenceResponse);
+            const agenceId = agenceResponse?.data?.agenceId || null;
             console.log("userAgenceId extrait :", agenceId);
             setUserAgenceId(agenceId);
           } else {
@@ -34,10 +33,12 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error("Erreur lors du parsing ou de la récupération de l'agence :", error);
+          setUser(null);
           setUserAgenceId(null);
         }
       } else {
         console.log("Aucune donnée trouvée dans localStorage pour user");
+        setUser(null);
         setUserAgenceId(null);
       }
     };
@@ -45,14 +46,27 @@ export const AuthProvider = ({ children }) => {
     fetchAgenceId();
   }, []);
 
+  const login = (userData) => {
+    console.log("Connexion avec userData :", userData);
+    setUser(userData);
+    setUserAgenceId(userData.agenceId || null);
+    localStorage.setItem("user", JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    console.log("Déconnexion effectuée");
+    setUser(null);
+    setUserAgenceId(null);
+    localStorage.removeItem("user");
+  };
+
   return (
-    <AuthContext.Provider value={{ userAgenceId }}>
+    <AuthContext.Provider value={{ user, userAgenceId, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook personnalisé pour utiliser le contexte
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

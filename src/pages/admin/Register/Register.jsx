@@ -142,8 +142,8 @@ function Register() {
 
       <div className="register-wrapper">
         <div className="register-header">
-          <h1 className="register-title">Inscription Admin</h1>
-          <p className="register-description">Créez un nouveau compte administrateurs pour accéder au système</p>
+          <h1 className="register-title">Inscription Utilisateur</h1>
+          <p className="register-description">Créez un nouveau compte pour accéder au système</p>
         </div>
 
         <div className="register-card">
@@ -153,7 +153,7 @@ function Register() {
               Nouveau Compte
             </h2>
             <p className="card-description">
-              Remplissez les informations ci-dessous pour créer un nouveau compte administrateurs
+              Remplissez les informations ci-dessous pour créer un nouveau compte pour une Agence
             </p>
           </div>
 

@@ -125,11 +125,11 @@ function UserStock() {
         <h2>Stock des consommables disponibles</h2>
        
         <div className="user-stock-actions">
-          <div className="search-bar">
+          <div className="category-filter">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="category-filter"
+              className="category-select"
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
@@ -137,10 +137,10 @@ function UserStock() {
                 </option>
               ))}
             </select>
+          </div>
             <button className="btn-export" onClick={exportToPDF}>
               Exporter en PDF
             </button>
-          </div>
         </div>
       </div>
       <div className="user-stock-table-container">

@@ -1,24 +1,26 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../Context/AuthContext";
-import { getAgenceFournitures, createConsommation, addConsommation } from "../../../services/agenceFournituresServices";
+import { getAgenceFournitures, addConsommation } from "../../../services/agenceFournituresServices";
+import { createNotification } from "../../../services/notificationServices";
+import { useNavigate } from "react-router-dom";
 import "./css/Consommation.css";
 
 function UserConsommation() {
-  const { userAgenceId } = useAuth();
+  const { user, userAgenceId } = useAuth();
   const [consommations, setConsommations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    fournitureId: "",
-    consoMm: ""
-  });
-  const [fournitures, setFournitures] = useState([]);
   const [detailsVisible, setDetailsVisible] = useState(false);
   const [selectedFourniture, setSelectedFourniture] = useState(null);
   const [detailedConsommations, setDetailedConsommations] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({ fournitureId: null, fournitureNom: "", consoMm: "" });
+  const navigate = useNavigate();
 
-  // Charger les données
+  useEffect(() => {
+    console.log("AuthContext dans UserConsommation:", { user, userAgenceId });
+  }, [user, userAgenceId]);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -30,18 +32,9 @@ function UserConsommation() {
           return;
         }
 
-        // Charger les fournitures (remplacez par votre endpoint réel)
-        const fournituresResponse = await fetchFournitures();
-        setFournitures(fournituresResponse || [
-          { id: 1, nom: "Papier A4", categorie: "Papeterie" },
-          { id: 2, nom: "Stylos", categorie: "Écriture" }
-        ]);
-
-        // Charger les consommations
         const response = await getAgenceFournitures(userAgenceId);
         const rawData = Array.isArray(response.data) ? response.data : response.data?.["$values"] || [];
-        
-        // Regrouper par fournitureNom
+
         const groupedData = rawData.reduce((acc, item) => {
           const key = item.fournitureNom;
           if (!acc[key]) {
@@ -73,33 +66,26 @@ function UserConsommation() {
     fetchData();
   }, [userAgenceId]);
 
-  // Fonction pour récupérer les fournitures
-  const fetchFournitures = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/Fournitures");
-      const data = await response.json();
-      return Array.isArray(data) ? data : data["$values"] || [];
-    } catch (error) {
-      console.error("Erreur lors de la récupération des fournitures:", error);
-      return [];
-    }
+  const handleAddConsommation = (fournitureId, fournitureNom) => {
+    setAddFormData({ fournitureId, fournitureNom, consoMm: "" });
+    setShowAddModal(true);
   };
 
-  // Gérer les changements dans le formulaire
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  // Soumettre une nouvelle consommation
-  const handleSubmit = async (e) => {
+  const handleAddModalSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await createConsommation({
+      const parsedConsoMm = parseFloat(addFormData.consoMm);
+      if (isNaN(parsedConsoMm) || parsedConsoMm <= 0) {
+        setError("Veuillez entrer une consommation valide.");
+        return;
+      }
+
+      const response = await addConsommation({
         agenceId: userAgenceId,
-        fournitureId: parseInt(formData.fournitureId),
-        consoMm: parseFloat(formData.consoMm)
+        fournitureId: addFormData.fournitureId,
+        consoMm: parsedConsoMm
       });
+
       setConsommations((prev) => {
         const existing = prev.find(c => c.fournitureNom === response.data.fournitureNom);
         if (existing) {
@@ -108,55 +94,46 @@ function UserConsommation() {
           existing.details.push({ consoMm: response.data.consoMm, date: response.data.dateAssociation });
           return [...prev];
         }
-        return [...prev, {
-          id: response.data.id,
-          fournitureId: response.data.fournitureId,
-          fournitureNom: response.data.fournitureNom || "Inconnu",
-          quantite: response.data.quantite,
-          consoMm: response.data.consoMm,
-          categorie: response.data.categorie,
-          details: [{ consoMm: response.data.consoMm, date: response.data.dateAssociation }]
-        }];
-      });
-      setFormData({ fournitureId: "", consoMm: "" });
-      setShowForm(false);
-      setError(null);
-    } catch (error) {
-      setError("Erreur lors de la création de la consommation.");
-      console.error("Erreur:", error.message);
-    }
-  };
-
-  // Ajouter une consommation à une fourniture existante
-  const handleAddConsommation = async (fournitureId, fournitureNom) => {
-    try {
-      const consoMm = prompt("Entrez la consommation (en mm) :");
-      if (!consoMm || parseFloat(consoMm) <= 0) {
-        alert("Veuillez entrer une consommation valide.");
-        return;
-      }
-
-      const response = await addConsommation({
-        agenceId: userAgenceId,
-        fournitureId,
-        consoMm: parseFloat(consoMm)
-      });
-      setConsommations((prev) => {
-        const existing = prev.find(c => c.fournitureNom === response.data.fournitureNom);
-        if (existing) {
-          existing.quantite = response.data.quantite;
-          existing.consoMm = response.data.consoMm;
-          existing.details.push({ consoMm: response.data.consoMm, date: response.data.dateAssociation });
-        }
         return [...prev];
       });
+
+      setShowAddModal(false);
+      setAddFormData({ fournitureId: null, fournitureNom: "", consoMm: "" });
+      setError(null);
     } catch (error) {
       setError("Erreur lors de l'ajout de la consommation.");
       console.error("Erreur:", error.message);
     }
   };
 
-  // Afficher les détails
+  const handleAddModalChange = (e) => {
+    setAddFormData({ ...addFormData, consoMm: e.target.value });
+  };
+
+  const handleDemande = async (fournitureId, fournitureNom) => {
+    try {
+      if (!user || !user.id) {
+        console.error("Utilisateur non connecté:", { user, userAgenceId });
+        setError("Vous devez être connecté pour envoyer une demande.");
+        navigate("/auth/login");
+        return;
+      }
+
+      console.log("Envoi de la demande de notification pour:", { fournitureId, fournitureNom, userId: user.id, agenceId: userAgenceId });
+      const response = await createNotification({
+        userId: user.id,
+        userName: user.name || "Utilisateur",
+        agenceId: userAgenceId,
+        fournitureId
+      });
+      console.log("Notification envoyée avec succès:", response.data);
+      alert(`Demande envoyée pour ${fournitureNom} !`);
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de la demande:", error);
+      setError("Erreur lors de l'envoi de la demande.");
+    }
+  };
+
   const handleDetailsClick = (item) => {
     setSelectedFourniture(item);
     setDetailedConsommations(item.details);
@@ -175,47 +152,7 @@ function UserConsommation() {
     <div className="consommation-container">
       <div className="consommation-header">
         <h2>Mes consommations</h2>
-        <button className="btn-add" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Annuler" : "Nouvelle consommation"}
-        </button>
       </div>
-
-      {showForm && (
-        <div className="consommation-form">
-          <form onSubmit={handleSubmit}>
-            <div>
-              <label>Fourniture</label>
-              <select
-                name="fournitureId"
-                value={formData.fournitureId}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Sélectionner une fourniture</option>
-                {fournitures.map((fourniture) => (
-                  <option key={fourniture.id} value={fourniture.id}>
-                    {fourniture.nom}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Consommation (mm)</label>
-              <input
-                type="number"
-                name="consoMm"
-                value={formData.consoMm}
-                onChange={handleInputChange}
-                step="0.1"
-                min="0"
-                required
-              />
-            </div>
-            <button type="submit" className="btn-submit">Ajouter</button>
-            {error && <p className="error-message">{error}</p>}
-          </form>
-        </div>
-      )}
 
       <div className="consommation-table-container">
         <table className="consommation-table">
@@ -242,6 +179,12 @@ function UserConsommation() {
                   >
                     Ajouter
                   </button>
+                  <button
+                    className="btn-demande"
+                    onClick={() => handleDemande(item.fournitureId, item.fournitureNom)}
+                  >
+                    Demande
+                  </button>
                   <button className="btn-details" onClick={() => handleDetailsClick(item)}>
                     Détails
                   </button>
@@ -251,6 +194,35 @@ function UserConsommation() {
           </tbody>
         </table>
       </div>
+
+      {showAddModal && (
+        <div className="modal" onClick={() => setShowAddModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Ajouter Consommation pour {addFormData.fournitureNom}</h3>
+            <form onSubmit={handleAddModalSubmit}>
+              <div className="modal-field">
+                <label>Consommation (mm)</label>
+                <input
+                  type="number"
+                  value={addFormData.consoMm}
+                  onChange={handleAddModalChange}
+                  step="0.1"
+                  min="0"
+                  required
+                  placeholder="Entrez la consommation"
+                />
+              </div>
+              {error && <p className="error-message">{error}</p>}
+              <div className="modal-actions">
+                <button type="submit" className="btn-submit">Confirmer</button>
+                <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}>
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {detailsVisible && selectedFourniture && (
         <div className="modal" onClick={() => setDetailsVisible(false)}>
