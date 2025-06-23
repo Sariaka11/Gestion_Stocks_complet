@@ -1,0 +1,414 @@
+/* Styles pour les graphiques du dashboard - Structure corrigée */
+.dashboard-container {
+  width: 100%;
+  background: #f8fafc; /* Fond clair */
+  padding: 1rem;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column; /* Force la disposition verticale */
+  gap: 2rem; /* Espacement vertical entre les sections */
+}
+
+/* Système de toasts */
+.toast-container {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  animation: slideInRight 0.3s ease;
+  max-width: 400px;
+}
+
+.toast-success {
+  border-left-color: #10b981;
+  color: #065f46;
+}
+
+.toast-error {
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.toast-close:hover {
+  background: #f3f4f6;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Contrôles du dashboard */
+.dashboard-header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  margin-top: -60px;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.selected-agency {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #dc2626;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.select-container {
+  position: relative;
+}
+
+.custom-select {
+  appearance: none;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 0;
+  width: auto;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.custom-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  min-width: 0;
+  width: auto;
+}
+
+.custom-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+}
+
+.custom-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* États de chargement et erreur */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  gap: 1rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin: 2rem 0;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+  color: #dc2626;
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+/* Grilles de graphiques - LIGNE 1 et 2: Deux colonnes côte à côte */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Deux colonnes égales */
+  gap: 2rem; /* Espacement entre les graphiques */
+  width: 100%;
+}
+
+/* Grille pour la LIGNE 3 et 4: pleine largeur */
+.charts-row-full {
+  display: grid;
+  grid-template-columns: 1fr; /* Une seule colonne */
+  gap: 2rem;
+  width: 100%;
+}
+
+/* Cartes de graphiques */
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #f1f5f9;
+  transition: all 0.3s ease;
+  width: 100%;
+  min-height: 400px; /* Hauteur minimale uniforme */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.chart-card-full {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #f1f5f9;
+  transition: all 0.3s ease;
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.chart-card:hover,
+.chart-card-full:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* En-têtes des cartes */
+.card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  flex-shrink: 0;
+  height: auto;
+}
+
+.card-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.card-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Contenu des cartes */
+.card-content {
+  flex: 1;
+  padding: 1rem;
+  width: 100%;
+  position: relative;
+  overflow: auto;
+}
+
+/* Correction pour les graphiques Recharts */
+.card-content .recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.card-content .recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .charts-row {
+    grid-template-columns: 1fr; /* Passe à une colonne sur petits écrans */
+    gap: 1.5rem;
+  }
+  
+  .chart-card, .chart-card-full {
+    min-height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .dashboard-controls {
+    justify-content: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .custom-select,
+  .custom-button {
+    width: 100%;
+  }
+  
+  .chart-card, .chart-card-full {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 0.5rem;
+  }
+  
+  .dashboard-header-controls {
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.25rem;
+  }
+
+  .selected-agency {
+    font-size: 1rem;
+  }
+
+  .charts-row,
+  .charts-row-full {
+    gap: 0.75rem;
+  }
+
+  .chart-card {
+    min-height: 250px;
+  }
+
+  .chart-card-full {
+    min-height: 250px;
+  }
+
+  .card-header {
+    padding: 0.75rem;
+  }
+
+  .card-content {
+    padding: 0.5rem;
+    height: calc(100% - 60px);
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  .toast-container {
+    top: 80px;
+    right: 10px;
+    left: 10px;
+  }
+
+  .toast {
+    max-width: none;
+  }
+}
+
+/* Styles pour les tooltips Recharts */
+.recharts-tooltip-wrapper {
+  z-index: 1000;
+}
+
+.recharts-tooltip-content {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Styles pour les légendes */
+.recharts-legend-wrapper {
+  padding-top: 0.5rem !important;
+}
+
+.recharts-legend-item {
+  margin-right: 1rem !important;
+}

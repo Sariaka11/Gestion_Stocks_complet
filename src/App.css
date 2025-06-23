@@ -1,150 +1,104 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+/* App.css - Layout moderne corrigé */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Layout principal */
+.modern-layout {
+  display: flex;
+  height: 100vh;
+  background: #f8fafc;
+  overflow: hidden;
 }
 
-:root {
-  --primary: #cc0000;
-  --primary-dark: #a00000;
-  --primary-light: #ff3333;
-  --secondary: #0099cc;
-  --accent: #ffcc00;
-  --background: #ffffff;
-  --foreground: #333333;
-  --border: #e0e0e0;
-  --card: #f8f9fa;
-  --shadow: rgba(0, 0, 0, 0.1);
-  --success: #4caf50;
-  --warning: #ff9800;
-  --error: #f44336;
-}
- body {
-  font-family: "Poppins", sans-serif;
-  background-color: var(--background);
-  color: var(--foreground);
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.app {
-  min-height: 100vh;
+.modern-main-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
+  margin-left: 280px; /* Toujours 280px sur grand écran */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-button {
-  cursor: pointer;
-  font-family: "Poppins", sans-serif;
+.modern-page-content {
+  flex: 1;
+  padding: 2rem;
+  margin-top: 70px;
+  overflow-y: auto;
+  background: #f8fafc;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-a {
-  text-decoration: none;
-  color: var(--primary);
-  transition: color 0.3s ease;
-}
-
-a:hover {
-  color: var(--primary-dark);
-}
-
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-dark);
-}
-
-.btn-secondary {
-  background-color: var(--secondary);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background-color: #007aa3;
-}
-
-.error-message {
-  background-color: rgba(244, 67, 54, 0.1);
-  color: var(--error);
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  border-left: 3px solid var(--error);
-}
-
-.success-message {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: var(--success);
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  border-left: 3px solid var(--success);
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.status-badge.normal,
-.status-badge.livré {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: var(--success);
-}
-
-.status-badge.critique,
-.status-badge.en-cours {
-  background-color: rgba(244, 67, 54, 0.1);
-  color: var(--error);
-}
-
-.actions-cell {
+/* Page d'accueil utilisateur */
+.dashboard-welcome {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  text-align: center;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin: 2rem auto;
+  max-width: 600px;
+  padding: 3rem;
 }
 
-.btn-edit,
-.btn-delete,
-.btn-view {
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0.25rem;
+.dashboard-welcome h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
 }
 
-.btn-edit:hover {
-  color: var(--secondary);
+.dashboard-welcome p {
+  font-size: 1.1rem;
+  color: #6b7280;
+  margin: 0;
 }
 
-.btn-delete:hover {
-  color: var(--error);
+/* Responsive - Sidebar se ferme seulement sur mobile */
+@media (max-width: 768px) {
+  .modern-main-content {
+    margin-left: 0; /* Pas de marge sur mobile */
+  }
+
+  .modern-main-content.sidebar-open {
+    margin-left: 0; /* Sidebar en overlay sur mobile */
+  }
+
+  .modern-page-content {
+    padding: 1rem;
+    margin-top: 70px;
+  }
+
+  .dashboard-welcome {
+    margin: 1rem;
+    padding: 2rem;
+  }
+
+  .dashboard-welcome h2 {
+    font-size: 1.5rem;
+  }
+
+  .dashboard-welcome p {
+    font-size: 1rem;
+  }
 }
 
-.btn-view:hover {
-  color: var(--primary);
+/* Conserver les styles existants pour compatibilité */
+.app {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+}
+
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
 }

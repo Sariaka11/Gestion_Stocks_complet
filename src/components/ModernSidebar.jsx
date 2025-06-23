@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import { Package, ChevronDown, ChevronRight, Building2, BarChart3, Users, UserPlus, LogOut, X } from "lucide-react"
-import { useAuth } from "../../Context/AuthContext"
+import { useAuth } from "../Context/AuthContext"
 import "./ModernSidebar.css"
 
 function ModernSidebar({ isOpen, onToggle, userType = "admin" }) {
