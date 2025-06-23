@@ -1,8 +1,7 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, FileDown, RefreshCw, AlertCircle, X, CheckCircle } from "lucide-react"
+import { Search, FileDown, RefreshCw, AlertCircle, X, CheckCircle } from 'lucide-react'
 import "./css/ImInventaire.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAmortissements } from "../../../services/amortissementServices"
@@ -258,13 +257,43 @@ function ImInventaire() {
     return matchDesignation && matchStatut && matchMois && matchAnnee && matchAgence
   })
 
-  // Filtrer les affectations pour le tableau de résumé
-  const filteredAffectations = affectations.filter((aff) => {
+  // Filtrer et regrouper les affectations pour le tableau de résumé
+const filteredAffectations = (() => {
+  // D'abord filtrer les affectations
+  const affectationsFiltrees = affectations.filter((aff) => {
     const matchAgence = filtreAgence === "" || aff.idAgence.toString() === filtreAgence
     const matchDesignation = filtreDesignation === "" || 
       getNomBien(aff.idBien).toLowerCase().includes(filtreDesignation.toLowerCase())
     return matchAgence && matchDesignation
   })
+
+  // Ensuite regrouper par agence et bien
+  const groupes = {}
+  
+  affectationsFiltrees.forEach((aff) => {
+    const cle = `${aff.idAgence}-${aff.idBien}` // Clé unique pour chaque combinaison agence-bien
+    
+    if (!groupes[cle]) {
+      groupes[cle] = {
+        idAgence: aff.idAgence,
+        idBien: aff.idBien,
+        quantite: 0,
+        dateAffectation: aff.dateAffectation
+      }
+    }
+    
+    // Additionner les quantités
+    groupes[cle].quantite += (aff.quantite || 1)
+    
+    // Garder la date la plus récente
+    if (new Date(aff.dateAffectation) > new Date(groupes[cle].dateAffectation)) {
+      groupes[cle].dateAffectation = aff.dateAffectation
+    }
+  })
+  
+  // Convertir l'objet en tableau
+  return Object.values(groupes)
+})()
 
 //       const supprimerAffectation = async (idBien, idAgence, dateAffectation) => {
 //   try {
@@ -471,14 +500,6 @@ function ImInventaire() {
           <td>{getNomBien(aff.idBien)}</td>
           <td>{aff.quantite || 0}</td>
           <td>{new Date(aff.dateAffectation).toLocaleDateString()}</td>
-          {/* <td>
-            <button
-              className="btn-supprimer"
-              onClick={() => supprimerAffectation(aff.idBien, aff.idAgence, aff.dateAffectation)}
-            >
-              <X size={16} /> Supprimer
-            </button>
-          </td> */}
         </tr>
       ))
     ) : (

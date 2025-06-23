@@ -1,12 +1,14 @@
+
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "../../Context/AuthContext"
 import { User, Lock } from "lucide-react"
 import "./Login.css"
 import stockImage from "../../assets/stock.png"
 
-const API_URL = "http://localhost:5000/api" // Adjust to your backend URL
+const API_URL = "http://localhost:5000/api"
 
 function Login() {
   const [email, setEmail] = useState("")
@@ -14,25 +16,32 @@ function Login() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { user, login } = useAuth()
+  const hasRedirected = useRef(false)
 
-  // Check if user is already logged in and redirect based on role
+  // Vérifier si l'utilisateur est connecté et rediriger
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"))
-    if (user) {
-      if (user.fonction === "admin") {
-        navigate("/admin/suivi-stock", { replace: true })
-      } else if (user.fonction === "utilisateur") {
-        navigate("/user/consommables/stock", { replace: true })
-      }
+    console.log("useEffect executed, user:", user, "hasRedirected:", hasRedirected.current)
+    if (hasRedirected.current || !user) return
+
+    hasRedirected.current = true
+    if (user.fonction === "admin") {
+      console.log("Redirection vers admin/suivi-stock")
+      navigate("/admin/suivi-stock", { replace: true })
+    } else if (user.fonction === "utilisateur") {
+      console.log("Redirection vers user/consommables/stock")
+      navigate("/user/consommables/stock", { replace: true })
+    } else {
+      console.log("Rôle utilisateur non reconnu :", user.fonction)
     }
-  }, [navigate])
+  }, [user, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Simple validation
     if (!email || !password) {
       setError("Veuillez remplir tous les champs")
+      console.log("Champs email ou password vides")
       return
     }
 
@@ -40,35 +49,41 @@ function Login() {
     setError("")
 
     try {
+      console.log("Envoi de la requête de connexion avec :", { email })
       const response = await fetch(`${API_URL}/Users/Login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       })
 
+      console.log("Réponse API reçue, statut :", response.status)
       if (!response.ok) {
         const errorData = await response.json()
+        console.log("Erreur API :", errorData)
         throw new Error(errorData.message || "Erreur lors de la connexion")
       }
 
-      const user = await response.json()
+      const userData = await response.json()
+      console.log("Données utilisateur reçues :", userData)
 
-      // Store user data in localStorage
-      localStorage.setItem("user", JSON.stringify(user))
+      // Utiliser la fonction login du contexte
+      login(userData)
 
-      // Redirect based on user role
-      setTimeout(() => {
-        if (user.fonction === "admin") {
-          navigate("/admin/suivi-stock", { replace: true })
-        } else if (user.fonction === "utilisateur") {
-          navigate("/user/consommables/stock", { replace: true })
-        } else {
-          throw new Error("Rôle utilisateur non reconnu")
-        }
-      }, 1000)
+      // Rediriger immédiatement
+      hasRedirected.current = true
+      if (userData.fonction === "admin") {
+        console.log("Redirection vers admin/suivi-stock")
+        navigate("/admin/suivi-stock", { replace: true })
+      } else if (userData.fonction === "utilisateur" ) {
+        console.log("Redirection vers user/consommables/stock")
+        navigate("/user/consommables/stock", { replace: true })
+      } else {
+        console.log("Rôle utilisateur non reconnu :", userData.fonction)
+        throw new Error("Rôle utilisateur non reconnu")
+      }
     } catch (err) {
+      console.error("Erreur dans handleSubmit :", err.message)
       setError(err.message)
-    } finally {
       setLoading(false)
     }
   }

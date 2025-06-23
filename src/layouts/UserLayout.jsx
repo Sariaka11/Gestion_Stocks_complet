@@ -7,12 +7,14 @@ import { Link, useNavigate } from "react-router-dom"
 import LoadingOverlay from "../components/LoadingOverlay"
 import "./Layout.css"
 import stockImage from '../assets/logo.png'
+import { useAuth } from "../Context/AuthContext"
 
 function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
    const [showProfile, setShowProfile] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { logout } = useAuth()
   
   // Refs pour détecter les clics à l'extérieur
    const profileRef = useRef(null)
@@ -47,19 +49,10 @@ function AdminLayout({ children }) {
     setSidebarOpen(!sidebarOpen)
   }
 
-  const handleLogout = (e) => {
-    console.log('handleLogout called')
-    e.preventDefault()
-    e.stopPropagation()
-    
-    try {
-      setShowProfile(false)
-      localStorage.removeItem('user')
-      console.log('About to navigate')
-      navigate("/auth/login")
-    } catch (error) {
-      console.error('Error in handleLogout:', error)
-    }
+ 
+  const handleLogout = () => {
+    logout()
+    navigate("/auth/login", { replace: true })
   }
 
   

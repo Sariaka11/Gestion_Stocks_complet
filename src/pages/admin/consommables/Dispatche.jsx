@@ -178,12 +178,12 @@ function Dispatche() {
         .catch((error) => {
           console.error("Erreur lors de la mise à jour du dispatch:", error);
           if (error.code === "ECONNABORTED") {
-            afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi", "info");
+            //afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi", "info");
             triggerRefresh(); // Tente de synchroniser
           } else if (error.response?.status === 400) {
-            afficherToast(error.response.data || "Données invalides", "erreur");
+           // afficherToast(error.response.data || "Données invalides", "erreur");
           } else {
-            afficherToast("Erreur lors de la mise à jour du dispatch", "erreur");
+            //afficherToast("Erreur lors de la mise à jour du dispatch", "erreur");
           }
         });
 

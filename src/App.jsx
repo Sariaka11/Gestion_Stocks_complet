@@ -18,24 +18,27 @@ import SuiviStock from "./pages/admin/SuiviStock/SuiviStock"
 import UserSidebar from "./components/user/Sidebar"
 import UserStock from "./pages/user/consommables/UserStock"
 import UserConsommation from "./pages/user/consommables/UserConsommation"
-import UserDemande from "./pages/user/consommables/UserDemande"
 import UserImStock from "./pages/user/Immobiliers/UserImStock"
 import UserImConsommation from "./pages/user/Immobiliers/UserImConsommation"
-import UserImDemande from "./pages/user/Immobiliers/UserImDemande"
 import Profile from "./pages/user/Profil/Profile"
 import { RefreshProvider } from "./pages/admin/context/RefreshContext"
-import { AuthProvider, useAuth } from "./Context/AuthContext";
+import { AuthProvider } from "./Context/AuthContext";
 import "./App.css"
 
 function App() {
   // Composant de protection des routes
+  // Vérifier si l'utilisateur est connecté
+  const isAuthenticated = () => {
+    return localStorage.getItem("user") !== null
+  }
+
+  // Composant de protection des routes
   const ProtectedRoute = ({ children }) => {
-    const { user } = useAuth();
-    if (!user) {
-      return <Navigate to="/auth/login" replace />;
+    if (!isAuthenticated()) {
+      return <Navigate to="/auth/login" replace />
     }
-    return children;
-  };
+    return children
+  }
 
   // Composant Admin Dashboard
   function AdminDashboard() {
@@ -75,10 +78,8 @@ function App() {
             />
             <Route path="consommables/stock" element={<UserStock />} />
             <Route path="consommables/consommation" element={<UserConsommation />} />
-            <Route path="consommables/demande" element={<UserDemande />} />
             <Route path="immobiliers/stock" element={<UserImStock />} />
             <Route path="immobiliers/consommation" element={<UserImConsommation />} />
-            <Route path="immobiliers/demande" element={<UserImDemande />} />
             <Route path="profil" element={<Profile />} />
           </Routes>
         </div>

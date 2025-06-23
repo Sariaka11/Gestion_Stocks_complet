@@ -1,23 +1,7 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Search,
-  Filter,
-  ArrowRight,
-  AlertTriangle,
-  Package,
-  BarChart,
-  Plus,
-  User,
-  Building,
-  Mail,
-  Phone,
-  Send,
-  Edit,
-  MessageSquare,
-  Trash2,
-  Lock,
-} from "lucide-react";
+"use client"
+
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   getUsers,
   getUserAgence,
@@ -32,61 +16,76 @@ import {
   createUserAgence,
   updateUserAgence,
   getUserAgenceByUserId,
-  createAgenceFourniture,
   checkEmail,
-  getAgenceFournitures, // Ajout
-} from "../../../services/userServices";
-import { afficherMessage } from "../../../components/utils";
-import "./css/gestion.css";
-import axios from "axios";
-import { getFournitures } from "../../../services/fournituresServices";
+} from "../../../services/userServices"
+import { afficherMessage } from "../../../components/utils"
+import { getFournitures } from "../../../services/fournituresServices"
+import "./css/gestion.css"
 
 function GestionUtilisateurs() {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("Tous les types");
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDispatcheModal, setShowDispatcheModal] = useState(false);
-  const [nouvelleAgence, setNouvelleAgence] = useState("");
-  const [numeroAgence, setNumeroAgence] = useState("");
-  const [nouveauNom, setNouveauNom] = useState("");
-  const [nouveauPrenom, setNouveauPrenom] = useState("");
-  const [nouveauEmail, setNouveauEmail] = useState("");
-  const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
-  const [messageContact, setMessageContact] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState([]);
-  const API_URL = "http://localhost:5000/api"; // Ajoutez si nécessaire
+  const navigate = useNavigate()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterType, setFilterType] = useState("Tous les types")
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [showContactModal, setShowContactModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDispatcheModal, setShowDispatcheModal] = useState(false)
+  const [nouvelleAgence, setNouvelleAgence] = useState("")
+  const [numeroAgence, setNumeroAgence] = useState("")
+  const [nouveauNom, setNouveauNom] = useState("")
+  const [nouveauPrenom, setNouveauPrenom] = useState("")
+  const [nouveauEmail, setNouveauEmail] = useState("")
+  const [nouveauMotDePasse, setNouveauMotDePasse] = useState("")
+  const [messageContact, setMessageContact] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState([])
+  const API_URL = "http://localhost:5000/api"
 
   // Fetch users
   const fetchUsers = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await getUsers();
-      const data = response.data;
+      const response = await getUsers()
+      const data = response.data
 
       const usersWithDetails = await Promise.all(
         data.map(async (user) => {
           const agenceResponse = await getUserAgence(user.id).catch(() => ({
             data: { nom: "N/A" },
-          }));
+          }))
           const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
             data: [],
-          }));
-          let stockItems = fournituresResponse.data;
+          }))
+          let stockItems = fournituresResponse.data
 
           if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
-            stockItems = stockItems.$values;
+            stockItems = stockItems.$values
           } else if (!Array.isArray(stockItems)) {
-            console.warn(`stockItems non valide pour user ${user.id} :`, stockItems);
-            stockItems = [];
+            console.warn(`stockItems non valide pour user ${user.id} :`, stockItems)
+            stockItems = []
           }
 
-          const agence = agenceResponse.data;
+          // Calcul amélioré du niveau de stock
+          let stockLevel = 0
+          let stockCritique = false
+
+          if (stockItems.length > 0) {
+            // Calculer le pourcentage moyen de stock restant
+            const stockPercentages = stockItems.map((item) => {
+              const initialQty = item.quantiteInitiale || item.quantite || 1
+              const remainingQty = item.quantiteRestante || 0
+              return (remainingQty / initialQty) * 100
+            })
+
+            stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
+            stockLevel = Math.min(100, Math.max(0, stockLevel))
+
+            stockCritique = stockItems.some((item) => (item.quantite || 0) < (item.seuilCritique || 10))
+          }
+
+          const agence = agenceResponse.data
 
           return {
             id: user.id,
@@ -96,295 +95,264 @@ function GestionUtilisateurs() {
             email: user.email,
             telephone: "+261 34 00 000 00",
             dateCreation: new Date().toLocaleDateString(),
-            stockCritique:
-              Array.isArray(stockItems) && stockItems.length > 0
-                ? stockItems.some((item) => item.quantiteRestante < item.seuilCritique)
-                : false,
-            stockLevel:
-              Array.isArray(stockItems) && stockItems.length > 0
-                ? Math.min(
-                    100,
-                    stockItems.reduce((sum, item) => sum + item.quantiteRestante, 0) / stockItems.length
-                  )
-                : 0,
+            stockCritique: stockCritique,
+            stockLevel: stockLevel,
             stockItems: Array.isArray(stockItems)
               ? stockItems.map((item) => ({
                   id: item.id,
                   designation: item.nom,
-                  quantite: item.quantiteRestante,
+                  quantite: item.quantite || 0,
+                  quantiteInitiale: item.quantiteInitiale || item.quantite || 0,
                   seuil: item.seuilCritique || 10,
                   cmup: item.cmup || 0,
                 }))
               : [],
-          };
-        })
-      );
-      setUsers(usersWithDetails);
+          }
+        }),
+      )
+      setUsers(usersWithDetails)
     } catch (err) {
-      console.error("Erreur fetchUsers :", err);
-      afficherMessage(err.message || "Erreur lors du chargement des utilisateurs", "erreur");
-      setUsers([]);
+      console.error("Erreur fetchUsers :", err)
+      afficherMessage(err.message || "Erreur lors du chargement des utilisateurs", "erreur")
+      setUsers([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchUsers()
+  }, [])
 
   // Add user
- const ajouterUtilisateur = async () => {
-  if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail || !nouveauMotDePasse) {
-    afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur");
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(nouveauEmail)) {
-    afficherMessage("Veuillez entrer un email valide", "erreur");
-    return;
-  }
-
-  try {
-    // Vérifier si l'email existe déjà
-    const emailCheckResponse = await checkEmail(nouveauEmail);
-    if (emailCheckResponse.data.exists) {
-      afficherMessage("Un utilisateur avec cet email existe déjà.", "erreur");
-      return;
+  const ajouterUtilisateur = async () => {
+    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail || !nouveauMotDePasse) {
+      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
+      return
     }
 
-    // Step 1: Find or create agency
-    let agence;
-    const agenceResponse = await getAgences();
-    const agences = Array.isArray(agenceResponse.data.$values)
-      ? agenceResponse.data.$values
-      : agenceResponse.data;
-
-    agence = agences.find(
-      (a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence
-    );
-
-    if (!agence) {
-      const newAgenceResponse = await createAgence({
-        nom: nouvelleAgence,
-        numero: numeroAgence,
-      });
-      agence = newAgenceResponse.data;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(nouveauEmail)) {
+      afficherMessage("Veuillez entrer un email valide", "erreur")
+      return
     }
 
-    // Step 2: Create user
-    const userResponse = await createUser({
-      nom: nouveauNom,
-      prenom: nouveauPrenom,
-      email: nouveauEmail,
-      motDePasse: nouveauMotDePasse,
-      fonction: "Utilisateur",
-      dateAssociation : new Date()
-    });
-    const user = userResponse.data;
+    try {
+      const emailCheckResponse = await checkEmail(nouveauEmail)
+      if (emailCheckResponse.data.exists) {
+        afficherMessage("Un utilisateur avec cet email existe déjà.", "erreur")
+        return
+      }
 
-    // Step 3: Associate user with agency
-    await createUserAgence({
-      userId: user.id,
-      agenceId: agence.id,
-      dateAssociation : new Date()
-    });
+      let agence
+      const agenceResponse = await getAgences()
+      const agences = Array.isArray(agenceResponse.data.$values) ? agenceResponse.data.$values : agenceResponse.data
 
-    // Step 4 supprimé : Pas d'association de fourniture par défaut
+      agence = agences.find((a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence)
 
-    // Step 5: Fetch updated user details
-    const newUserResponse = await getUserById(user.id);
-    const newUserData = newUserResponse.data;
-    const agenceDetails = await getUserAgence(user.id).catch(() => ({
-      data: { nom: agence.nom },
-    }));
-    const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
-      data: [],
-    }));
-    let stockItems = fournituresResponse.data;
-    console.log(fournituresResponse.data)
-    if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
-      stockItems = stockItems.$values;
-    } else if (!Array.isArray(stockItems)) {
-      stockItems = [];
+      if (!agence) {
+        const newAgenceResponse = await createAgence({
+          nom: nouvelleAgence,
+          numero: numeroAgence,
+        })
+        agence = newAgenceResponse.data
+      }
+
+      const userResponse = await createUser({
+        nom: nouveauNom,
+        prenom: nouveauPrenom,
+        email: nouveauEmail,
+        motDePasse: nouveauMotDePasse,
+        fonction: "utilisateur",
+        dateAssociation: new Date(),
+      })
+      const user = userResponse.data
+
+      await createUserAgence({
+        userId: user.id,
+        agenceId: agence.id,
+        dateAssociation: new Date(),
+      })
+
+      const newUserResponse = await getUserById(user.id)
+      const newUserData = newUserResponse.data
+      const agenceDetails = await getUserAgence(user.id).catch(() => ({
+        data: { nom: agence.nom },
+      }))
+      const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
+        data: [],
+      }))
+      let stockItems = fournituresResponse.data
+      console.log(fournituresResponse.data)
+      if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
+        stockItems = stockItems.$values
+      } else if (!Array.isArray(stockItems)) {
+        stockItems = []
+      }
+
+      const newUser = {
+        id: newUserData.id,
+        nom: `${newUserData.nom} ${newUserData.prenom}`,
+        role: newUserData.fonction,
+        agence: agenceDetails.data.nom,
+        email: newUserData.email,
+        telephone: "+261 34 00 000 00",
+        dateCreation: new Date().toLocaleDateString(),
+        stockCritique: false,
+        stockLevel: 0,
+        stockItems: stockItems.map((item) => ({
+          id: item.id,
+          designation: item.nom,
+          quantite: item.quantite,
+          seuil: item.seuilCritique || 10,
+          cmup: item.cmup || 0,
+        })),
+      }
+
+      setUsers([...users, newUser])
+      setNouveauNom("")
+      setNouveauPrenom("")
+      setNouvelleAgence("")
+      setNumeroAgence("")
+      setNouveauEmail("")
+      setNouveauMotDePasse("")
+      setShowAddUserModal(false)
+      afficherMessage(`Utilisateur ${newUser.nom} ajouté avec succès !`, "succes")
+      await fetchUsers()
+    } catch (err) {
+      console.error("Erreur lors de la création de l'utilisateur :", err)
+      const errorMessage = err.response?.data?.message || err.message || "Erreur lors de la création de l'utilisateur"
+      afficherMessage(errorMessage, "erreur")
     }
-
-    const newUser = {
-      id: newUserData.id,
-      nom: `${newUserData.nom} ${newUserData.prenom}`,
-      role: newUserData.fonction,
-      agence: agenceDetails.data.nom,
-      email: newUserData.email,
-      telephone: "+261 34 00 000 00",
-      dateCreation: new Date().toLocaleDateString(),
-      stockCritique: false,
-      stockLevel: 0,
-      stockItems: stockItems.map((item) => ({
-        id: item.id,
-        designation: item.nom,
-        quantite: item.quantiteRestante,
-        seuil: item.seuilCritique || 10,
-        cmup: item.cmup || 0,
-      })),
-    };
-
-    setUsers([...users, newUser]);
-    setNouveauNom("");
-    setNouveauPrenom("");
-    setNouvelleAgence("");
-    setNumeroAgence("");
-    setNouveauEmail("");
-    setNouveauMotDePasse("");
-    setShowAddUserModal(false);
-    afficherMessage(`Utilisateur ${newUser.nom} ajouté avec succès !`, "succes");
-    await fetchUsers();
-  } catch (err) {
-    console.error("Erreur lors de la création de l'utilisateur :", err);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      "Erreur lors de la création de l'utilisateur";
-    afficherMessage(errorMessage, "erreur");
   }
-};
+
   // Edit user
   const modifierUtilisateur = async () => {
-  if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail) {
-    afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur");
-    return;
-  }
-
-  // Valider l'email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(nouveauEmail)) {
-    afficherMessage("Veuillez entrer un email valide", "erreur");
-    return;
-  }
-
-  try {
-    // Step 1: Find or create agency
-    let agence;
-    const agenceResponse = await getAgences();
-    const agences = Array.isArray(agenceResponse.data.$values)
-      ? agenceResponse.data.$values
-      : agenceResponse.data;
-
-    agence = agences.find(
-      (a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence
-    );
-
-    if (!agence) {
-      const newAgenceResponse = await createAgence({
-        nom: nouvelleAgence,
-        numero: numeroAgence,
-      });
-      agence = newAgenceResponse.data;
-    } else {
-      await updateAgence(agence.id, {
-        nom: nouvelleAgence,
-        numero: numeroAgence,
-      });
+    if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail) {
+      afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
+      return
     }
 
-    // Step 2: Update user
-    const userData = {
-      id: selectedUser.id,
-      nom: nouveauNom,
-      prenom: nouveauPrenom,
-      email: nouveauEmail,
-      fonction: "Utilisateur",
-    };
-    if (nouveauMotDePasse) {
-      userData.motDePasse = nouveauMotDePasse;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(nouveauEmail)) {
+      afficherMessage("Veuillez entrer un email valide", "erreur")
+      return
     }
 
-    await updateUser(selectedUser.id, userData);
+    try {
+      let agence
+      const agenceResponse = await getAgences()
+      const agences = Array.isArray(agenceResponse.data.$values) ? agenceResponse.data.$values : agenceResponse.data
 
-    // Step 3: Check and update/create user-agency association
-    const userAgenceResponse = await getUserAgenceByUserId(selectedUser.id).catch(() => ({ data: null }));
-    if (userAgenceResponse.data) {
-      await updateUserAgence(selectedUser.id, {
-        userId: selectedUser.id,
-        agenceId: agence.id,
-      });
-    } else {
-      await createUserAgence({
-        userId: selectedUser.id,
-        agenceId: agence.id,
-      });
+      agence = agences.find((a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence)
+
+      if (!agence) {
+        const newAgenceResponse = await createAgence({
+          nom: nouvelleAgence,
+          numero: numeroAgence,
+        })
+        agence = newAgenceResponse.data
+      } else {
+        await updateAgence(agence.id, {
+          nom: nouvelleAgence,
+          numero: numeroAgence,
+        })
+      }
+
+      const userData = {
+        id: selectedUser.id,
+        nom: nouveauNom,
+        prenom: nouveauPrenom,
+        email: nouveauEmail,
+        fonction: "Utilisateur",
+      }
+      if (nouveauMotDePasse) {
+        userData.motDePasse = nouveauMotDePasse
+      }
+
+      await updateUser(selectedUser.id, userData)
+
+      const userAgenceResponse = await getUserAgenceByUserId(selectedUser.id).catch(() => ({ data: null }))
+      if (userAgenceResponse.data) {
+        await updateUserAgence(selectedUser.id, {
+          userId: selectedUser.id,
+          agenceId: agence.id,
+        })
+      } else {
+        await createUserAgence({
+          userId: selectedUser.id,
+          agenceId: agence.id,
+        })
+      }
+
+      const usersModifies = users.map((user) =>
+        user.id === selectedUser.id
+          ? {
+              ...user,
+              nom: `${nouveauNom} ${nouveauPrenom}`,
+              email: nouveauEmail,
+              agence: nouvelleAgence,
+              role: "Utilisateur",
+            }
+          : user,
+      )
+      setUsers(usersModifies)
+      setSelectedUser({
+        ...selectedUser,
+        nom: `${nouveauNom} ${nouveauPrenom}`,
+        email: nouveauEmail,
+        agence: nouvelleAgence,
+        role: "Utilisateur",
+      })
+      setShowEditModal(false)
+      afficherMessage(`Utilisateur ${nouveauNom} ${nouveauPrenom} modifié avec succès !`, "succes")
+      await fetchUsers()
+    } catch (err) {
+      console.error("Erreur lors de la modification de l'utilisateur :", err)
+      const errorMessage =
+        err.response?.data?.message || err.message || "Erreur lors de la modification de l'utilisateur"
+      afficherMessage(errorMessage, "erreur")
     }
-
-    // Step 4: Update local state
-    const usersModifies = users.map((user) =>
-      user.id === selectedUser.id
-        ? {
-            ...user,
-            nom: `${nouveauNom} ${nouveauPrenom}`,
-            email: nouveauEmail,
-            agence: nouvelleAgence,
-            role: "Utilisateur",
-          }
-        : user
-    );
-    setUsers(usersModifies);
-    setSelectedUser({
-      ...selectedUser,
-      nom: `${nouveauNom} ${nouveauPrenom}`,
-      email: nouveauEmail,
-      agence: nouvelleAgence,
-      role: "Utilisateur",
-    });
-    setShowEditModal(false);
-    afficherMessage(`Utilisateur ${nouveauNom} ${nouveauPrenom} modifié avec succès !`, "succes");
-    await fetchUsers();
-  } catch (err) {
-    console.error("Erreur lors de la modification de l'utilisateur :", err);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      "Erreur lors de la modification de l'utilisateur";
-    afficherMessage(errorMessage, "erreur");
   }
-};
+
   // Delete user
   const supprimerUtilisateur = async (userId) => {
     try {
-      await deleteUser(userId);
-      setUsers(users.filter((user) => user.id !== userId));
-      setShowModal(false);
-      afficherMessage("Utilisateur supprimé avec succès !", "succes");
+      await deleteUser(userId)
+      setUsers(users.filter((user) => user.id !== userId))
+      setShowModal(false)
+      afficherMessage("Utilisateur supprimé avec succès !", "succes")
     } catch (err) {
-      console.error("Erreur lors de la suppression de l'utilisateur :", err);
+      console.error("Erreur lors de la suppression de l'utilisateur :", err)
       afficherMessage(
         err.response?.data?.message || err.message || "Erreur lors de la suppression de l'utilisateur",
-        "erreur"
-      );
+        "erreur",
+      )
     }
-  };
+  }
 
   // Send message
   const envoyerMessage = () => {
     if (!messageContact.trim()) {
-      afficherMessage("Veuillez saisir un message", "erreur");
-      return;
+      afficherMessage("Veuillez saisir un message", "erreur")
+      return
     }
 
-    console.log(`Message envoyé à ${selectedUser.nom}: ${messageContact}`);
-    setMessageContact("");
-    setShowContactModal(false);
-    afficherMessage(`Message envoyé à ${selectedUser.nom}`, "succes");
-  };
+    console.log(`Message envoyé à ${selectedUser.nom}: ${messageContact}`)
+    setMessageContact("")
+    setShowContactModal(false)
+    afficherMessage(`Message envoyé à ${selectedUser.nom}`, "succes")
+  }
 
   // Redirect to dispatch page
   const envoyerStock = (type) => {
-    setShowDispatcheModal(false);
+    setShowDispatcheModal(false)
     if (type === "consommables") {
-      navigate("/admin/consommables/dispatche");
+      navigate("/admin/consommables/dispatche")
     } else {
-      navigate("/admin/immobiliers/dispatche");
+      navigate("/admin/immobiliers/dispatche")
     }
-  };
+  }
 
   // Filter users
   const filteredUsers = users.filter((user) => {
@@ -392,110 +360,124 @@ function GestionUtilisateurs() {
       user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.agence.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesFilter = filterType === "Tous les types" || user.role === filterType;
+    const matchesFilter = filterType === "Tous les types" || user.role === filterType
 
-    return matchesSearch && matchesFilter;
-  });
+    return matchesSearch && matchesFilter
+  })
 
-// Fonction corrigée pour openUserDetails
-const openUserDetails = async (user) => {
-  try {
-    const userResponse = await getUserById(user.id);
-    const userData = userResponse.data;
-    const agenceResponse = await getUserAgence(user.id).catch(() => ({
-      data: { nom: "N/A", id: null },
-    }));
+  // Fonction corrigée pour openUserDetails avec calcul de stock amélioré
+  const openUserDetails = async (user) => {
+    try {
+      const userResponse = await getUserById(user.id)
+      const userData = userResponse.data
+      const agenceResponse = await getUserAgence(user.id).catch(() => ({
+        data: { nom: "N/A", id: null },
+      }))
 
-    // Utiliser getUserFournitures au lieu de getAgenceFournitures
-    const fournituresResponse = await getFournitures().catch(() => ({
-      data: [],
-    }));
-    
-    let stockItems = fournituresResponse.data;
-    console.log("Données fournitures reçues:", stockItems, agenceResponse.data);
+      const fournituresResponse = await getFournitures().catch(() => ({
+        data: [],
+      }))
 
-    // La réponse semble être un tableau direct, pas besoin de vérifier $values
-    if (!Array.isArray(stockItems)) {
-      console.warn(`stockItems non valide pour user ${user.agence} :`, stockItems);
-      stockItems = [];
-    }else{
-     stockItems = stockItems.flatMap(item => {
-      const agencyData = item.agenceFournitures.find(el => el.agenceId == agenceResponse.data.id);
-      return agencyData ? [{
-        // Données de l'agence
-        ...agencyData,
-        // Infos de la fourniture
-        nom: item.nom,
-        prixUnitaire: item.prixUnitaire,
-        quantiteRestante: item.quantiteRestante,
-        categorie: item.categorie,
-        cmup: item.cmup
-      }] : [];
-});
-      console.log("********************--********", stockItems)
+      let stockItems = fournituresResponse.data
+      console.log("Données fournitures reçues:", stockItems, agenceResponse.data)
+
+      if (!Array.isArray(stockItems)) {
+        console.warn(`stockItems non valide pour user ${user.agence} :`, stockItems)
+        stockItems = []
+      } else {
+        stockItems = stockItems.flatMap((item) => {
+          const agencyData = item.agenceFournitures?.find((el) => el.agenceId == agenceResponse.data.id)
+          return agencyData
+            ? [
+                {
+                  ...agencyData,
+                  nom: item.nom,
+                  prixUnitaire: item.prixUnitaire,
+                  // Utiliser qttRestant et qtt comme dans les discussions précédentes
+                  quantiteRestante: agencyData.quantite || agencyData.quantiteRestante || 0,
+                  quantiteInitiale: agencyData.qtt || agencyData.quantite || agencyData.quantiteInitiale || 0,
+                  categorie: item.categorie,
+                  cmup: item.cmup || item.prixUnitaire || 0,
+                  seuilCritique: agencyData.seuilCritique || item.seuilCritique || 10,
+                },
+              ]
+            : []
+        })
+        console.log("********************--********", stockItems)
+      }
+
+      // Calcul amélioré du niveau de stock et statut critique
+      let stockLevel = 0
+      let stockCritique = false
+
+      if (stockItems.length > 0) {
+        // Calculer le pourcentage moyen de stock restant par rapport à la quantité initiale
+        const stockPercentages = stockItems.map((item) => {
+          const initialQty = item.quantiteInitiale || 1 // Éviter division par zéro
+          return (item.quantiteRestante / initialQty) * 100
+        })
+
+        stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
+        stockLevel = Math.min(100, Math.max(0, stockLevel)) // Limiter entre 0 et 100
+
+        // Vérifier si des articles sont critiques
+        stockCritique = stockItems.some((item) => item.quantiteRestante < item.seuilCritique)
+      }
+
+      const updatedUser = {
+        id: userData.id,
+        nom: `${userData.nom} ${userData.prenom}`,
+        role: userData.fonction,
+        agence: agenceResponse.data.nom,
+        email: userData.email,
+        telephone: "+261 34 00 000 00",
+        dateCreation: new Date().toLocaleDateString(),
+        stockCritique: stockCritique,
+        stockLevel: stockLevel,
+        stockItems: stockItems.map((item) => ({
+          id: item.id,
+          designation: item.nom,
+          quantite: item.quantiteRestante,
+          quantiteInitiale: item.quantiteInitiale,
+          seuil: item.seuilCritique,
+          cmup: item.cmup,
+        })),
+      }
+
+      setSelectedUser(updatedUser)
+      setShowModal(true)
+    } catch (err) {
+      console.error("Erreur lors du chargement des détails de l'utilisateur :", err)
+      afficherMessage("Erreur lors du chargement des détails", "erreur")
     }
-
-    const updatedUser = {
-      id: userData.id,
-      nom: `${userData.nom} ${userData.prenom}`,
-      role: userData.fonction,
-      agence: agenceResponse.data.nom,
-      email: userData.email,
-      telephone: "+261 34 00 000 00",
-      dateCreation: new Date().toLocaleDateString(),
-      stockCritique:
-        stockItems.length > 0
-          ? stockItems.some((item) => item.quantiteRestante < (item.seuilCritique || 10))
-          : false,
-      stockLevel:
-        stockItems.length > 0
-          ? Math.min(
-              100,
-              stockItems.reduce((sum, item) => sum + item.quantiteRestante, 0) / stockItems.length
-            )
-          : 0,
-      stockItems: stockItems.map((item) => ({
-        id: item.id,
-        designation: item.nom,
-        quantite: item.quantiteRestante,
-        seuil: item.seuilCritique || 10,
-        cmup: item.cmup || item.prixUnitaire || 0, // Utiliser cmup ou prixUnitaire comme fallback
-      })),
-    };
-
-    setSelectedUser(updatedUser);
-    setShowModal(true);
-  } catch (err) {
-    console.error("Erreur lors du chargement des détails de l'utilisateur :", err);
-    afficherMessage("Erreur lors du chargement des détails", "erreur");
   }
-};
+
   // Open contact modal
   const openContactModal = () => {
-    setMessageContact("");
-    setShowContactModal(true);
-    setShowModal(false);
-  };
+    setMessageContact("")
+    setShowContactModal(true)
+    setShowModal(false)
+  }
 
   // Open edit modal
   const openEditModal = () => {
-    setNouveauNom(selectedUser.nom.split(" ")[0]);
-    setNouveauPrenom(selectedUser.nom.split(" ").slice(1).join(" "));
-    setNouveauEmail(selectedUser.email);
-    setNouvelleAgence(selectedUser.agence);
-    setNumeroAgence("");
-    setNouveauMotDePasse("");
-    setShowEditModal(true);
-    setShowModal(false);
-  };
+    setNouveauNom(selectedUser.nom.split(" ")[0])
+    setNouveauPrenom(selectedUser.nom.split(" ").slice(1).join(" "))
+    setNouveauEmail(selectedUser.email)
+    setNouvelleAgence(selectedUser.agence)
+    setNumeroAgence("")
+    setNouveauMotDePasse("")
+    setShowEditModal(true)
+    setShowModal(false)
+  }
 
   // Open dispatch modal
   const openDispatcheModal = () => {
-    setShowDispatcheModal(true);
-    setShowModal(false);
-  };
+    setShowDispatcheModal(true)
+    setShowModal(false)
+  }
 
   // Get initials for avatar
   const getInitials = (name) => {
@@ -504,8 +486,8 @@ const openUserDetails = async (user) => {
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-      .substring(0, 2);
-  };
+      .substring(0, 2)
+  }
 
   return (
     <div className="gestion-utilisateurs-container">
@@ -513,7 +495,18 @@ const openUserDetails = async (user) => {
 
       <div className="search-filter-container">
         <div className="search-box">
-          <Search className="search-icon" size={18} />
+          <svg
+            className="search-icon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
           <input
             type="text"
             placeholder="Rechercher un utilisateur..."
@@ -523,7 +516,17 @@ const openUserDetails = async (user) => {
         </div>
 
         <div className="filter-box">
-          <Filter className="filter-icon" size={18} />
+          <svg
+            className="filter-icon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"></polygon>
+          </svg>
           <label>Type:</label>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
             <option>Tous les types</option>
@@ -533,10 +536,15 @@ const openUserDetails = async (user) => {
         </div>
 
         <button className="btn-add-user" onClick={() => setShowAddUserModal(true)}>
-          <Plus size={16} /> Ajouter un utilisateur
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Ajouter un utilisateur
         </button>
       </div>
 
+      {/* Modal Ajouter Utilisateur */}
       {showAddUserModal && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -549,7 +557,11 @@ const openUserDetails = async (user) => {
             <div className="formulaire-modal">
               <div className="groupe-champ">
                 <label htmlFor="nom">
-                  <User size={16} /> Nom*
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Nom*
                 </label>
                 <input
                   id="nom"
@@ -563,7 +575,11 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="prenom">
-                  <User size={16} /> Prénom*
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Prénom*
                 </label>
                 <input
                   id="prenom"
@@ -577,7 +593,11 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="email">
-                  <Mail size={16} /> Email*
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  Email*
                 </label>
                 <input
                   id="email"
@@ -591,7 +611,12 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="motDePasse">
-                  <Lock size={16} /> Mot de passe*
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <circle cx="12" cy="16" r="1"></circle>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Mot de passe*
                 </label>
                 <input
                   id="motDePasse"
@@ -605,7 +630,12 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="agence">
-                  <Building size={16} /> Nom de l'Agence*
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                  </svg>
+                  Nom de l'Agence*
                 </label>
                 <input
                   id="agence"
@@ -619,7 +649,12 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="numeroAgence">
-                  <Building size={16} /> Numéro d'Agence*
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                  </svg>
+                  Numéro d'Agence*
                 </label>
                 <input
                   id="numeroAgence"
@@ -655,6 +690,7 @@ const openUserDetails = async (user) => {
         </div>
       )}
 
+      {/* Modal Contact */}
       {showContactModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -667,11 +703,16 @@ const openUserDetails = async (user) => {
             <div className="formulaire-modal">
               <div className="contact-info">
                 <div className="contact-item">
-                  <Mail size={16} />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
                   <span>{selectedUser.email}</span>
                 </div>
                 <div className="contact-item">
-                  <Phone size={16} />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
                   <span>{selectedUser.telephone}</span>
                 </div>
               </div>
@@ -691,12 +732,11 @@ const openUserDetails = async (user) => {
                 <button className="bouton-annuler" onClick={() => setShowContactModal(false)}>
                   Annuler
                 </button>
-                <button
-                  className="bouton-sauvegarder"
-                  onClick={envoyerMessage}
-                  disabled={!messageContact.trim()}
-                >
-                  <MessageSquare size={16} /> Envoyer
+                <button className="bouton-sauvegarder" onClick={envoyerMessage} disabled={!messageContact.trim()}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  Envoyer
                 </button>
               </div>
             </div>
@@ -704,6 +744,7 @@ const openUserDetails = async (user) => {
         </div>
       )}
 
+      {/* Modal Modifier */}
       {showEditModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -716,7 +757,11 @@ const openUserDetails = async (user) => {
             <div className="formulaire-modal">
               <div className="groupe-champ">
                 <label htmlFor="edit-nom">
-                  <User size={16} /> Nom
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Nom
                 </label>
                 <input
                   id="edit-nom"
@@ -729,7 +774,11 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="edit-prenom">
-                  <User size={16} /> Prénom
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Prénom
                 </label>
                 <input
                   id="edit-prenom"
@@ -742,7 +791,11 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="edit-email">
-                  <Mail size={16} /> Email
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  Email
                 </label>
                 <input
                   id="edit-email"
@@ -755,7 +808,12 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="edit-motDePasse">
-                  <Lock size={16} /> Mot de passe (laisser vide pour ne pas modifier)
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <circle cx="12" cy="16" r="1"></circle>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Mot de passe (laisser vide pour ne pas modifier)
                 </label>
                 <input
                   id="edit-motDePasse"
@@ -768,7 +826,12 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="edit-agence">
-                  <Building size={16} /> Nom de l'Agence
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                  </svg>
+                  Nom de l'Agence
                 </label>
                 <input
                   id="edit-agence"
@@ -781,7 +844,12 @@ const openUserDetails = async (user) => {
               </div>
               <div className="groupe-champ">
                 <label htmlFor="edit-numeroAgence">
-                  <Building size={16} /> Numéro d'Agence
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                  </svg>
+                  Numéro d'Agence
                 </label>
                 <input
                   id="edit-numeroAgence"
@@ -792,12 +860,16 @@ const openUserDetails = async (user) => {
                   required
                 />
               </div>
-              <div className="actions-modal-actions">
+              <div className="actions-modal">
                 <button className="bouton-annuler" onClick={() => setShowEditModal(false)}>
                   Annuler
                 </button>
                 <button className="bouton-sauvegarder" onClick={modifierUtilisateur}>
-                  <Edit size={16} /> Enregistrer
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Enregistrer
                 </button>
               </div>
             </div>
@@ -805,6 +877,7 @@ const openUserDetails = async (user) => {
         </div>
       )}
 
+      {/* Modal Dispatche */}
       {showDispatcheModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -816,12 +889,21 @@ const openUserDetails = async (user) => {
             </div>
             <div className="dispatche-options">
               <div className="dispatche-option" onClick={() => envoyerStock("consommables")}>
-                <Package size={48} />
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
                 <h3>Consommables</h3>
                 <p>Envoyer des articles consommables</p>
               </div>
               <div className="dispatche-option" onClick={() => envoyerStock("immobiliers")}>
-                <Building size={48} />
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 21h18"></path>
+                  <path d="M5 21V7l8-4v18"></path>
+                  <path d="M19 21V11l-6-4"></path>
+                </svg>
                 <h3>Immobiliers</h3>
                 <p>Envoyer des biens immobiliers</p>
               </div>
@@ -830,6 +912,7 @@ const openUserDetails = async (user) => {
         </div>
       )}
 
+      {/* Loading */}
       {loading ? (
         <div className="loading-container">
           <div className="spinner"></div>
@@ -853,18 +936,28 @@ const openUserDetails = async (user) => {
                   </div>
                   {user.stockCritique && (
                     <button className="stock-alert-btn" onClick={() => openUserDetails(user)}>
-                      <AlertTriangle size={16} /> Stock critique
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      Stock critique
                     </button>
                   )}
                 </div>
 
                 <div className="user-details">
                   <div className="detail-item">
-                    <Mail size={16} />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
                     <span>{user.email}</span>
                   </div>
                   <div className="detail-item">
-                    <Phone size={16} />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
                     <span>{user.telephone}</span>
                   </div>
                 </div>
@@ -886,10 +979,20 @@ const openUserDetails = async (user) => {
 
                 <div className="user-actions">
                   <button className="view-details-btn" onClick={() => openUserDetails(user)}>
-                    Voir détails <ArrowRight size={16} />
+                    Voir détails
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12,5 19,12 12,19"></polyline>
+                    </svg>
                   </button>
                   <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(user.id)}>
-                    <Trash2 size={16} /> Supprimer
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3,6 5,6 21,6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    Supprimer
                   </button>
                 </div>
               </div>
@@ -897,115 +1000,116 @@ const openUserDetails = async (user) => {
           ) : (
             <div className="no-results">
               <div className="no-results-icon">
-                <User size={48} />
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
               </div>
               <h3>Aucun utilisateur trouvé</h3>
               <p>Aucun utilisateur ne correspond à votre recherche ou aucun utilisateur n'a été créé.</p>
               <button className="btn-add-user" onClick={() => setShowAddUserModal(true)}>
-                <Plus size={16} /> Ajouter un utilisateur
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Ajouter un utilisateur
               </button>
             </div>
           )}
         </div>
       )}
 
+      {/* Modal Détails Utilisateur */}
       {showModal && selectedUser && (
-        <div className="modal-overlay">
-          <div className="user-details-modal">
-            <div className="modal-header">
-              <div className="user-modal-info">
-                <div className="modal-avatar">{getInitials(selectedUser.nom)}</div>
-                <div>
-                  <h2>{selectedUser.nom}</h2>
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content-only" onClick={(e) => e.stopPropagation()}>
+            <div className="user-contact-info">
+              <div className="contact-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span>{selectedUser.email}</span>
+              </div>
+              <div className="contact-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <span>{selectedUser.telephone}</span>
+              </div>
+              <div className="contact-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Créé le {selectedUser.dateCreation}</span>
+              </div>
+            </div>
+
+            <div className="user-stats">
+              <div className="stat-box">
+                <div className="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <h4>Articles en stock</h4>
+                  <p>{selectedUser.stockItems.reduce((total, item) => total + item.quantite, 0)}</p>
+                </div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <h4>Articles critiques</h4>
+                  <p>{selectedUser.stockItems.filter((item) => item.quantite < item.seuil).length}</p>
+                </div>
+              </div>
+
+              <div className="stat-box">
+                <div className="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <h4>Valeur totale</h4>
                   <p>
-                    {selectedUser.role} - {selectedUser.agence}
+                    {selectedUser.stockItems
+                      .reduce((total, item) => total + item.quantite * item.cmup, 0)
+                      .toLocaleString()}{" "}
+                    Ar
                   </p>
                 </div>
               </div>
-              <button className="close-modal-btn" onClick={() => setShowModal(false)}>
-                ×
-              </button>
             </div>
 
-            <div className="modal-content">
-              <div className="user-contact-info">
-                <div className="contact-item">
-                  <Mail size={18} />
-                  <span>{selectedUser.email}</span>
-                </div>
-                <div className="contact-item">
-                  <Phone size={18} />
-                  <span>{selectedUser.telephone}</span>
-                </div>
-                <div className="contact-item">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  <span>Créé le ${selectedUser.email}</span>
-                </div>
+            <div className="stock-details">
+              <h3>Détails du stock</h3>
+              <div className="stock-tabs">
+                <button className="tab-button active">Consommables</button>
+                <button className="tab-button">Immobiliers</button>
               </div>
-
-              <div className="user-stats">
-                <div className="stat-box">
-                  <div className="stat-icon">
-                    <Package size={24} />
-                  </div>
-                  <div className="stat-info">
-                    <h4>Articles en stock</h4>
-                    <p>{selectedUser.stockItems.reduce((total, item) => total + item.quantite, 0)}</p>
-                  </div>
-                </div>
-
-                <div className="stat-box">
-                  <div className="stat-icon">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <div className="stat-info">
-                    <h4>Articles critiques</h4>
-                    <p>{selectedUser.stockItems.filter((item) => item.quantite < item.seuil).length}</p>
-                  </div>
-                </div>
-
-                <div className="stat-box">
-                  <div className="stat-icon">
-                    <BarChart size={24} />
-                  </div>
-                  <div className="stat-info">
-                    <h4>Valeur totale</h4>
-                    <p>
-                      {selectedUser.stockItems
-                        .reduce((total, item) => total + item.quantite * item.cmup, 0)
-                        .toLocaleString()}{" "}
-                      Ar
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="stock-details">
-                <h3>Détails du stock</h3>
-                <div className="stock-tabs">
-                  <button className="tab-button active">Consommables</button>
-                  <button className="tab-button">Immobiliers</button>
-                </div>
+              <div className="table-container">
                 <table className="stock-table">
                   <thead>
                     <tr>
                       <th>Désignation</th>
                       <th>Quantité</th>
-                      <th>Seuil critique</th>
                       <th>CMUP</th>
                       <th>Statut</th>
                     </tr>
@@ -1013,15 +1117,12 @@ const openUserDetails = async (user) => {
                   <tbody>
                     {selectedUser.stockItems.length > 0 ? (
                       selectedUser.stockItems.map((item) => (
-                        <tr key="item.id" className={item.quantite < item.seuil ? "critical-row" : ""}>
+                        <tr key={item.id} className={item.quantite < item.seuil ? "critical-row" : ""}>
                           <td>{item.designation}</td>
                           <td>{item.quantite}</td>
-                          <td>{item.seuil}</td>
                           <td>{item.cmup.toLocaleString()} Ar</td>
                           <td>
-                            <span
-                              className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}
-                            >
+                            <span className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}>
                               {item.quantite < item.seuil ? "Critique" : "Normal"}
                             </span>
                           </td>
@@ -1029,7 +1130,7 @@ const openUserDetails = async (user) => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" className="no-data">
+                        <td colSpan="4" className="no-data">
                           Aucun article en stock
                         </td>
                       </tr>
@@ -1037,30 +1138,44 @@ const openUserDetails = async (user) => {
                   </tbody>
                 </table>
               </div>
+            </div>
 
-                           <div className="user-actions-footer">
-                  <button className="action-btn" onClick={openDispatcheModal}>
-                    <Send size={16} /> Envoyer du stock
-                  </button>
-                  <button className="action-btn" onClick={openContactModal}>
-                    <MessageSquare size={16} /> Contacter l'utilisateur
-                  </button>
-                  <button className="action-btn" onClick={openEditModal}>
-                    <Edit size={16} /> Modifier l'utilisateur
-                  </button>
-                  <button
-                    className="action-btn delete-user"
-                    onClick={() => supprimerUtilisateur(selectedUser.id)}
-                  >
-                    <Trash2 size={16} /> Supprimer l'utilisateur
-                  </button>
-                </div>
-              </div>
+            <div className="user-actions-footer">
+              <button className="action-btn send-stock" onClick={openDispatcheModal}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
+                </svg>
+                Envoyer du stock
+              </button>
+              <button className="action-btn contact-user" onClick={openContactModal}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Contacter l'utilisateur
+              </button>
+              <button className="action-btn edit-user" onClick={openEditModal}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                Modifier l'utilisateur
+              </button>
+              <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(selectedUser.id)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                Supprimer l'utilisateur
+              </button>
             </div>
           </div>
+        </div>
       )}
     </div>
-  );
+  )
 }
 
-export default GestionUtilisateurs;
+export default GestionUtilisateurs

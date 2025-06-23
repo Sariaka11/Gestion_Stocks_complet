@@ -670,7 +670,7 @@
   height: 55px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: left;
   position: relative;
   cursor: pointer;
   transition: color 0.3s;
@@ -683,9 +683,9 @@
 .badge {
   position: absolute;
   top: 3px;
-  right:3px;
-  background-color: rgb(218, 145, 145);
-  color: rgb(160, 107, 107);
+  right:65px;
+  background-color: rgb(228, 193, 193);
+  color: rgb(216, 31, 31);
   font-size: 10px;
   font-weight: bold;
   border-radius: 50%;
