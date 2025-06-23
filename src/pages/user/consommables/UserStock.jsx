@@ -1,9 +1,11 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { getAgenceFournitures } from "../../../services/fournituresServices"; // Ajustez le chemin
-import { useAuth } from "../../../Context/AuthContext"; // Ajustez le chemin
+import { getAgenceFournitures } from "../../../services/fournituresServices";
+import { useAuth } from "../../../Context/AuthContext";
 import "./css/Stock.css";
 import jsPDF from "jspdf";
-import autoTable from"jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 function UserStock() {
   const [stockItems, setStockItems] = useState([]);
@@ -14,27 +16,19 @@ function UserStock() {
   const [detailedItems, setDetailedItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Tous");
 
-  const { userAgenceId } = useAuth();
-  console.log("userAgenceId dans UserStock :", userAgenceId);
+  const { userAgenceId, isAuthLoading } = useAuth();
 
   useEffect(() => {
     const fetchStock = async () => {
-      console.log("Début de fetchStock, userAgenceId :", userAgenceId);
       setLoading(true);
-      setError(null); // Réinitialiser l'erreur à chaque appel
+      setError(null);
+
       try {
-        if (!userAgenceId) {
-          console.log("Aucune agence connectée, arrêt du fetch");
-          setError("Aucune agence connectée. Veuillez vérifier les données dans localStorage.");
-          setLoading(false);
-          return;
-        }
-        const response = await getAgenceFournitures(userAgenceId); // Filtrer par agenceId
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.["$values"] || [];
+        const response = await getAgenceFournitures(userAgenceId);
+        const rawData = Array.isArray(response.data)
+          ? response.data
+          : response.data?.["$values"] || [];
 
-        console.log("Données brutes récupérées de l'API :", rawData);
-
-        // Regrouper par fournitureNom et sommer les quantités
         const groupedData = rawData.reduce((acc, item) => {
           const key = item.fournitureNom;
           if (!acc[key]) {
@@ -53,11 +47,7 @@ function UserStock() {
           return acc;
         }, {});
 
-        const mappedStock = Object.values(groupedData);
-
-        console.log("Données mappées pour le stock :", mappedStock);
-
-        setStockItems(mappedStock);
+        setStockItems(Object.values(groupedData));
       } catch (err) {
         console.error("Erreur lors de la récupération des données :", err);
         setError("Erreur lors du chargement du stock. Veuillez réessayer.");
@@ -66,8 +56,16 @@ function UserStock() {
       }
     };
 
-    fetchStock();
-  }, [userAgenceId]);
+    // Vérifier si l'authentification est terminée et si userAgenceId est défini
+    if (!isAuthLoading && userAgenceId) {
+      fetchStock();
+    } else if (!isAuthLoading && userAgenceId === null) {
+      // Si userAgenceId est explicitement null, afficher une erreur
+      setError("Aucune agence associée à votre compte. Veuillez contacter l'administrateur.");
+      setLoading(false);
+    }
+    // Si isAuthLoading est true, attendre sans rien faire
+  }, [isAuthLoading, userAgenceId]);
 
   const handleDetailsClick = (item) => {
     setSelectedItem(item);
@@ -75,15 +73,14 @@ function UserStock() {
     setDetailsVisible(true);
   };
 
-  // Filtrer par catégorie
-  const filteredStockItems = selectedCategory === "Tous"
-    ? stockItems
-    : stockItems.filter((item) => item.categorie === selectedCategory);
+  const filteredStockItems =
+    selectedCategory === "Tous"
+      ? stockItems
+      : stockItems.filter((item) => item.categorie === selectedCategory);
 
-  // Exporter en PDF
   const exportToPDF = () => {
     const doc = new jsPDF();
-    autoTable(doc,{
+    autoTable(doc, {
       head: [["ID", "Nom", "Quantité", "Catégorie", "Disponibilité"]],
       body: filteredStockItems.map((item) => [
         item.id,
@@ -98,11 +95,21 @@ function UserStock() {
     doc.save("stock_report.pdf");
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="user-stock-container">
+        <div className="loading-overlay">
+          <p>Chargement de l'authentification...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="user-stock-container">
         <div className="loading-overlay">
-          <p>Chargement en cours...</p>
+          <p>Chargement du stock...</p>
         </div>
       </div>
     );
@@ -116,14 +123,12 @@ function UserStock() {
     );
   }
 
-  // Extraire les catégories uniques
   const categories = ["Tous", ...new Set(stockItems.map((item) => item.categorie))];
 
   return (
     <div className="user-stock-container">
       <div className="user-stock-header">
         <h2>Stock des consommables disponibles</h2>
-       
         <div className="user-stock-actions">
           <div className="category-filter">
             <select
@@ -138,11 +143,12 @@ function UserStock() {
               ))}
             </select>
           </div>
-            <button className="btn-export" onClick={exportToPDF}>
-              Exporter en PDF
-            </button>
+          <button className="btn-export" onClick={exportToPDF}>
+            Exporter en PDF
+          </button>
         </div>
       </div>
+
       <div className="user-stock-table-container">
         <table className="user-stock-table">
           <thead>
@@ -161,12 +167,19 @@ function UserStock() {
                 <td>{item.quantite}</td>
                 <td>{item.categorie}</td>
                 <td>
-                  <span className={`status-badge ${item.disponible ? "disponible" : "indisponible"}`}>
+                  <span
+                    className={`status-badge ${
+                      item.disponible ? "disponible" : "indisponible"
+                    }`}
+                  >
                     {item.disponible ? "Disponible" : "Indisponible"}
                   </span>
                 </td>
                 <td className="actions-cell">
-                  <button className="btn-details" onClick={() => handleDetailsClick(item)}>
+                  <button
+                    className="btn-details"
+                    onClick={() => handleDetailsClick(item)}
+                  >
                     Détails
                   </button>
                 </td>
@@ -177,38 +190,31 @@ function UserStock() {
       </div>
 
       {detailsVisible && selectedItem && (
-  <div
-    className="modal"
-    onClick={() => setDetailsVisible(false)} // Ferme quand on clique sur le fond
-  >
-    <div
-      className="modal-content"
-      onClick={(e) => e.stopPropagation()} // Empêche la fermeture quand on clique sur le contenu
-    >
-      <h3>Détails de {selectedItem.nom}</h3>
-      <table className="details-table">
-        <thead>
-          <tr>
-            <th>Quantité</th>
-            <th>Date d'association</th>
-          </tr>
-        </thead>
-        <tbody>
-          {detailedItems.map((detail, index) => (
-            <tr key={index}>
-              <td>{detail.quantite}</td>
-              <td>{new Date(detail.date).toLocaleDateString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <button className="btn-close" onClick={() => setDetailsVisible(false)}>
-        Fermer
-      </button>
-    </div>
-  </div>
-)}
-
+        <div className="modal" onClick={() => setDetailsVisible(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Détails de {selectedItem.nom}</h3>
+            <table className="details-table">
+              <thead>
+                <tr>
+                  <th>Quantité</th>
+                  <th>Date d'association</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailedItems.map((detail, index) => (
+                  <tr key={index}>
+                    <td>{detail.quantite}</td>
+                    <td>{new Date(detail.date).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button className="btn-close" onClick={() => setDetailsVisible(false)}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

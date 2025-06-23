@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { getUserById, getUserAgence, getUserFournitures } from "../../../services/userServices"
 import "./css/Profile.css"
+import { FaUser, FaEnvelope, FaBriefcase, FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
+
 
 function Profile() {
   const [activeTab, setActiveTab] = useState("info")
@@ -76,17 +78,7 @@ function Profile() {
     fetchUserData()
   }, [])
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
+  
   if (loading) {
     return <div className="profile-page">Chargement...</div>
   }
@@ -120,7 +112,7 @@ function Profile() {
         <button className={`tab-button ${activeTab === "info" ? "active" : ""}`} onClick={() => setActiveTab("info")}>
           Informations
         </button>
-        <button
+        {/* <button
           className={`tab-button ${activeTab === "activity" ? "active" : ""}`}
           onClick={() => setActiveTab("activity")}
         >
@@ -131,87 +123,56 @@ function Profile() {
           onClick={() => setActiveTab("preferences")}
         >
           Préférences
-        </button>
+        </button> */}
       </div>
 
       <div className="profile-content">
         {activeTab === "info" && (
-          <div className="profile-info">
-            <div className="info-card">
-              <div className="info-item">
-                <div className="info-icon">👤</div>
-                <div className="info-content">
-                  <h4>Nom complet</h4>
-                  <p>{user.nom}</p>
-                </div>
-              </div>
+  <div className="profile-info">
+    <div className="info-card">
+      <div className="info-item">
+        <div className="info-icon"><FaUser /></div>
+        <div className="info-content">
+          <h4>Nom complet</h4>
+          <p>{user.nom}</p>
+        </div>
+      </div>
 
-              <div className="info-item">
-                <div className="info-icon">✉️</div>
-                <div className="info-content">
-                  <h4>Email</h4>
-                  <p>{user.email}</p>
-                </div>
-              </div>
+      <div className="info-item">
+        <div className="info-icon"><FaEnvelope /></div>
+        <div className="info-content">
+          <h4>Email</h4>
+          <p>{user.email}</p>
+        </div>
+      </div>
 
-              <div className="info-item">
-                <div className="info-icon">💼</div>
-                <div className="info-content">
-                  <h4>Fonction</h4>
-                  <p>{user.fonction}</p>
-                </div>
-              </div>
+      <div className="info-item">
+        <div className="info-icon"><FaBriefcase /></div>
+        <div className="info-content">
+          <h4>Fonction</h4>
+          <p>{user.fonction}</p>
+        </div>
+      </div>
 
-              {/* <div className="info-item">
-                <div className="info-icon">🏢</div>
-                <div className="info-content">
-                  <h4>Département</h4>
-                  <p>{user.departement}</p>
-                </div>
-              </div> */}
+      <div className="info-item">
+        <div className="info-icon"><FaMapMarkerAlt /></div>
+        <div className="info-content">
+          <h4>Agence</h4>
+          <p>{user.agence}</p>
+        </div>
+      </div>
 
-              <div className="info-item">
-                <div className="info-icon">📍</div>
-                <div className="info-content">
-                  <h4>Agence</h4>
-                  <p>{user.agence}</p>
-                </div>
-              </div>
-
-              <div className="info-item">
-                <div className="info-icon">📅</div>
-                <div className="info-content">
-                  <h4>Date d'inscription</h4>
-                  <p>{user.dateInscription}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "activity" && (
-          <div className="activity-history">
-            <h3>Historique des activités</h3>
-            <div className="activity-timeline">
-              {activities.length === 0 ? (
-                <p>Aucune activité enregistrée</p>
-              ) : (
-                activities.map((activity) => (
-                  <div key={activity.id} className="activity-item">
-                    <div className="activity-date">{formatDate(activity.date)}</div>
-                    <div className="activity-content">
-                      <h4>{activity.action}</h4>
-                      <p>
-                        <strong>Article:</strong> {activity.item}
-                      </p>
-                      <p>{activity.details}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+      <div className="info-item">
+        <div className="info-icon"><FaCalendarAlt /></div>
+        <div className="info-content">
+          <h4>Date d'inscription</h4>
+          <p>{user.dateInscription}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+       
 
         {activeTab === "preferences" && (
           <div className="user-preferences">

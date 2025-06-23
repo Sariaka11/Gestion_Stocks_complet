@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Bell, User, Menu, LogOut, UserPlus } from "lucide-react"
+import { Bell, User, Menu, LogOut } from "lucide-react" // Retiré UserPlus car plus nécessaire
 import { useAuth } from "../Context/AuthContext"
 import { getNotifications } from "../services/notificationServices"
 import "./DashboardHeader.css"
 
-function DashboardHeader({ onToggleSidebar, title = "Tableau de bord"}) {
+function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType = "admin" }) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [notifications, setNotifications] = useState([])
@@ -75,6 +75,7 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord"}) {
     if (diffHours < 1) return "Il y a moins d'une heure"
     return `Il y a ${diffHours} heure${diffHours > 1 ? "s" : ""}`
   }
+  console.log("userType:", userType);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
 
@@ -96,47 +97,49 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord"}) {
 
       {/* Section droite */}
       <div className="header-right">
-        {/* Notifications */}
-        <div className="header-action" ref={notificationRef}>
-          <button className="action-button notification-btn" onClick={toggleNotifications}>
-            <Bell size={20} />
-            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
-          </button>
+        {/* Notifications - Affichées uniquement pour admin, comme dans le sidebar */}
+        {userType === "admin" && (
+          <div className="header-action" ref={notificationRef}>
+            <button className="action-button notification-btn" onClick={toggleNotifications}>
+              <Bell size={20} />
+              {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+            </button>
 
-          {showNotifications && (
-            <div className="dropdown notifications-dropdown">
-              <div className="dropdown-header">
-                <h4>Notifications</h4>
-                {unreadCount > 0 && <span className="unread-count">{unreadCount} nouvelles</span>}
-              </div>
-              <div className="dropdown-body">
-                {loading ? (
-                  <div className="loading-state">Chargement...</div>
-                ) : notifications.length === 0 ? (
-                  <div className="empty-state">Aucune notification</div>
-                ) : (
-                  notifications.slice(0, 5).map((notif) => (
-                    <div key={notif.id} className={`notification-item ${!notif.isRead ? "unread" : ""}`}>
-                      <div className="notification-indicator"></div>
-                      <div className="notification-content">
-                        <h5 className="notification-title">{notif.titre}</h5>
-                        <p className="notification-message">{notif.corps}</p>
-                        <small className="notification-time">{getTimeAgo(notif.dateDemande)}</small>
+            {showNotifications && (
+              <div className="dropdown notifications-dropdown">
+                <div className="dropdown-header">
+                  <h4>Notifications</h4>
+                  {unreadCount > 0 && <span className="unread-count">{unreadCount} nouvelles</span>}
+                </div>
+                <div className="dropdown-body">
+                  {loading ? (
+                    <div className="loading-state">Chargement...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="empty-state">Aucune notification</div>
+                  ) : (
+                    notifications.slice(0, 5).map((notif) => (
+                      <div key={notif.id} className={`notification-item ${!notif.isRead ? "unread" : ""}`}>
+                        <div className="notification-indicator"></div>
+                        <div className="notification-content">
+                          <h5 className="notification-title">{notif.titre}</h5>
+                          <p className="notification-message">{notif.corps}</p>
+                          <small className="notification-time">{getTimeAgo(notif.dateDemande)}</small>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))
+                  )}
+                </div>
+                {notifications.length > 5 && (
+                  <div className="dropdown-footer">
+                    <button className="view-all-btn">Voir toutes les notifications</button>
+                  </div>
                 )}
               </div>
-              {notifications.length > 5 && (
-                <div className="dropdown-footer">
-                  <button className="view-all-btn">Voir toutes les notifications</button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Profil */}
+        {/* Profil - Sans lien Inscription */}
         <div className="header-action" ref={profileRef}>
           <button className="action-button profile-btn" onClick={toggleProfile}>
             <User size={20} />
@@ -145,10 +148,7 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord"}) {
           {showProfile && (
             <div className="dropdown profile-dropdown">
               <div className="dropdown-body">
-                <button className="dropdown-link">
-                  <UserPlus size={16} />
-                  <span>Inscription</span>
-                </button>
+                {/* Uniquement le bouton de déconnexion */}
                 <button className="dropdown-link logout-link" onClick={handleLogout}>
                   <LogOut size={16} />
                   <span>Déconnexion</span>

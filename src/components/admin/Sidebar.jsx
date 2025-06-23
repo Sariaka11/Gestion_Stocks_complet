@@ -85,7 +85,7 @@ function ModernSidebar({ isOpen, onToggle, userType = "admin" }) {
       return {
         userInfo: {
           name: "Utilisateur",
-          role: "Utilisateur",
+          role: "utilisateur",
           avatar: "U",
         },
         menuItems: [

@@ -107,7 +107,7 @@ function App() {
         {/* Contenu principal */}
         <div className="modern-main-content">
           {/* Header moderne */}
-          <DashboardHeader onToggleSidebar={toggleSidebar} title={title} sidebarOpen={sidebarOpen} />
+          <DashboardHeader onToggleSidebar={toggleSidebar} title={title} sidebarOpen={sidebarOpen} userType="user" />
 
           {/* Contenu de la page */}
           <div className="modern-page-content">{children}</div>

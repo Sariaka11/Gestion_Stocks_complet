@@ -4,7 +4,7 @@
   left: 0;
   top: 0;
   height: 100vh;
-  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(180deg, #1c1c36 0%, #16213e 50%, #0f3460 100%);
   color: white;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
@@ -331,20 +331,32 @@
   animation: slideIn 0.3s ease;
 }
 
-/* Scrollbar personnalisée */
+/* Scrollbar personnalisée - Ajustement pour un style moderne et fin */
 .sidebar-navigation::-webkit-scrollbar {
-  width: 4px;
+  width: 6px; /* Réduit la largeur pour un effet fin */
+  height: 6px; /* Pour le défilement horizontal si nécessaire */
 }
 
 .sidebar-navigation::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05); /* Fond très discret */
+  border-radius: 3px; /* Coins arrondis */
 }
 
 .sidebar-navigation::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3); /* Couleur légère pour le pouce */
+  border-radius: 3px; /* Coins arrondis */
+  transition: background 0.2s ease; /* Animation douce */
 }
 
 .sidebar-navigation::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5); /* Légère accentuation au survol */
+}
+
+.sidebar-navigation::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.7); /* Accentuation en cliquant */
+}
+/* Pour Firefox */
+.sidebar-navigation {
+  scrollbar-width: thin; /* Largeur fine */
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.05); /* Couleur pouce / track */
 }
