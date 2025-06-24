@@ -26,7 +26,7 @@
 
 .auth-left {
   flex: 1;
-  background: linear-gradient(135deg, #cc0000 0%, #ff3333 100%);
+  background: linear-gradient(135deg,  #1c1c36 0%, #16213e 50%, #0f3460 100%);
   color: white;
   padding: 3rem 2rem;
   display: flex;
@@ -128,7 +128,7 @@
 }
 
 .label-icon {
-  color: #cc0000;
+  color: #16213e;
 }
 
 .form-group label {
@@ -212,7 +212,7 @@
 .btn-connect {
   margin-top: 1rem;
   padding: 0.75rem;
-  background-color: #cc0000;
+  background-color: #16213e;
   color: white;
   border: none;
   border-radius: 8px;
@@ -223,7 +223,7 @@
 }
 
 .btn-connect:hover {
-  background-color: #a00000;
+  background-color: #273969;
 }
 
 .auth-switch {
