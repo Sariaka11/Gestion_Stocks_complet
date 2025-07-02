@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect,useMemo } from "react"
 import { Search, FileDown, RefreshCw, AlertCircle, X, CheckCircle } from 'lucide-react'
 import "./css/ImInventaire.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
@@ -21,11 +21,8 @@ function ImInventaire() {
   const [inventaireData, setInventaireData] = useState([])
   const [agences, setAgences] = useState([])
   const [affectations, setAffectations] = useState([])
-
-  // État pour gérer les toasts
   const [toasts, setToasts] = useState([])
 
-  // Générer les options pour les années
   const genererOptionsAnnees = () => {
     const anneeActuelle = new Date().getFullYear()
     const annees = []
@@ -35,18 +32,15 @@ function ImInventaire() {
     return annees.reverse()
   }
 
-  // Charger les données au démarrage
   useEffect(() => {
     chargerDonnees()
   }, [])
 
-  // Fonction pour charger toutes les données
   const chargerDonnees = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      // Charger les agences
       const agencesRes = await getAgences()
       let agencesData = agencesRes.data
       if (agencesData && typeof agencesData === "object" && "$values" in agencesData) {
@@ -58,7 +52,6 @@ function ImInventaire() {
       }
       setAgences(agencesData)
 
-      // Charger les immobiliers
       const immobiliersRes = await getImmobiliers()
       let immobiliersData = immobiliersRes.data
       if (immobiliersRes.data && typeof immobiliersRes.data === "object" && "$values" in immobiliersRes.data) {
@@ -69,7 +62,6 @@ function ImInventaire() {
         immobiliersData = []
       }
 
-      // Charger les amortissements
       const amortissementsRes = await getAmortissements()
       let amortissementsData = amortissementsRes.data
       if (amortissementsRes.data && typeof amortissementsRes.data === "object" && "$values" in amortissementsRes.data) {
@@ -80,8 +72,8 @@ function ImInventaire() {
         amortissementsData = []
       }
 
-      // Charger les affectations
       const affectationsRes = await getBienAgences()
+      console.log("RAW AFFECTATIONS ===>", affectationsRes.data)
       let affectationsData = affectationsRes.data
       if (affectationsRes.data && typeof affectationsRes.data === "object" && "$values" in affectationsRes.data) {
         affectationsData = affectationsRes.data.$values
@@ -92,11 +84,9 @@ function ImInventaire() {
       }
       setAffectations(affectationsData)
 
-      // Transformer les données pour l'inventaire
       const inventaireItems = immobiliersData.map((item) => {
         const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.idBien)
         const affectationsBien = affectationsData.filter((a) => a.idBien === item.idBien)
-     //   const estAmorti = amortissementsBien.some((a) => a.valeurResiduelle === 0)
 
         return {
           id: item.idBien,
@@ -107,7 +97,7 @@ function ImInventaire() {
           typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
           dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
           quantite: item.quantite || 1,
-          statut: item.statut ,
+          statut: item.statut,
           affectations: affectationsBien,
         }
       })
@@ -121,12 +111,102 @@ function ImInventaire() {
     }
   }
 
-  // Fonction pour exporter l'inventaire en PDF
+  const getNomBien = (idBien) => {
+    const bien = inventaireData.find((item) => item.id === idBien)
+    return bien ? bien.designation : "Inconnu"
+  }
+
+  const getNomAgence = (idAgence) => {
+    const agence = agences.find((item) => item.id === idAgence)
+    return agence ? agence.nom : "Inconnue"
+  }
+
+const combinaisonsAgenceFonction = useMemo(() => {
+  const combinaisons = []
+  const seen = new Set()
+
+  affectations.forEach((aff) => {
+    if (aff.fonction && aff.fonction.trim() !== "") {
+      const fonction = aff.fonction.trim()
+      const key = `${aff.idAgence}-${fonction}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        combinaisons.push({
+          idAgence: aff.idAgence,
+          nomAgence: getNomAgence(aff.idAgence),
+          fonction
+        })
+      }
+    }
+  })
+
+  return combinaisons.sort((a, b) => {
+    if (a.nomAgence === b.nomAgence) {
+      return a.fonction.localeCompare(b.fonction)
+    }
+    return a.nomAgence.localeCompare(b.nomAgence)
+  })
+}, [affectations])
+
+
+console.log("COMBINAISONS AGENCE + FONCTION", combinaisonsAgenceFonction)
+
+
+  const filteredInventaire = inventaireData.filter((item) => {
+    const matchDesignation = (item.designation || "").toLowerCase().includes(filtreDesignation.toLowerCase())
+    const matchStatut = filtreStatut === "" || item.statut === filtreStatut
+
+    let matchMois = true
+    if (filtreMois !== "") {
+      const moisAcquisition = new Date(item.dateAcquisition).getMonth() + 1
+      matchMois = moisAcquisition.toString() === filtreMois
+    }
+
+    let matchAnnee = true
+    if (filtreAnnee !== "") {
+      const anneeAcquisition = new Date(item.dateAcquisition).getFullYear().toString()
+      matchAnnee = anneeAcquisition === filtreAnnee
+    }
+
+    let matchAgence = true
+    if (filtreAgence !== "") {
+      const affectationsBien = item.affectations || []
+      matchAgence = affectationsBien.some((aff) => aff.idAgence.toString() === filtreAgence)
+    }
+
+    return matchDesignation && matchStatut && matchMois && matchAnnee && matchAgence
+  })
+
+const donneesAffectations = useMemo(() => {
+  return filteredInventaire.map((item) => {
+    const quantitesParCombinaison = combinaisonsAgenceFonction.map((comb) => {
+      const totalQuantite = affectations
+        .filter(
+          (aff) =>
+            aff.idBien === item.id &&
+            aff.idAgence === comb.idAgence &&
+            aff.fonction &&
+            aff.fonction.trim() === comb.fonction
+        )
+        .reduce((sum, aff) => sum + (aff.quantite || 0), 0)
+
+      return totalQuantite
+    })
+
+    return {
+      idBien: item.id,
+      designation: item.designation,
+      affectations: quantitesParCombinaison
+    }
+  })
+}, [filteredInventaire, affectations, combinaisonsAgenceFonction])
+
+
+
   const exporterEnPDF = () => {
     try {
       const doc = new jsPDF()
       
-      // Ajouter le tableau principal
       doc.setFontSize(16)
       doc.text("Inventaire des Immobiliers", 14, 20)
       autoTable(doc, {
@@ -158,7 +238,6 @@ function ImInventaire() {
         styles: { fontSize: 8, cellPadding: 2 },
       })
 
-      // Enregistrer le PDF
       doc.save("inventaire-immobiliers.pdf")
       afficherToast("Exportation de l'inventaire en PDF réussie !", "succes")
     } catch (err) {
@@ -167,144 +246,49 @@ function ImInventaire() {
     }
   }
 
-  // Fonction pour exporter le résumé des affectations en PDF
-  const exporterAffectationsPDF = () => {
-    try {
-      const doc = new jsPDF()
-      
-      // Ajouter le tableau de résumé
-      doc.setFontSize(16)
-      doc.text("Résumé des Affectations", 14, 20)
-      autoTable(doc, {
-        head: [
-          [
-            "Nom de l'Agence",
-            "Bien affecté",
-            "Quantité",
-            "Date d'Affectation",
-          ],
-        ],
-        body: filteredAffectations.map((aff) => [
-          getNomAgence(aff.idAgence),
-          getNomBien(aff.idBien),
-          aff.quantite || 1, // Utiliser 1 comme valeur par défaut si quantite n'existe pas encore
-          new Date(aff.dateAffectation).toLocaleDateString(),
-        ]),
-        startY: 30,
-        theme: "grid",
-        headStyles: { fillColor: [22, 160, 133] },
-        styles: { fontSize: 8, cellPadding: 2 },
+const exporterAffectationsPDF = (agences, combinaisonsAgenceFonction, donneesAffectations) => {
+  const doc = new jsPDF("landscape")
+
+  // Construire les en-têtes
+  const headRow1 = [{ content: "Désignation", rowSpan: 2 }]
+  const headRow2 = []
+
+  agences.forEach((agence) => {
+    const fonctions = combinaisonsAgenceFonction.filter(c => c.idAgence === agence.id)
+    if (fonctions.length > 0) {
+      headRow1.push({ content: agence.nom, colSpan: fonctions.length })
+      fonctions.forEach(f => {
+        headRow2.push({ content: f.fonction })
       })
-
-      // Enregistrer le PDF
-      doc.save("resume-affectations.pdf")
-      afficherToast("Exportation du résumé des affectations en PDF réussie !", "succes")
-    } catch (err) {
-      console.error("Erreur lors de l'exportation du résumé en PDF:", err)
-      afficherToast("Erreur lors de l'exportation du résumé en PDF.", "error")
     }
-  }
+  })
 
-  // Fonction pour afficher un toast
+  // Générer les lignes de données
+  const body = donneesAffectations.map((item) => [
+    item.designation,
+    ...item.affectations
+  ])
+
+  // Appel jsPDF AutoTable
+  autoTable(doc, {
+    head: [headRow1, headRow2],
+    body: body,
+    startY: 20,
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [41, 128, 185], halign: "center" }
+  })
+
+  doc.save("Affectations.pdf")
+}
   const afficherToast = (message, type) => {
     const id = Date.now()
     const nouveauToast = { id, message, type }
     setToasts((prev) => [...prev, nouveauToast])
 
-    // Supprimer le toast après 3 secondes
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 3000)
   }
-
-  // Fonctions pour obtenir les noms des agences et des biens
-  const getNomBien = (idBien) => {
-    const bien = inventaireData.find((item) => item.id === idBien)
-    return bien ? bien.designation : "Inconnu"
-  }
-
-  const getNomAgence = (idAgence) => {
-    const agence = agences.find((item) => item.id === idAgence)
-    return agence ? agence.nom : "Inconnue"
-  }
-
-  // Filtrer les données de l'inventaire
-  const filteredInventaire = inventaireData.filter((item) => {
-    const matchDesignation = (item.designation || "").toLowerCase().includes(filtreDesignation.toLowerCase())
-    const matchStatut = filtreStatut === "" || item.statut === filtreStatut
-
-    // Filtre par mois
-    let matchMois = true
-    if (filtreMois !== "") {
-      const moisAcquisition = new Date(item.dateAcquisition).getMonth() + 1
-      matchMois = moisAcquisition.toString() === filtreMois
-    }
-
-    // Filtre par année
-    let matchAnnee = true
-    if (filtreAnnee !== "") {
-      const anneeAcquisition = new Date(item.dateAcquisition).getFullYear().toString()
-      matchAnnee = anneeAcquisition === filtreAnnee
-    }
-
-    // Filtre par agence
-    let matchAgence = true
-    if (filtreAgence !== "") {
-      const affectationsBien = item.affectations || []
-      matchAgence = affectationsBien.some((aff) => aff.idAgence.toString() === filtreAgence)
-    }
-
-    return matchDesignation && matchStatut && matchMois && matchAnnee && matchAgence
-  })
-
-  // Filtrer et regrouper les affectations pour le tableau de résumé
-const filteredAffectations = (() => {
-  // D'abord filtrer les affectations
-  const affectationsFiltrees = affectations.filter((aff) => {
-    const matchAgence = filtreAgence === "" || aff.idAgence.toString() === filtreAgence
-    const matchDesignation = filtreDesignation === "" || 
-      getNomBien(aff.idBien).toLowerCase().includes(filtreDesignation.toLowerCase())
-    return matchAgence && matchDesignation
-  })
-
-  // Ensuite regrouper par agence et bien
-  const groupes = {}
-  
-  affectationsFiltrees.forEach((aff) => {
-    const cle = `${aff.idAgence}-${aff.idBien}` // Clé unique pour chaque combinaison agence-bien
-    
-    if (!groupes[cle]) {
-      groupes[cle] = {
-        idAgence: aff.idAgence,
-        idBien: aff.idBien,
-        quantite: 0,
-        dateAffectation: aff.dateAffectation
-      }
-    }
-    
-    // Additionner les quantités
-    groupes[cle].quantite += (aff.quantite || 1)
-    
-    // Garder la date la plus récente
-    if (new Date(aff.dateAffectation) > new Date(groupes[cle].dateAffectation)) {
-      groupes[cle].dateAffectation = aff.dateAffectation
-    }
-  })
-  
-  // Convertir l'objet en tableau
-  return Object.values(groupes)
-})()
-
-//       const supprimerAffectation = async (idBien, idAgence, dateAffectation) => {
-//   try {
-//     await deleteBienAgence(idBien, idAgence, dateAffectation);
-//     afficherToast("Affectation supprimée avec succès", "succes");
-//     chargerDonnees(); // Recharger les données
-//   } catch (error) {
-//     console.error("Erreur lors de la suppression:", error);
-//     afficherToast("Erreur lors de la suppression de l'affectation", "error");
-//   }
-// };
 
   return (
     <div className="inventaire-container">
@@ -323,8 +307,8 @@ const filteredAffectations = (() => {
         <button className="btn-exp" onClick={exporterEnPDF}>
           <FileDown size={16} /> Exporter l'inventaire en PDF
         </button>
-        <button className="btn-exp" onClick={exporterAffectationsPDF}>
-          <FileDown size={16} /> Exporter le résumé des affectations
+        <button className="btn-exp" onClick={() =>exporterAffectationsPDF(agences, combinaisonsAgenceFonction, donneesAffectations)}>
+          <FileDown size={16} /> Exporter le tableau des affectations
         </button>
       </div>
 
@@ -434,7 +418,7 @@ const filteredAffectations = (() => {
       </div>
 
       <div className="tableau-container">
-         <h3>Inventaire des biens</h3>
+        <h3>Inventaire des biens</h3>
         <table className="tableau-inventaire">
           <thead>
             <tr>
@@ -479,41 +463,65 @@ const filteredAffectations = (() => {
         </table>
       </div>
 
-      {/* Tableau de résumé des affectations */}
       <div className="tableau-container">
         <h3>Inventaire des Affectations</h3>
-       <table className="tableau-inventaire">
+      <table className="tableau-inventaire">
   <thead>
-    <tr>
-      <th>Nom de l'Agence</th>
-      <th>Bien affecté</th>
-      <th>Quantité</th>
-      <th>Date d'Affectation</th>
-      {/* <th>Actions</th> Nouvelle colonne */}
-    </tr>
-  </thead>
-  <tbody>
-    {filteredAffectations.length > 0 ? (
-      filteredAffectations.map((aff, index) => (
-        <tr key={index}>
-          <td>{getNomAgence(aff.idAgence)}</td>
-          <td>{getNomBien(aff.idBien)}</td>
-          <td>{aff.quantite || 0}</td>
-          <td>{new Date(aff.dateAffectation).toLocaleDateString()}</td>
+  <tr>
+    <th rowSpan="2">Désignation</th>
+    {agences.map((agence) => {
+      const fonctionsAgence = combinaisonsAgenceFonction.filter(
+        (c) => c.idAgence === agence.id
+      )
+      return fonctionsAgence.length > 0 ? (
+        <th key={agence.id} colSpan={fonctionsAgence.length}>
+          {agence.nom}
+        </th>
+      ) : null
+    })}
+  </tr>
+  <tr>
+    {agences.map((agence) => {
+      const fonctionsAgence = combinaisonsAgenceFonction.filter(
+        (c) => c.idAgence === agence.id
+      )
+      return fonctionsAgence.map((comb) => (
+        <th key={`${comb.idAgence}-${comb.fonction}`}>
+          {comb.fonction}
+        </th>
+      ))
+    })}
+  </tr>
+</thead>
+<tbody>
+    {donneesAffectations.length > 0 ? (
+      donneesAffectations.map((item) => (
+        <tr key={item.idBien}>
+          <td>{item.designation}</td>
+          {item.affectations.map((quantite, index) => (
+            <td
+              key={`${item.idBien}-${combinaisonsAgenceFonction[index].idAgence}-${combinaisonsAgenceFonction[index].fonction}`}
+            >
+              {quantite}
+            </td>
+          ))}
         </tr>
       ))
     ) : (
       <tr>
-        <td colSpan="5" className="no-data">
+        <td
+          colSpan={combinaisonsAgenceFonction.length + 1}
+          className="no-data"
+        >
           Aucune affectation trouvée.
         </td>
       </tr>
     )}
   </tbody>
 </table>
+
       </div>
 
-      {/* Système de toast notifications */}
       <div className="toast-container">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast toast-${toast.type}`}>

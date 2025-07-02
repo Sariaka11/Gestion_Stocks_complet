@@ -30,7 +30,7 @@ function App() {
     return localStorage.getItem("user") !== null
   }
 
-  // Composant de protection des routes (inchangé)
+  // Composant de protection des routes 
   const ProtectedRoute = ({ children }) => {
     if (!isAuthenticated()) {
       return <Navigate to="/auth/login" replace />

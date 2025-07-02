@@ -1,3 +1,4 @@
+
 import axios from "axios";
 
 const API_URL = "http://localhost:5000/api";
@@ -40,12 +41,14 @@ export const getBienAgenceById = (idBien, idAgence) => {
 };
 
 export const createBienAgence = (bienAgenceData) => {
-  console.log("Données envoyées dans createBienAgence:", bienAgenceData);
+  console.log("Appel de createBienAgence avec données :", bienAgenceData);
+  
   return axios.post(`${API_URL}/BienAgences`, {
     idBien: bienAgenceData.idBien,
     idAgence: bienAgenceData.idAgence,
     quantite: bienAgenceData.quantite,
     dateAffectation: bienAgenceData.dateAffectation,
+    fonction: bienAgenceData.fonction
   });
 };
 
