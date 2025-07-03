@@ -54,19 +54,25 @@ function ImDispatche() {
   
 const triggerRefresh = () => {
   getBienAgences().then((res) => {
-    if (Array.isArray(res.data)) {
-      const dataValide = res.data.filter((a) => a && a.designation) // Protection
-      setAffectations(dataValide)
-      console.log("Affectations mises à jour :", dataValide)
+    console.log("Réponse brute de getBienAgences :", res.data);
+    let data = res.data;
+    if (res.data && res.data.values && Array.isArray(res.data.values)) {
+      data = res.data.values;
+    }
+    if (Array.isArray(data)) {
+      console.log("Données après extraction :", data);
+      const dataValide = data.filter((a) => a && a.nomBien);
+      console.log("Données valides après filtrage :", dataValide);
+      setAffectations(dataValide);
     } else {
-      console.warn("Réponse inattendue :", res.data)
-      setAffectations([])
+      console.warn("Réponse inattendue :", res.data);
+      setAffectations([]);
     }
   }).catch((err) => {
-    console.error("Erreur lors du refresh :", err)
-    setAffectations([])
-  })
-}
+    console.error("Erreur lors du refresh :", err);
+    setAffectations([]);
+  });
+};
 
   useEffect(() => {
     setLoading(true)

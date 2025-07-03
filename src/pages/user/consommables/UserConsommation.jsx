@@ -11,6 +11,8 @@ import "./css/Consommation.css"
 function UserConsommation() {
   const { user, userAgenceId } = useAuth()
   const [consommations, setConsommations] = useState([])
+  const [filteredConsommations, setFilteredConsommations] = useState([])
+  const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [detailsVisible, setDetailsVisible] = useState(false)
@@ -58,7 +60,9 @@ function UserConsommation() {
           return acc
         }, {})
 
-        setConsommations(Object.values(groupedData))
+        const data = Object.values(groupedData)
+        setConsommations(data)
+        setFilteredConsommations(data)
       } catch (error) {
         setError("Erreur lors du chargement des données.")
         console.error("Erreur:", error.message)
@@ -68,6 +72,14 @@ function UserConsommation() {
     }
     fetchData()
   }, [userAgenceId])
+
+  useEffect(() => {
+    const filtered = consommations.filter(item =>
+      item.fournitureNom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.categorie.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    setFilteredConsommations(filtered)
+  }, [searchQuery, consommations])
 
   const handleAddConsommation = (fournitureId, fournitureNom) => {
     setAddFormData({ fournitureId, fournitureNom, consoMm: "" })
@@ -93,7 +105,6 @@ function UserConsommation() {
         const existing = prev.find((c) => c.fournitureNom === response.data.fournitureNom)
         if (existing) {
           existing.quantite = response.data.quantite
-          // Ajouter la nouvelle consommation aux détails
           existing.details.push({
             consoMm: parsedConsoMm,
             date: new Date().toISOString(),
@@ -139,7 +150,6 @@ function UserConsommation() {
       })
       console.log("Notification envoyée avec succès:", response.data)
 
-      // Remplacer l'alert par un toast success moderne
       toast.success(`Demande envoyée pour ${fournitureNom} !`, {
         duration: 4000,
         position: "top-right",
@@ -159,7 +169,6 @@ function UserConsommation() {
       console.error("Erreur lors de l'envoi de la demande:", error)
       setError("Erreur lors de l'envoi de la demande.")
 
-      // Optionnel: Ajouter un toast d'erreur
       toast.error("Erreur lors de l'envoi de la demande", {
         duration: 4000,
         position: "top-right",
@@ -185,6 +194,10 @@ function UserConsommation() {
     return details.reduce((total, detail) => total + (detail.consoMm || 0), 0)
   }
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value)
+  }
+
   if (loading) {
     return (
       <div className="consommation-container">
@@ -203,11 +216,19 @@ function UserConsommation() {
 
   return (
     <div className="consommation-container">
-      {/* Ajouter le Toaster component */}
       <Toaster />
 
       <div className="consommation-header">
         <h2>Mes consommations</h2>
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Rechercher par désignation ou catégorie..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="search-input"
+          />
+        </div>
       </div>
 
       <div className="consommation-table-container">
@@ -222,7 +243,7 @@ function UserConsommation() {
             </tr>
           </thead>
           <tbody>
-            {consommations.map((item) => (
+            {filteredConsommations.map((item) => (
               <tr key={item.id}>
                 <td>{item.fournitureNom}</td>
                 <td>{item.quantite}</td>

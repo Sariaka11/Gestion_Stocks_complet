@@ -11,6 +11,8 @@ import "./css/Consommation.css"
 function UserBienConsommation() {
   const { user, userAgenceId } = useAuth()
   const [consommations, setConsommations] = useState([])
+  const [filteredConsommations, setFilteredConsommations] = useState([])
+  const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [detailsVisible, setDetailsVisible] = useState(false)
@@ -60,6 +62,7 @@ function UserBienConsommation() {
         }, {})
 
         setConsommations(Object.values(groupedData))
+        setFilteredConsommations(Object.values(groupedData))
       } catch (error) {
         setError("Erreur lors du chargement des données.")
         console.error("Erreur:", error.message)
@@ -69,6 +72,14 @@ function UserBienConsommation() {
     }
     fetchData()
   }, [userAgenceId])
+
+  useEffect(() => {
+    const filtered = consommations.filter(item =>
+      item.nomBien.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.categorie.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    setFilteredConsommations(filtered)
+  }, [searchQuery, consommations])
 
   const calculateAmortissement = (item) => {
     const immobilisation = item.immobilisation
@@ -154,7 +165,6 @@ function UserBienConsommation() {
       })
       console.log("Notification envoyée avec succès:", response.data)
 
-      // Remplacer l'alert par un toast success moderne
       toast.success(`Demande envoyée pour ${nomBien} !`, {
         duration: 4000,
         position: "top-right",
@@ -174,14 +184,13 @@ function UserBienConsommation() {
       console.error("Erreur lors de l'envoi de la demande:", error)
       setError("Erreur lors de l'envoi de la demande.")
 
-      // Optionnel: Ajouter un toast d'erreur
       toast.error("Erreur lors de l'envoi de la demande", {
         duration: 4000,
         position: "top-right",
         style: {
           background: "#EF4444",
           color: "#fff",
-          fontWeight: "500",
+          fontWeight过滤: "500",
           borderRadius: "8px",
           boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
         },
@@ -193,6 +202,10 @@ function UserBienConsommation() {
     setSelectedBien(item)
     setDetailedConsommations(item.details)
     setDetailsVisible(true)
+  }
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value)
   }
 
   if (loading) {
@@ -213,11 +226,19 @@ function UserBienConsommation() {
 
   return (
     <div className="consommation-container">
-      {/* Ajouter le Toaster component */}
       <Toaster />
 
       <div className="consommation-header">
         <h2>Mes consommations</h2>
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Rechercher par désignation ou catégorie..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="search-input"
+          />
+        </div>
       </div>
 
       <div className="consommation-table-container">
@@ -233,7 +254,7 @@ function UserBienConsommation() {
             </tr>
           </thead>
           <tbody>
-            {consommations.map((item) => (
+            {filteredConsommations.map((item) => (
               <tr key={item.id}>
                 <td>{item.nomBien}</td>
                 <td>{item.quantite}</td>

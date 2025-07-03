@@ -129,4 +129,24 @@
   outline: none;
   border-color: #007bff;
 }
+.search-bar {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.search-input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 300px;
+  transition: border-color 0.3s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2b80b9;
+  box-shadow: 0 0 5px rgba(43, 128, 185, 0.3);
+}
   
