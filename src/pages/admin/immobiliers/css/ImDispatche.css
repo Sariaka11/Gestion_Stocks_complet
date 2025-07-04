@@ -391,10 +391,12 @@
 
 .toast-succes {
   border-left-color: #10b981;
+  color: #10b981;
 }
 
 .toast-erreur {
   border-left-color: #ef4444;
+  color: #c53030;
 }
 
 .toast-confirmation {

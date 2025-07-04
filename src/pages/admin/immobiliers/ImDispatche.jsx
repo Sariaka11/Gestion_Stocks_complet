@@ -6,10 +6,10 @@ import "./css/ImDispatche.css"
 import { getImmobiliers } from "../../../services/immobilierServices"
 import { getAgences } from "../../../services/agenceServices"
 import { getBienAgences, createBienAgence } from "../../../services/bienAgenceServices"
-//import { useRefresh } from "../context/RefreshContext.jsx"
+import axios from "axios"
 
 function ImDispatche() {
- const [immobiliers, setImmobiliers] = useState([])
+  const [immobiliers, setImmobiliers] = useState([])
   const [agences, setAgences] = useState([])
   const [agencesAffichees, setAgencesAffichees] = useState([])
   const [affectations, setAffectations] = useState([])
@@ -38,7 +38,6 @@ function ImDispatche() {
     idBien: "",
     idAgence: "",
     quantite: "",
-    dateAffectation: "",
     fonction: ""
   })
 
@@ -51,28 +50,28 @@ function ImDispatche() {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 5000)
   }
-  
-const triggerRefresh = () => {
-  getBienAgences().then((res) => {
-    console.log("Réponse brute de getBienAgences :", res.data);
-    let data = res.data;
-    if (res.data && res.data.values && Array.isArray(res.data.values)) {
-      data = res.data.values;
-    }
-    if (Array.isArray(data)) {
-      console.log("Données après extraction :", data);
-      const dataValide = data.filter((a) => a && a.nomBien);
-      console.log("Données valides après filtrage :", dataValide);
-      setAffectations(dataValide);
-    } else {
-      console.warn("Réponse inattendue :", res.data);
-      setAffectations([]);
-    }
-  }).catch((err) => {
-    console.error("Erreur lors du refresh :", err);
-    setAffectations([]);
-  });
-};
+
+  const triggerRefresh = () => {
+    getBienAgences().then((res) => {
+      console.log("Réponse brute de getBienAgences :", res.data)
+      let data = res.data
+      if (res.data && res.data.values && Array.isArray(res.data.values)) {
+        data = res.data.values
+      }
+      if (Array.isArray(data)) {
+        console.log("Données après extraction :", data)
+        const dataValide = data.filter((a) => a && a.nomBien)
+        console.log("Données valides après filtrage :", dataValide)
+        setAffectations(dataValide)
+      } else {
+        console.warn("Réponse inattendue :", res.data)
+        setAffectations([])
+      }
+    }).catch((err) => {
+      console.error("Erreur lors du refresh :", err)
+      setAffectations([])
+    })
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -90,24 +89,33 @@ const triggerRefresh = () => {
           agencesRaw = agencesRaw?.["$values"] || []
         }
         setAgences(agencesRaw)
+        console.log("Agences chargées :", agencesRaw)
 
         let affectationsRaw = resAffectations.data
         if (!Array.isArray(affectationsRaw)) {
           affectationsRaw = affectationsRaw?.["$values"] || []
         }
+        console.log("Affectations brutes :", affectationsRaw)
 
         const lignes = immobiliersRaw.map((immobilier) => ({
           id: immobilier.idBien,
           designation: immobilier.nomBien,
           quantite: immobilier.quantite,
-          date: immobilier.dateAcquisition?.split("T")[0],
-          affectations: agencesRaw.map((a) => ({
-            agenceId: a.id,
-            quantite: affectationsRaw
-              .filter((aff) => aff.idBien === immobilier.idBien && aff.idAgence === a.id)
-              .reduce((sum, aff) => sum + (aff.quantite || 0), 0),
-          })),
+          affectations: agencesRaw.flatMap((a) =>
+            fonctions.map((f) => {
+              const aff = affectationsRaw.find(
+                (aff) => aff.idBien === immobilier.idBien && aff.idAgence === a.id && aff.fonction === f
+              )
+              return {
+                agenceId: a.id,
+                quantite: aff ? aff.quantite || 0 : 0,
+                fonction: f,
+                dateAffectation: aff ? aff.dateAffectation : null
+              }
+            })
+          )
         }))
+        console.log("Lignes d'affectations construites :", lignes)
         setAffectations(lignes)
       })
       .catch((err) => {
@@ -125,72 +133,76 @@ const triggerRefresh = () => {
     const agence = agences.find((a) => a.id === parseInt(filtreAgenceTableau))
     if (agence && !agencesAffichees.find((a) => a.id === agence.id && a.fonction === filtreFonctionTableau)) {
       setAgencesAffichees((prev) => [...prev, { ...agence, fonction: filtreFonctionTableau }])
+      console.log(`Agence ajoutée au tableau : ${agence.nom} - ${filtreFonctionTableau}`)
     }
     setFiltreAgenceTableau("")
     setFiltreFonctionTableau("")
   }
 
- const toggleEditionAffectation = (id) => {
-  if (affectationEnEdition === id) {
-    const ligne = affectations.find((a) => a.id === id)
-    let totalQuantiteAffectee = 0
+  const toggleEditionAffectation = (id) => {
+    console.log(`toggleEditionAffectation appelé avec id: ${id}, affectationEnEdition actuel: ${affectationEnEdition}`)
+    if (affectationEnEdition === id) {
+      const ligne = affectations.find((a) => a.id === id)
+      let totalQuantiteAffectee = 0
 
-    ligne.affectations.forEach((a) => {
-      if (a.quantite > 0) {
-        totalQuantiteAffectee += a.quantite
-      }
-    })
-
-    if (totalQuantiteAffectee > ligne.quantite) {
-      afficherToast("La quantité totale dépasse le stock disponible", "erreur")
-      return
-    }
-
-    // Trouver la première affectation avec quantite > 0 et l'envoyer
-    const premiereAffectation = ligne.affectations.find((a) => a.quantite > 0)
-    if (premiereAffectation) {
-      const agenceAffichee = agencesAffichees.find((ag) => ag.id === premiereAffectation.agenceId)
-      const fonction = agenceAffichee ? agenceAffichee.fonction : "Non spécifiée"
-      console.log(`Envoi pour idBien: ${ligne.id}, idAgence: ${premiereAffectation.agenceId}, quantite: ${premiereAffectation.quantite}, fonction: ${fonction}`)
-
-      createBienAgence({
-        idBien: ligne.id,
-        idAgence: premiereAffectation.agenceId,
-        quantite: premiereAffectation.quantite,
-        dateAffectation: new Date().toISOString(),
-        fonction: fonction
+      ligne.affectations.forEach((a) => {
+        if (a.quantite > 0) {
+          totalQuantiteAffectee += a.quantite
+        }
       })
-        .then(() => {
-          afficherToast("Affectation mise à jour avec succès", "succes")
-          triggerRefresh()
-          setAffectationEnEdition(null)
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la mise à jour de l'affectation:", error)
-          if (error.code === "ECONNABORTED") {
-            afficherToast("Requête interrompue, mais la mise à jour a peut-être réussi", "info")
-            triggerRefresh()
-          } else if (error.response?.status === 400) {
-            afficherToast(error.response.data || "Données invalides", "erreur")
-          }
-          // Supprimer le toast d'erreur général
-        })
-    } else {
-      afficherToast("Aucune affectation à mettre à jour", "info")
-      setAffectationEnEdition(null)
-    }
-  } else {
-    setAffectationEnEdition(id)
-  }
-}
 
-  const mettreAJourAffectation = (immobilierId, agenceId, qtt) => {
+      if (totalQuantiteAffectee > ligne.quantite) {
+        afficherToast("La quantité totale dépasse le stock disponible", "erreur")
+        return
+      }
+
+      const premiereAffectation = ligne.affectations.find((a) => a.quantite > 0)
+      if (premiereAffectation) {
+        const fonction = premiereAffectation.fonction || "Non spécifiée"
+        console.log(`Envoi pour idBien: ${ligne.id}, idAgence: ${premiereAffectation.agenceId}, quantite: ${premiereAffectation.quantite}, fonction: ${fonction}`)
+
+        const dateAffectation = new Date().toISOString().split("T")[0] // Format YYYY-MM-DD
+        createBienAgence({
+          idBien: ligne.id,
+          idAgence: premiereAffectation.agenceId,
+          quantite: premiereAffectation.quantite,
+          dateAffectation: dateAffectation,
+          fonction: fonction,
+          quantiteConso: 0
+        })
+          .then(() => {
+            afficherToast("Affectation mise à jour avec succès", "succes")
+            triggerRefresh()
+            setAffectationEnEdition(null)
+            console.log("Mode édition désactivé")
+          })
+          .catch((error) => {
+            console.error("Erreur lors de la mise à jour de l'affectation:", error)
+            let errorMessage = error.response?.data || "Erreur lors de la mise à jour de l'affectation"
+            afficherToast(errorMessage, "erreur")
+          })
+      } else {
+        afficherToast("Aucune affectation à mettre à jour", "info")
+        setAffectationEnEdition(null)
+        console.log("Mode édition désactivé - aucune affectation")
+      }
+    } else {
+      setAffectationEnEdition(id)
+      console.log(`Mode édition activé pour id: ${id}`)
+    }
+  }
+
+  const mettreAJourAffectation = (immobilierId, agenceId, qtt, fonction) => {
+    console.log(`mettreAJourAffectation appelé: immobilierId=${immobilierId}, agenceId=${agenceId}, qtt=${qtt}, fonction=${fonction}`)
     setAffectations((prev) =>
       prev.map((a) => {
         if (a.id === immobilierId) {
           const majAff = a.affectations.map((aff) =>
-            aff.agenceId === agenceId ? { ...aff, quantite: parseInt(qtt, 10) || 0 } : aff
+            aff.agenceId === agenceId && aff.fonction === fonction
+              ? { ...aff, quantite: parseInt(qtt, 10) || 0 }
+              : aff
           )
+          console.log(`Affectations mises à jour pour immobilierId=${immobilierId}:`, majAff)
           return { ...a, affectations: majAff }
         }
         return a
@@ -199,7 +211,7 @@ const triggerRefresh = () => {
   }
 
   const ouvrirModal = () => {
-    setNouvelleAffectation({ idBien: "", idAgence: "", quantite: "", dateAffectation: "", fonction: "" })
+    setNouvelleAffectation({ idBien: "", idAgence: "", quantite: "", fonction: "" })
     setFiltreDesignation("")
     setFiltreAgence("")
     setModalOuvert(true)
@@ -215,12 +227,24 @@ const triggerRefresh = () => {
     setNouvelleAffectation((prev) => ({ ...prev, [name]: value }))
   }
 
-  const sauvegarderAffectation = async () => {
+  async function verifierQuantiteDisponible(idBien) {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/Immobilisations/${idBien}`)
+      return response.data.quantite || 0
+    } catch (error) {
+      console.error("Erreur lors de la vérification de la quantité disponible :", error)
+      afficherToast("Erreur lors de la vérification de la quantité disponible", "erreur")
+      return 0
+    }
+  }
+
+  async function sauvegarderAffectation() {
     try {
       console.log("Démarrage de sauvegarderAffectation", nouvelleAffectation)
-      const { idBien, idAgence, quantite, dateAffectation, fonction } = nouvelleAffectation
-      console.log("Valeurs des champs :", { idBien, idAgence, quantite, dateAffectation, fonction })
+      const { idBien, idAgence, quantite, fonction } = nouvelleAffectation
+      console.log("Valeurs des champs :", { idBien, idAgence, quantite, fonction })
 
+      // Validations
       if (!idBien) {
         console.log("Erreur : idBien est vide")
         afficherToast("Veuillez sélectionner un immobilier.", "erreur")
@@ -233,8 +257,6 @@ const triggerRefresh = () => {
         return
       }
       const immobilier = immobiliers.find((i) => i.idBien === parsedIdBien)
-      console.log("Immobilier trouvé :", immobilier)
-
       if (!immobilier) {
         console.log("Erreur : Aucun immobilier trouvé pour idBien =", parsedIdBien)
         afficherToast("Aucun immobilier trouvé pour l'ID spécifié.", "erreur")
@@ -262,22 +284,20 @@ const triggerRefresh = () => {
         afficherToast("La quantité doit être un nombre positif.", "erreur")
         return
       }
-      if (!dateAffectation) {
-        console.log("Erreur : dateAffectation est vide")
-        afficherToast("Veuillez spécifier une date d'affectation.", "erreur")
-        return
-      }
       if (!fonction) {
         console.log("Erreur : fonction est vide")
         afficherToast("Veuillez sélectionner une fonction.", "erreur")
         return
       }
 
+      // Vérifier la quantité disponible
+      const quantiteDisponible = await verifierQuantiteDisponible(parsedIdBien)
       const quantiteDejaAffectee = affectations
         .find((a) => a.id === parsedIdBien)
         ?.affectations.reduce((sum, aff) => sum + (aff.quantite || 0), 0) || 0
-      const quantiteRestante = (immobilier.quantite || 0) - quantiteDejaAffectee
-      console.log("Quantité restante :", quantiteRestante, "Quantité demandée :", quantiteInt)
+      const quantiteRestante = quantiteDisponible - quantiteDejaAffectee
+
+      console.log("Quantité disponible :", quantiteDisponible, "Quantité déjà affectée :", quantiteDejaAffectee, "Quantité restante :", quantiteRestante)
 
       if (quantiteInt > quantiteRestante) {
         console.log("Erreur : quantiteInt =", quantiteInt, "supérieur à quantiteRestante =", quantiteRestante)
@@ -285,23 +305,28 @@ const triggerRefresh = () => {
         return
       }
 
-      console.log("Données avant envoi à createBienAgence :", { idBien: parsedIdBien, idAgence: parsedIdAgence, quantite: quantiteInt, dateAffectation, fonction })
-
-      await createBienAgence({
+      // Préparer les données pour la requête POST avec la date d'aujourd'hui
+      const dateAffectation = new Date().toISOString().split("T")[0] // Format YYYY-MM-DD
+      const payload = {
         idBien: parsedIdBien,
         idAgence: parsedIdAgence,
         quantite: quantiteInt,
-        dateAffectation: new Date(dateAffectation).toISOString(),
-        fonction: fonction // Assuré que fonction est inclus
-      })
+        dateAffectation: dateAffectation,
+        fonction: fonction,
+        quantiteConso: 0
+      }
 
-      afficherToast("Affectation enregistrée avec succès.", "succes")
+      console.log("Données envoyées à createBienAgence :", payload)
+
+      // Envoyer la requête POST
+      await createBienAgence(payload)
+
+      afficherToast("Affectation créée ou mise à jour avec succès.", "succes")
       setModalOuvert(false)
       setNouvelleAffectation({
         idBien: "",
         idAgence: "",
         quantite: "",
-        dateAffectation: "",
         fonction: ""
       })
       triggerRefresh()
@@ -312,17 +337,17 @@ const triggerRefresh = () => {
         status: error.response?.status,
         data: error.response?.data
       })
-      afficherToast(`Erreur lors de l'enregistrement : ${error.response?.data || error.message}`, "erreur")
+      let errorMessage = error.response?.data || "Erreur lors de l'enregistrement."
+      afficherToast(errorMessage, "erreur")
     }
   }
 
- const affectationsFiltrees = affectations.filter(
-  (a) =>
-    a &&
-    typeof a.designation === "string" &&
-    a.designation.toLowerCase().includes(filtreDesignation.toLowerCase())
-)
-
+  const affectationsFiltrees = affectations.filter(
+    (a) =>
+      a &&
+      typeof a.designation === "string" &&
+      a.designation.toLowerCase().includes(filtreDesignation.toLowerCase())
+  )
 
   return (
     <div className="page-dispatche animation-dispatche">
@@ -395,7 +420,6 @@ const triggerRefresh = () => {
                   <th>Désignation</th>
                   <th>Quantité</th>
                   {agencesAffichees.length > 0 && <th colSpan={agencesAffichees.length}>Affectations par agence</th>}
-                  <th>Date</th>
                   <th>Actions</th>
                 </tr>
                 {agencesAffichees.length > 0 && (
@@ -408,7 +432,6 @@ const triggerRefresh = () => {
                       </th>
                     ))}
                     <th></th>
-                    <th></th>
                   </tr>
                 )}
               </thead>
@@ -419,16 +442,21 @@ const triggerRefresh = () => {
                       <td>{affectation.designation}</td>
                       <td>{affectation.quantite}</td>
                       {agencesAffichees.map((agence) => {
-                        const aff = affectation.affectations?.find((a) => a.agenceId === agence.id)
+                        const aff = affectation.affectations.find(
+                          (a) => a.agenceId === agence.id && a.fonction === agence.fonction
+                        )
+                        console.log(
+                          `Rendu input pour idBien=${affectation.id}, agenceId=${agence.id}, fonction=${agence.fonction}, quantite=${aff?.quantite || 0}, disabled=${affectationEnEdition !== affectation.id}`
+                        )
                         return (
-                          <td key={`${affectation.id}-${agence.id}`}>
+                          <td key={`${affectation.id}-${agence.id}-${agence.fonction}`}>
                             <input
                               type="number"
                               min="0"
                               max={affectation.quantite}
                               value={aff?.quantite || 0}
                               onChange={(e) =>
-                                mettreAJourAffectation(affectation.id, agence.id, e.target.value)
+                                mettreAJourAffectation(affectation.id, agence.id, e.target.value, agence.fonction)
                               }
                               className="input-consommation"
                               disabled={affectationEnEdition !== affectation.id}
@@ -436,7 +464,6 @@ const triggerRefresh = () => {
                           </td>
                         )
                       })}
-                      <td>{affectation.date}</td>
                       <td className="actions-cellule">
                         <button
                           className={`bouton-modifier ${affectationEnEdition === affectation.id ? "actif" : ""}`}
@@ -457,7 +484,7 @@ const triggerRefresh = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={agencesAffichees.length > 0 ? agencesAffichees.length + 4 : 4} className="no-data">
+                    <td colSpan={agencesAffichees.length > 0 ? agencesAffichees.length + 3 : 3} className="no-data">
                       Aucune donnée trouvée. Utilisez le bouton "Créer une affectation" pour ajouter des données.
                     </td>
                   </tr>
@@ -551,16 +578,6 @@ const triggerRefresh = () => {
                   name="quantite"
                   min="1"
                   value={nouvelleAffectation.quantite}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="groupe-champ">
-                <label htmlFor="dateAffectation">Date</label>
-                <input
-                  type="date"
-                  name="dateAffectation"
-                  value={nouvelleAffectation.dateAffectation}
                   onChange={handleChange}
                   required
                 />
