@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { getBienByAgence } from "../../../services/bienAgenceServices"; 
 import { useAuth } from "../../../Context/AuthContext"; 
@@ -10,16 +12,21 @@ function UserStock() {
   const [filteredItems, setFilteredItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Toutes");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
-  const { user } = useAuth();
+  const { user, userAgenceId, isAuthLoading } = useAuth();
+
+  // Log pour suivre l'état à chaque rendu
+  console.log("Rendu de UserStock, user:", user, "userAgenceId:", userAgenceId, "isAuthLoading:", isAuthLoading);
 
   useEffect(() => {
     const fetchStock = async () => {
       try {
         setLoading(true);
-        const response = await getBienByAgence(user.agenceId);
+        setError(null);
+        console.log("Appel de fetchStock avec userAgenceId:", userAgenceId);
+        const response = await getBienByAgence(userAgenceId);
         console.log("Données mappées pour le stock :", response);
         const stockData = response.data;
         if (!Array.isArray(stockData)) {
@@ -40,16 +47,23 @@ function UserStock() {
         setCategories(uniqueCategories);
       } catch (err) {
         console.error("Erreur dans fetchStock :", err);
-        setError("Erreur lors de la récupération des données.");
+        setError("Erreur lors de la récupération des données : " + err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user?.agenceId) {
+    if (isAuthLoading) {
+      console.log("Authentification en cours, en attente...");
+    } else if (!userAgenceId) {
+      console.log("Aucun userAgenceId disponible:", { user, userAgenceId });
+      setError("Aucune agence associée à votre compte. Veuillez contacter l'administrateur.");
+      setLoading(false);
+    } else {
+      console.log("Authentification terminée, lancement de fetchStock...");
       fetchStock();
     }
-  }, [user]);
+  }, [isAuthLoading, userAgenceId]);
 
   useEffect(() => {
     if (selectedCategory === "Toutes") {
@@ -65,12 +79,10 @@ function UserStock() {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    // Ajouter un titre avec style
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text(`Rapport des Biens par Agence${selectedCategory !== "Toutes" ? ` - ${selectedCategory}` : ""}`, 14, 20);
 
-    // Configurer le tableau avec des styles similaires à l'interface
     autoTable(doc, {
       head: [["Nom du Bien", "Catégorie", "Quantité", "Quantité Consommée", "Fonction", "Date d'Affectation"]],
       body: filteredItems.map(item => [
@@ -88,24 +100,23 @@ function UserStock() {
         overflow: "linebreak",
       },
       headStyles: {
-        fillColor: [41, 128, 185], // Couleur de fond pour l'en-tête (bleu)
-        textColor: [255, 255, 255], // Texte blanc pour l'en-tête
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
         fontStyle: "bold",
       },
       alternateRowStyles: {
-        fillColor: [240, 240, 240], // Couleur de fond alternée pour les lignes
+        fillColor: [240, 240, 240],
       },
       columnStyles: {
-        0: { cellWidth: 40 }, // Nom du Bien
-        1: { cellWidth: 30 }, // Catégorie
-        2: { cellWidth: 20 }, // Quantité
-        3: { cellWidth: 30 }, // Quantité Consommée
-        4: { cellWidth: 30 }, // Fonction
-        5: { cellWidth: 30 }, // Date d'Affectation
+        0: { cellWidth: 40 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 30 },
       },
     });
 
-    // Nom du fichier dynamique avec la date et la catégorie
     const date = new Date().toISOString().slice(0, 10);
     const fileName = `stock_biens_report_${date}${selectedCategory !== "Toutes" ? `_${selectedCategory}` : ""}.pdf`;
     doc.save(fileName);
@@ -119,8 +130,17 @@ function UserStock() {
     setSelectedItem(null);
   };
 
-  if (loading) return <div className="loading-overlay">Chargement...</div>;
-  if (error) return <div className="error-message">{error}</div>;
+  if (isAuthLoading) {
+    return <div className="loading-overlay">Chargement de l'authentification...</div>;
+  }
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
+  if (loading) {
+    return <div className="loading-overlay">Chargement des données...</div>;
+  }
 
   return (
     <div className="user-imstock-container">
