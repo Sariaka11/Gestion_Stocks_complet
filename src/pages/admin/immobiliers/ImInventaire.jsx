@@ -501,69 +501,71 @@ function ImInventaire() {
         </table>
       </div>
 
-      <div className="tableau-container">
-        <h3>Inventaire des Affectations</h3>
-        {combinaisonsAgenceFonction.length === 0 ? (
-          <div className="no-data">
-            Aucune affectation valide trouvée. Vérifiez les données dans la base ou ajoutez des affectations.
-          </div>
-        ) : (
-          <table className="tableau-inventaire">
-            <thead>
-              <tr>
-                <th rowSpan="2">Désignation</th>
-                {agences.map((agence) => {
-                  const fonctionsAgence = combinaisonsAgenceFonction.filter(
-                    (c) => c.idAgence === agence.id
-                  )
-                  return fonctionsAgence.length > 0 ? (
-                    <th key={agence.id} colSpan={fonctionsAgence.length}>
-                      {agence.nom}
-                    </th>
-                  ) : null
-                })}
-              </tr>
-              <tr>
-                {agences.map((agence) => {
-                  const fonctionsAgence = combinaisonsAgenceFonction.filter(
-                    (c) => c.idAgence === agence.id
-                  )
-                  return fonctionsAgence.map((comb) => (
-                    <th key={`${comb.idAgence}-${comb.fonction}`}>
-                      {comb.fonction}
-                    </th>
-                  ))
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {donneesAffectations.length > 0 ? (
-                donneesAffectations.map((item, index) => (
-                  <tr key={`${item.idBien}-${index}`}>
-                    <td>{item.designation}</td>
-                    {item.affectations.map((quantite, qIndex) => (
-                      <td
-                        key={`${item.idBien}-${combinaisonsAgenceFonction[qIndex].idAgence}-${combinaisonsAgenceFonction[qIndex].fonction}-${index}`}
-                      >
-                        {quantite > 0 ? quantite : "0"}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : (
-                <tr>
+    <div className="tableau-container">
+  <h3>Inventaire des Affectations</h3>
+  {combinaisonsAgenceFonction.length === 0 ? (
+    <div className="no-data">
+      Aucune affectation valide trouvée. Vérifiez les données dans la base ou ajoutez des affectations.
+    </div>
+  ) : (
+    <div className="table-responsive">
+      <table className="tableau-inventaire">
+        <thead>
+          <tr>
+            <th rowSpan="2">Désignation</th>
+            {agences.map((agence) => {
+              const fonctionsAgence = combinaisonsAgenceFonction.filter(
+                (c) => c.idAgence === agence.id
+              );
+              return fonctionsAgence.length > 0 ? (
+                <th key={agence.id} colSpan={fonctionsAgence.length}>
+                  {agence.nom}
+                </th>
+              ) : null;
+            })}
+          </tr>
+          <tr>
+            {agences.map((agence) => {
+              const fonctionsAgence = combinaisonsAgenceFonction.filter(
+                (c) => c.idAgence === agence.id
+              );
+              return fonctionsAgence.map((comb) => (
+                <th key={`${comb.idAgence}-${comb.fonction}`}>
+                  {comb.fonction}
+                </th>
+              ));
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {donneesAffectations.length > 0 ? (
+            donneesAffectations.map((item, index) => (
+              <tr key={`${item.idBien}-${index}`}>
+                <td>{item.designation}</td>
+                {item.affectations.map((quantite, qIndex) => (
                   <td
-                    colSpan={combinaisonsAgenceFonction.length + 1}
-                    className="no-data"
+                    key={`${item.idBien}-${combinaisonsAgenceFonction[qIndex].idAgence}-${combinaisonsAgenceFonction[qIndex].fonction}-${index}`}
                   >
-                    Aucune affectation trouvée pour les biens filtrés.
+                    {quantite > 0 ? quantite : "0"}
                   </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+                ))}
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td
+                colSpan={combinaisonsAgenceFonction.length + 1}
+                className="no-data"
+              >
+                Aucune affectation trouvée pour les biens filtrés.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
 
       <div className="toast-container">
         {toasts.map((toast) => (

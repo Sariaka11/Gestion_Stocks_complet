@@ -128,6 +128,8 @@ border: #ec1c1c;
   border-radius: 12px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   background: white;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
 }
 
 .consommation-filter-container {

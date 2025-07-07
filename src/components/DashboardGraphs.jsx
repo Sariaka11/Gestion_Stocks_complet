@@ -48,7 +48,6 @@ export default function DashboardGraphs() {
 
   // États pour les contrôles
   const [loading, setLoading] = useState(true)
-  const [selectedAgence, setSelectedAgence] = useState("all")
   const [error, setError] = useState(null)
   const [toasts, setToasts] = useState([])
 
@@ -166,6 +165,10 @@ export default function DashboardGraphs() {
         }
       })
 
+      // Logs pour déboguer les données mappées
+      console.log("mappedImmobiliers:", mappedImmobiliers)
+      console.log("rawAffectations:", rawAffectations)
+
       // Mettre à jour les états
       setFournitures(mappedFournitures)
       setAgenceFournitures(mappedAgenceFournitures)
@@ -180,13 +183,12 @@ export default function DashboardGraphs() {
         mappedAgenceFournitures,
         mappedAgences,
         mappedImmobiliers,
-        selectedAgence,
       )
 
       afficherToast("Données chargées avec succès", "success")
     } catch (err) {
       console.error("Erreur chargement:", err)
-      setError(`Erreur lors du chargement des données: ${err.message}`)
+      setError(` erreur lors du chargement des données: ${err.message}`)
       afficherToast("Erreur lors du chargement des données", "error")
     } finally {
       setLoading(false)
@@ -194,82 +196,40 @@ export default function DashboardGraphs() {
   }
 
   // Fonction pour générer les données des graphiques
-  const genererDonneesGraphiques = (fournitures, agenceFournitures, agences, immobiliers, agenceSelectionnee) => {
-    // 1. Fournitures de l'agence sélectionnée par catégorie
-    let fournituresAgence = []
-    if (agenceSelectionnee !== "all") {
-      const agenceNom = agences.find((a) => a.id.toString() === agenceSelectionnee)?.nom
-      const fournituresAgenceFiltered = agenceFournitures.filter((af) => af.agenceNom === agenceNom)
+  const genererDonneesGraphiques = (fournitures, agenceFournitures, agences, immobiliers) => {
+    // 1. Fournitures de toutes les agences par catégorie
+    const fournituresParCategorie = fournitures.reduce((acc, f) => {
+      const categorie = f.categorie || "Non catégorisé"
+      if (!acc[categorie]) {
+        acc[categorie] = 0
+      }
+      acc[categorie] += f.quantite
+      return acc
+    }, {})
 
-      // Grouper par catégorie
-      const fournituresParCategorie = {}
-      fournituresAgenceFiltered.forEach((af) => {
-        // Trouver la fourniture correspondante pour avoir la catégorie
-        const fourniture = fournitures.find((f) => f.nom.toLowerCase() === af.fournitureNom.toLowerCase())
-        const categorie = fourniture?.categorie || "Non catégorisé"
+    const fournituresAgence = Object.entries(fournituresParCategorie).map(([categorie, quantite]) => ({
+      name: categorie,
+      quantite: quantite,
+    }))
 
-        if (!fournituresParCategorie[categorie]) {
-          fournituresParCategorie[categorie] = 0
-        }
-        fournituresParCategorie[categorie] += af.quantite
-      })
+    // 2. Biens de toutes les agences par catégorie
+    const biensParCategorie = immobiliers.reduce((acc, bien) => {
+      const categorie = bien.typeImmobilier || "Non catégorisé"
+      if (!acc[categorie]) {
+        acc[categorie] = 0
+      }
+      acc[categorie] += bien.quantite
+      return acc
+    }, {})
 
-      fournituresAgence = Object.entries(fournituresParCategorie).map(([categorie, quantite]) => ({
-        name: categorie,
-        quantite: quantite,
-      }))
-    } else {
-      // Toutes les agences - grouper toutes les fournitures par catégorie
-      const fournituresParCategorie = fournitures.reduce((acc, f) => {
-        const categorie = f.categorie || "Non catégorisé"
-        if (!acc[categorie]) {
-          acc[categorie] = 0
-        }
-        acc[categorie] += f.quantite
-        return acc
-      }, {})
+    let biensAgence = Object.entries(biensParCategorie).map(([categorie, quantite]) => ({
+      name: categorie,
+      quantite: quantite,
+    }))
 
-      fournituresAgence = Object.entries(fournituresParCategorie).map(([categorie, quantite]) => ({
-        name: categorie,
-        quantite: quantite,
-      }))
-    }
-
-    // 2. Biens de l'agence sélectionnée par catégorie
-    let biensAgence = []
-    if (agenceSelectionnee !== "all") {
-      const immobiliersFiltres = immobiliers.filter((im) =>
-        im.affectations.some((aff) => aff.idAgence.toString() === agenceSelectionnee),
-      )
-
-      const biensParCategorie = immobiliersFiltres.reduce((acc, bien) => {
-        const categorie = bien.typeImmobilier || "Non catégorisé"
-        if (!acc[categorie]) {
-          acc[categorie] = 0
-        }
-        acc[categorie] += bien.quantite
-        return acc
-      }, {})
-
-      biensAgence = Object.entries(biensParCategorie).map(([categorie, quantite]) => ({
-        name: categorie,
-        quantite: quantite,
-      }))
-    } else {
-      // Toutes les agences - grouper tous les biens par catégorie
-      const biensParCategorie = immobiliers.reduce((acc, bien) => {
-        const categorie = bien.typeImmobilier || "Non catégorisé"
-        if (!acc[categorie]) {
-          acc[categorie] = 0
-        }
-        acc[categorie] += bien.quantite
-        return acc
-      }, {})
-
-      biensAgence = Object.entries(biensParCategorie).map(([categorie, quantite]) => ({
-        name: categorie,
-        quantite: quantite,
-      }))
+    // Ajouter une donnée par défaut si vide
+    if (biensAgence.length === 0) {
+      biensAgence = [{ name: "Aucune donnée", quantite: 0 }]
     }
 
     // 3. Top immobiliers (diagramme circulaire)
@@ -322,19 +282,13 @@ export default function DashboardGraphs() {
     setTopFournituresData(topFournitures)
     setDynamicsData(derniersMois)
     setActivityData(semaines)
+    console.log("biensAgenceData:", biensAgence) // Log pour débogage
   }
 
   // Charger les données au montage
   useEffect(() => {
     chargerDonnees()
   }, [])
-
-  // Régénérer les graphiques quand l'agence change
-  useEffect(() => {
-    if (fournitures.length > 0) {
-      genererDonneesGraphiques(fournitures, agenceFournitures, agences, immobiliers, selectedAgence)
-    }
-  }, [selectedAgence, fournitures, agenceFournitures, agences, immobiliers])
 
   if (loading) {
     return (
@@ -364,28 +318,9 @@ export default function DashboardGraphs() {
       {/* En-tête avec contrôles */}
       <div className="dashboard-header-controls">
         <div>
-          <h2 className="dashboard-title">
-            Tableau de Bord Analytique
-            {selectedAgence !== "all" && (
-              <span className="selected-agency">- {agences.find((a) => a.id.toString() === selectedAgence)?.nom}</span>
-            )}
-          </h2>
+          <h2 className="dashboard-title">Tableau de Bord</h2>
         </div>
         <div className="dashboard-controls">
-          <div className="select-container">
-            <select
-              value={selectedAgence}
-              onChange={(e) => setSelectedAgence(e.target.value)}
-              className="custom-select"
-            >
-              <option value="all">Toutes les agences</option>
-              {agences.map((agence) => (
-                <option key={agence.id} value={agence.id}>
-                  {agence.nom}
-                </option>
-              ))}
-            </select>
-          </div>
           <button onClick={chargerDonnees} disabled={loading} className="custom-button">
             <RefreshCw size={16} className={loading ? "spinning" : ""} />
             {loading ? "Chargement..." : "Actualiser"}
@@ -401,9 +336,7 @@ export default function DashboardGraphs() {
         <div className="chart-card">
           <div className="card-header">
             <h3 className="card-title">Fournitures par Catégorie</h3>
-            <p className="card-description">
-              {selectedAgence === "all" ? "Toutes les agences" : "Agence sélectionnée"}
-            </p>
+            <p className="card-description">Toutes les agences</p>
           </div>
           <div className="card-content">
             <ResponsiveContainer width="100%" height={400}>
@@ -420,20 +353,22 @@ export default function DashboardGraphs() {
         <div className="chart-card">
           <div className="card-header">
             <h3 className="card-title">Biens par Catégorie</h3>
-            <p className="card-description">
-              {selectedAgence === "all" ? "Toutes les agences" : "Agence sélectionnée"}
-            </p>
+            <p className="card-description">Toutes les agences</p>
           </div>
           <div className="card-content">
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={biensAgenceData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`${value} unités`, "Quantité"]} />
-                <Bar dataKey="quantite" fill="#FF8C42" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {biensAgenceData.length === 0 || (biensAgenceData.length === 1 && biensAgenceData[0].name === "Aucune donnée") ? (
+              <div className="no-data-message">Aucune donnée disponible.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={biensAgenceData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`${value} unités`, "Quantité"]} />
+                  <Bar dataKey="quantite" fill="#FF8C42" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
