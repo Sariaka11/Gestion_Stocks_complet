@@ -84,14 +84,14 @@ function UserStock() {
     doc.text(`Rapport des Biens par Agence${selectedCategory !== "Toutes" ? ` - ${selectedCategory}` : ""}`, 14, 20);
 
     autoTable(doc, {
-      head: [["Nom du Bien", "Catégorie", "Quantité", "Quantité Consommée", "Fonction", "Date d'Affectation"]],
+      head: [["Nom du Bien", "Catégorie", "Quantité", "Quantité Consommée", "Fonction", "Disponibilité"]],
       body: filteredItems.map(item => [
         item.nomBien || "N/A",
         item.categorie || "N/A",
         item.quantite || 0,
         item.quantiteConso || 0,
         item.fonction || "N/A",
-        new Date(item.dateAffectation).toLocaleDateString("fr-FR") || "N/A",
+        item.quantite > 0 ? "Disponible" : "Indisponible",
       ]),
       startY: 30,
       styles: {
@@ -176,7 +176,7 @@ function UserStock() {
               <th>Quantité</th>
               <th>Quantité Consommée</th>
               <th>Fonction</th>
-              <th>Date d'Affectation</th>
+              <th>Disponibilité</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -188,7 +188,11 @@ function UserStock() {
                 <td>{item.quantite}</td>
                 <td>{item.quantiteConso || 0}</td>
                 <td>{item.fonction || "N/A"}</td>
-                <td>{new Date(item.dateAffectation).toLocaleDateString("fr-FR")}</td>
+                <td>
+                  <span className={`status-badge ${item.quantite > 0 ? "disponible" : "indisponible"}`}>
+                    {item.quantite > 0 ? "Disponible" : "Indisponible"}
+                  </span>
+                </td>
                 <td className="actions-cell">
                   <button className="btn-details" onClick={() => openDetails(item)}>
                     Détails
@@ -228,10 +232,6 @@ function UserStock() {
                 <tr>
                   <th>Fonction</th>
                   <td>{selectedItem.fonction || "N/A"}</td>
-                </tr>
-                <tr>
-                  <th>Date d'Affectation</th>
-                  <td>{new Date(selectedItem.dateAffectation).toLocaleDateString("fr-FR")}</td>
                 </tr>
               </tbody>
             </table>
