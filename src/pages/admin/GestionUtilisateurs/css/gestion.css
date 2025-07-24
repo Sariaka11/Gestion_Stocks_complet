@@ -1665,3 +1665,41 @@
     padding: 0.5rem;
   }
 }
+/* Styles pour le modal de confirmation de suppression */
+.confirmation-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  margin-bottom: 20px;
+}
+
+.warning-text {
+  color: #666;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.bouton-supprimer {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.bouton-supprimer:hover {
+  background-color: #ff5252;
+}
+
+.bouton-supprimer:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

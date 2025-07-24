@@ -358,8 +358,6 @@ function ImDispatche() {
         </div>
       )}
 
-      <h1 className="titre-page">Gestion des Affectations d'Immobiliers</h1>
-
       <div className="section-dispatche">
         <div className="entete-section">
           <h2>Liste des Affectations</h2>

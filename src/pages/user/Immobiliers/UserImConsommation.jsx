@@ -99,7 +99,69 @@ function UserBienConsommation() {
     try {
       const parsedQuantiteConso = Number.parseFloat(addFormData.quantiteConso)
       if (isNaN(parsedQuantiteConso) || parsedQuantiteConso <= 0) {
-        setError("Veuillez entrer une consommation valide.")
+        toast.error("Veuillez entrer une consommation valide.", {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#EF4444",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+          },
+        })
+        return
+      }
+
+      // Trouver le bien dans consommations pour vérifier la quantité disponible
+      const bien = consommations.find(
+        (item) => item.bienId === addFormData.bienId
+      )
+      if (!bien) {
+        toast.error("Bien non trouvé.", {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#EF4444",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+          },
+        })
+        return
+      }
+
+      if (bien.quantite === 0) {
+        toast.error(`${addFormData.nomBien} est indisponible.`, {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#EF4444",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+          },
+        })
+        return
+      }
+
+      if (parsedQuantiteConso > bien.quantite) {
+        toast.error(
+          `La consommation (${parsedQuantiteConso}) dépasse la quantité disponible (${bien.quantite}).`,
+          {
+            duration: 4000,
+            position: "top-right",
+            style: {
+              background: "#EF4444",
+              color: "#fff",
+              fontWeight: "500",
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+            },
+          }
+        )
         return
       }
 
@@ -120,7 +182,7 @@ function UserBienConsommation() {
           existing.quantite = response.data.quantite
           existing.quantiteConso = response.data.quantiteConso
           existing.details.push({
-            quantiteConso: response.data.quantiteConso,
+            quantiteConso: parsedQuantiteConso,
             date: response.data.dateAffectation,
           })
           existing.immobilisation = response.data.immobilisation
@@ -132,9 +194,36 @@ function UserBienConsommation() {
       setShowAddModal(false)
       setAddFormData({ bienId: null, nomBien: "", quantiteConso: "" })
       setError(null)
+
+      toast.success(`Consommation ajoutée pour ${addFormData.nomBien} !`, {
+        duration: 4000,
+        position: "top-right",
+        style: {
+          background: "#10B981",
+          color: "#fff",
+          fontWeight: "500",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(16, 185, 129, 0.15)",
+        },
+        iconTheme: {
+          primary: "#fff",
+          secondary: "#10B981",
+        },
+      })
     } catch (error) {
       setError("Erreur lors de l'ajout de la consommation.")
       console.error("Erreur:", error.message)
+      toast.error("Erreur lors de l'ajout de la consommation.", {
+        duration: 4000,
+        position: "top-right",
+        style: {
+          background: "#EF4444",
+          color: "#fff",
+          fontWeight: "500",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+        },
+      })
     }
   }
 
@@ -190,7 +279,7 @@ function UserBienConsommation() {
         style: {
           background: "#EF4444",
           color: "#fff",
-          fontWeight过滤: "500",
+          fontWeight: "500",
           borderRadius: "8px",
           boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
         },

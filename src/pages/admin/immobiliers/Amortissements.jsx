@@ -340,8 +340,6 @@ function Amortissements() {
         </div>
       )}
 
-      <h2 className="page-title">Amortissements des immobilisations</h2>
-
       {error && (
         <div className="error-message">
           <AlertCircle size={20} />

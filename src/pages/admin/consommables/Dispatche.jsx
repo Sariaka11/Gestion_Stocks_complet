@@ -98,24 +98,21 @@ function Dispatche() {
     setFiltreAgenceTableau("");
   };
 
-  const supprimerAgence = (id) => {
-    deleteAgence(id)
-      .then(() => {
-        setAgences((prev) => prev.filter((a) => a.id !== id));
-        setAgencesAffichees((prev) => prev.filter((a) => a.id !== id));
-        setDispatches((prev) =>
-          prev.map((d) => ({
-            ...d,
-            consommations: d.consommations.filter((c) => c.agenceId !== id),
-          }))
-        );
-        afficherToast("Agence supprimée avec succès", "succes");
-      })
-      .catch((err) => {
-        console.error("Erreur suppression agence:", err);
-        afficherToast("Erreur lors de la suppression de l'agence", "erreur");
-      });
-  };
+const supprimerAgence = (id) => {
+  // Supprimer l'agence uniquement de agencesAffichees (front-end)
+  setAgencesAffichees((prev) => prev.filter((a) => a.id !== id));
+  
+  // Mettre à jour dispatches pour retirer la consommation associée à l'agence supprimée
+  setDispatches((prev) =>
+    prev.map((d) => ({
+      ...d,
+      consommations: d.consommations.filter((c) => c.agenceId !== id),
+    }))
+  );
+  
+  // Afficher un toast pour confirmer la suppression
+  afficherToast("Colonne d'agence supprimée", "succes");
+};
 
   const toggleEditionDispatch = (id) => {
     if (dispatchEnEdition === id) {

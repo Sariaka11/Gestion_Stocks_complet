@@ -283,7 +283,6 @@ function ImStock() {
       })
       .catch((err) => {
         console.error("Erreur sauvegarde immobilier:", err)
-        afficherToast("Erreur lors de l'enregistrement.", "erreur")
       })
       .finally(() => {
         setLoading(false)
@@ -365,8 +364,6 @@ function ImStock() {
         </div>
       )}
 
-      <h2 className="page-title">Gestion du stock des immobiliers</h2>
-
       {error && (
         <div className="error-message">
           <AlertCircle size={20} />
@@ -377,22 +374,13 @@ function ImStock() {
         </div>
       )}
 
-      <div className="imstock-header">
+    
         <div className="imstock-actions">
           <button className="btn-add" onClick={ouvrirModalAjout}>
             <Plus size={16} /> Ajouter un bien
-          </button>
-          <div className="search-bar">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Rechercher un bien..."
-              value={filtreDesignation}
-              onChange={(e) => setFiltreDesignation(e.target.value)}
-            />
-          </div>
+          </button>          
         </div>
-      </div>
+      
 
       <div className="section-categorie">
         <h2>Gestion des catégories</h2>
@@ -476,6 +464,15 @@ function ImStock() {
         </table>
       </div>
       
+      <div className="search-bar">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Rechercher un bien..."
+              value={filtreDesignation}
+              onChange={(e) => setFiltreDesignation(e.target.value)}
+            />
+          </div>
       <div className="imstock-table-container">
         <h2 className="titre2">Gestion des biens</h2>
         <table className="imstock-table">

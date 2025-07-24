@@ -52,8 +52,8 @@ function Profile() {
           fonction: userData.fonction,
           departement: agenceData.departement || "Non spécifié", // Supposons que l'API retourne un département
           agence: agenceData.nom || "Non spécifié", // Supposons que l'API retourne un nom d'agence
-          dateInscription: userData.dateInscription
-            ? new Date(userData.dateInscription).toLocaleDateString("fr-FR")
+          dateInscription: userData.dateAssociation
+            ? new Date(userData.dateAssociation).toLocaleDateString("fr-FR")
             : "Non spécifié",
         })
 
@@ -112,18 +112,7 @@ function Profile() {
         <button className={`tab-button ${activeTab === "info" ? "active" : ""}`} onClick={() => setActiveTab("info")}>
           Informations
         </button>
-        {/* <button
-          className={`tab-button ${activeTab === "activity" ? "active" : ""}`}
-          onClick={() => setActiveTab("activity")}
-        >
-          Activités
-        </button>
-        <button
-          className={`tab-button ${activeTab === "preferences" ? "active" : ""}`}
-          onClick={() => setActiveTab("preferences")}
-        >
-          Préférences
-        </button> */}
+        
       </div>
 
       <div className="profile-content">
@@ -162,13 +151,13 @@ function Profile() {
         </div>
       </div>
 
-      <div className="info-item">
+      {/* <div className="info-item">
         <div className="info-icon"><FaCalendarAlt /></div>
         <div className="info-content">
           <h4>Date d'inscription</h4>
           <p>{user.dateInscription}</p>
         </div>
-      </div>
+      </div> */}
     </div>
   </div>
 )}

@@ -36,14 +36,20 @@ function UserStock() {
               id: item.id,
               nom: key,
               quantite: 0,
+              quantiteConso: 0,
               categorie: item.categorie || "Non catégorisé",
               disponible: false,
               details: [],
             };
           }
           acc[key].quantite += item.quantite;
+          acc[key].quantiteConso += item.consoMm || 0;
           acc[key].disponible = acc[key].quantite > 0;
-          acc[key].details.push({ quantite: item.quantite, date: item.dateAssociation });
+          acc[key].details.push({
+            quantite: item.quantite,
+            date: item.dateAssociation,
+            quantiteConso: item.consoMm || 0,
+          });
           return acc;
         }, {});
 
@@ -81,11 +87,12 @@ function UserStock() {
   const exportToPDF = () => {
     const doc = new jsPDF();
     autoTable(doc, {
-      head: [["ID", "Nom", "Quantité", "Catégorie", "Disponibilité"]],
+      head: [["ID", "Nom", "Quantité", "Quantité Consommée", "Catégorie", "Disponibilité"]],
       body: filteredStockItems.map((item) => [
         item.id,
         item.nom,
         item.quantite,
+        item.quantiteConso || 0,
         item.categorie,
         item.disponible ? "Disponible" : "Indisponible",
       ]),
@@ -155,6 +162,7 @@ function UserStock() {
             <tr>
               <th>Nom</th>
               <th>Quantité</th>
+              <th>Quantité Consommée</th>
               <th>Catégorie</th>
               <th>Disponibilité</th>
               <th>Actions</th>
@@ -165,6 +173,7 @@ function UserStock() {
               <tr key={item.id}>
                 <td>{item.nom}</td>
                 <td>{item.quantite}</td>
+                <td>{item.quantiteConso || 0}</td>
                 <td>{item.categorie}</td>
                 <td>
                   <span
@@ -197,6 +206,7 @@ function UserStock() {
               <thead>
                 <tr>
                   <th>Quantité</th>
+                  <th>Quantité Consommée</th>
                   <th>Date d'association</th>
                 </tr>
               </thead>
@@ -204,6 +214,7 @@ function UserStock() {
                 {detailedItems.map((detail, index) => (
                   <tr key={index}>
                     <td>{detail.quantite}</td>
+                    <td>{detail.quantiteConso || 0}</td>
                     <td>{new Date(detail.date).toLocaleDateString()}</td>
                   </tr>
                 ))}

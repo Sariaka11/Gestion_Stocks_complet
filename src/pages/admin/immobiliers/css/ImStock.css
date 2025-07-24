@@ -10,18 +10,11 @@
   font-weight: 600;
 }
 
-.imstock-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
 
 .imstock-actions {
-  display: flex;
-  gap: 1rem;
+  margin-top: -30px;
+  margin-bottom: -30px;
   width: 100%;
-  justify-content: space-between;
 }
 
 .btn-add {
@@ -46,6 +39,7 @@
   position: relative;
   flex: 1;
   max-width: 400px;
+  
 }
 
 .search-icon {
@@ -77,7 +71,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  
+  margin-top: 20px; 
 }
 
 .imstock-table {
@@ -536,9 +530,9 @@
   }
 }
 .section-categorie {
-  margin-top: 3rem;
+  margin-top: 2rem;
   border-top: 1px solid #ddd;
-  padding-top: 2rem;
+  padding-top: 1rem;
   margin-bottom: 10%;
 }
 
@@ -569,6 +563,8 @@
 .table-categorie {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 25px;
+  margin-bottom: -35px;
 }
 
 .table-categorie th, .table-categorie td {

@@ -336,11 +336,6 @@ function ImInventaire() {
           <p>Chargement en cours...</p>
         </div>
       )}
-
-      <div className="inventaire-header">
-        <h2>Inventaire des immobiliers</h2>
-      </div>
-
       <div className="inventaire-actions">
         <button className="btn-exp" onClick={exporterEnPDF}>
           <FileDown size={16} /> Exporter l'inventaire en PDF

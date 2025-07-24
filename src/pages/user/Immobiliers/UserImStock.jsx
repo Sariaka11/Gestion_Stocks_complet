@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getBienByAgence } from "../../../services/bienAgenceServices"; 
-import { useAuth } from "../../../Context/AuthContext"; 
+import { getBienByAgence } from "../../../services/bienAgenceServices";
+import { useAuth } from "../../../Context/AuthContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "./css/Stock.css";
@@ -17,7 +17,6 @@ function UserStock() {
   const [selectedItem, setSelectedItem] = useState(null);
   const { user, userAgenceId, isAuthLoading } = useAuth();
 
-  // Log pour suivre l'état à chaque rendu
   console.log("Rendu de UserStock, user:", user, "userAgenceId:", userAgenceId, "isAuthLoading:", isAuthLoading);
 
   useEffect(() => {
@@ -27,20 +26,36 @@ function UserStock() {
         setError(null);
         console.log("Appel de fetchStock avec userAgenceId:", userAgenceId);
         const response = await getBienByAgence(userAgenceId);
-        console.log("Données mappées pour le stock :", response);
+        console.log("Données brutes reçues :", response);
         const stockData = response.data;
+
         if (!Array.isArray(stockData)) {
           throw new Error("Les données reçues ne sont pas un tableau.");
         }
-        // Filtrer les doublons
-        const uniqueStockData = stockData.filter(
-          (item, index, self) =>
-            index ===
-            self.findIndex(
-              (t) => t.idBien === item.idBien && t.idAgence === item.idAgence
-            )
-        );
-        console.log("Structure des données :", uniqueStockData);
+
+        // Regrouper les données par idBien, categorie et fonction
+        const groupedStockData = stockData.reduce((acc, item) => {
+          const key = `${item.idBien}-${item.categorie}-${item.fonction || "N/A"}`;
+          if (!acc[key]) {
+            acc[key] = {
+              idBien: item.idBien,
+              nomBien: item.nomBien || "N/A",
+              categorie: item.categorie || "N/A",
+              fonction: item.fonction || "N/A",
+              quantite: 0,
+              quantiteConso: 0,
+              nomAgence: item.nomAgence || "N/A",
+            };
+          }
+          acc[key].quantite += Number(item.quantite) || 0;
+          acc[key].quantiteConso += Number(item.quantiteConso) || 0;
+          return acc;
+        }, {});
+
+        // Convertir l'objet regroupé en tableau
+        const uniqueStockData = Object.values(groupedStockData);
+        console.log("Données regroupées par idBien, categorie, fonction :", uniqueStockData);
+
         setStockItems(uniqueStockData);
         setFilteredItems(uniqueStockData);
         const uniqueCategories = ["Toutes", ...new Set(uniqueStockData.map(item => item.categorie))];
@@ -84,14 +99,14 @@ function UserStock() {
     doc.text(`Rapport des Biens par Agence${selectedCategory !== "Toutes" ? ` - ${selectedCategory}` : ""}`, 14, 20);
 
     autoTable(doc, {
-      head: [["Nom du Bien", "Catégorie", "Quantité", "Quantité Consommée", "Fonction", "Date d'Affectation"]],
+      head: [["Nom du Bien", "Catégorie", "Fonction", "Quantité", "Quantité Consommée", "Disponibilité"]],
       body: filteredItems.map(item => [
         item.nomBien || "N/A",
         item.categorie || "N/A",
+        item.fonction || "N/A",
         item.quantite || 0,
         item.quantiteConso || 0,
-        item.fonction || "N/A",
-        new Date(item.dateAffectation).toLocaleDateString("fr-FR") || "N/A",
+        item.quantite > 0 ? "Disponible" : "Indisponible",
       ]),
       startY: 30,
       styles: {
@@ -110,8 +125,8 @@ function UserStock() {
       columnStyles: {
         0: { cellWidth: 40 },
         1: { cellWidth: 30 },
-        2: { cellWidth: 20 },
-        3: { cellWidth: 30 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 20 },
         4: { cellWidth: 30 },
         5: { cellWidth: 30 },
       },
@@ -173,22 +188,26 @@ function UserStock() {
             <tr>
               <th>Nom du Bien</th>
               <th>Catégorie</th>
+              <th>Fonction</th>
               <th>Quantité</th>
               <th>Quantité Consommée</th>
-              <th>Fonction</th>
-              <th>Date d'Affectation</th>
+              <th>Disponibilité</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredItems.map((item, index) => (
-              <tr key={`${item.idBien}-${item.idAgence}-${index}`}>
+              <tr key={`${item.idBien}-${item.categorie}-${item.fonction}-${index}`}>
                 <td>{item.nomBien}</td>
                 <td>{item.categorie}</td>
+                <td>{item.fonction}</td>
                 <td>{item.quantite}</td>
                 <td>{item.quantiteConso || 0}</td>
-                <td>{item.fonction || "N/A"}</td>
-                <td>{new Date(item.dateAffectation).toLocaleDateString("fr-FR")}</td>
+                <td>
+                  <span className={`status-badge ${item.quantite > 0 ? "disponible" : "indisponible"}`}>
+                    {item.quantite > 0 ? "Disponible" : "Indisponible"}
+                  </span>
+                </td>
                 <td className="actions-cell">
                   <button className="btn-details" onClick={() => openDetails(item)}>
                     Détails
@@ -218,20 +237,16 @@ function UserStock() {
                   <td>{selectedItem.categorie}</td>
                 </tr>
                 <tr>
+                  <th>Fonction</th>
+                  <td>{selectedItem.fonction}</td>
+                </tr>
+                <tr>
                   <th>Quantité</th>
                   <td>{selectedItem.quantite}</td>
                 </tr>
                 <tr>
                   <th>Quantité Consommée</th>
                   <td>{selectedItem.quantiteConso || 0}</td>
-                </tr>
-                <tr>
-                  <th>Fonction</th>
-                  <td>{selectedItem.fonction || "N/A"}</td>
-                </tr>
-                <tr>
-                  <th>Date d'Affectation</th>
-                  <td>{new Date(selectedItem.dateAffectation).toLocaleDateString("fr-FR")}</td>
                 </tr>
               </tbody>
             </table>

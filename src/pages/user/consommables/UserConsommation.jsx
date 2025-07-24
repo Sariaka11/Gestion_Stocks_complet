@@ -91,7 +91,69 @@ function UserConsommation() {
     try {
       const parsedConsoMm = Number.parseFloat(addFormData.consoMm)
       if (isNaN(parsedConsoMm) || parsedConsoMm <= 0) {
-        setError("Veuillez entrer une consommation valide.")
+        toast.error("Veuillez entrer une consommation valide.", {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#EF4444",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+          },
+        })
+        return
+      }
+
+      // Trouver la fourniture dans consommations pour vérifier la quantité disponible
+      const fourniture = consommations.find(
+        (item) => item.fournitureId === addFormData.fournitureId
+      )
+      if (!fourniture) {
+        toast.error("Fourniture non trouvée.", {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#EF4444",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+          },
+        })
+        return
+      }
+
+      if (fourniture.quantite === 0) {
+        toast.error(`${addFormData.fournitureNom} est indisponible.`, {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#EF4444",
+            color: "#fff",
+            fontWeight: "500",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+          },
+        })
+        return
+      }
+
+      if (parsedConsoMm > fourniture.quantite) {
+        toast.error(
+          `La consommation (${parsedConsoMm}) dépasse la quantité disponible (${fourniture.quantite}).`,
+          {
+            duration: 4000,
+            position: "top-right",
+            style: {
+              background: "#EF4444",
+              color: "#fff",
+              fontWeight: "500",
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+            },
+          }
+        )
         return
       }
 
@@ -117,9 +179,36 @@ function UserConsommation() {
       setShowAddModal(false)
       setAddFormData({ fournitureId: null, fournitureNom: "", consoMm: "" })
       setError(null)
+
+      toast.success(`Consommation ajoutée pour ${addFormData.fournitureNom} !`, {
+        duration: 4000,
+        position: "top-right",
+        style: {
+          background: "#10B981",
+          color: "#fff",
+          fontWeight: "500",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(16, 185, 129, 0.15)",
+        },
+        iconTheme: {
+          primary: "#fff",
+          secondary: "#10B981",
+        },
+      })
     } catch (error) {
       setError("Erreur lors de l'ajout de la consommation.")
       console.error("Erreur:", error.message)
+      toast.error("Erreur lors de l'ajout de la consommation.", {
+        duration: 4000,
+        position: "top-right",
+        style: {
+          background: "#EF4444",
+          color: "#fff",
+          fontWeight: "500",
+          borderRadius: "8px",
+          boxShadow: "0 4px 12px rgba(239, 68, 68, 0.15)",
+        },
+      })
     }
   }
 

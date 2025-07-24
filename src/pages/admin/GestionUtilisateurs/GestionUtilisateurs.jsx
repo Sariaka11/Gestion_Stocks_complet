@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -32,6 +31,10 @@ function GestionUtilisateurs() {
   const [showContactModal, setShowContactModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDispatcheModal, setShowDispatcheModal] = useState(false)
+  // Nouvel état pour le modal de confirmation de suppression
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+  const [userToDelete, setUserToDelete] = useState(null)
+
   const [nouvelleAgence, setNouvelleAgence] = useState("")
   const [numeroAgence, setNumeroAgence] = useState("")
   const [nouveauNom, setNouveauNom] = useState("")
@@ -49,7 +52,6 @@ function GestionUtilisateurs() {
     try {
       const response = await getUsers()
       const data = response.data
-
       const usersWithDetails = await Promise.all(
         data.map(async (user) => {
           const agenceResponse = await getUserAgence(user.id).catch(() => ({
@@ -59,7 +61,6 @@ function GestionUtilisateurs() {
             data: [],
           }))
           let stockItems = fournituresResponse.data
-
           if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
             stockItems = stockItems.$values
           } else if (!Array.isArray(stockItems)) {
@@ -70,7 +71,6 @@ function GestionUtilisateurs() {
           // Calcul amélioré du niveau de stock
           let stockLevel = 0
           let stockCritique = false
-
           if (stockItems.length > 0) {
             // Calculer le pourcentage moyen de stock restant
             const stockPercentages = stockItems.map((item) => {
@@ -78,15 +78,12 @@ function GestionUtilisateurs() {
               const remainingQty = item.quantiteRestante || 0
               return (remainingQty / initialQty) * 100
             })
-
             stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
             stockLevel = Math.min(100, Math.max(0, stockLevel))
-
             stockCritique = stockItems.some((item) => (item.quantite || 0) < (item.seuilCritique || 10))
           }
 
           const agence = agenceResponse.data
-
           return {
             id: user.id,
             nom: `${user.nom} ${user.prenom}`,
@@ -147,7 +144,6 @@ function GestionUtilisateurs() {
       let agence
       const agenceResponse = await getAgences()
       const agences = Array.isArray(agenceResponse.data.$values) ? agenceResponse.data.$values : agenceResponse.data
-
       agence = agences.find((a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence)
 
       if (!agence) {
@@ -166,6 +162,7 @@ function GestionUtilisateurs() {
         fonction: "utilisateur",
         dateAssociation: new Date(),
       })
+
       const user = userResponse.data
 
       await createUserAgence({
@@ -176,12 +173,15 @@ function GestionUtilisateurs() {
 
       const newUserResponse = await getUserById(user.id)
       const newUserData = newUserResponse.data
+
       const agenceDetails = await getUserAgence(user.id).catch(() => ({
         data: { nom: agence.nom },
       }))
+
       const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
         data: [],
       }))
+
       let stockItems = fournituresResponse.data
       console.log(fournituresResponse.data)
       if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
@@ -243,7 +243,6 @@ function GestionUtilisateurs() {
       let agence
       const agenceResponse = await getAgences()
       const agences = Array.isArray(agenceResponse.data.$values) ? agenceResponse.data.$values : agenceResponse.data
-
       agence = agences.find((a) => a.nom.toLowerCase() === nouvelleAgence.toLowerCase() || a.numero === numeroAgence)
 
       if (!agence) {
@@ -266,6 +265,7 @@ function GestionUtilisateurs() {
         email: nouveauEmail,
         fonction: "Utilisateur",
       }
+
       if (nouveauMotDePasse) {
         userData.motDePasse = nouveauMotDePasse
       }
@@ -296,6 +296,7 @@ function GestionUtilisateurs() {
             }
           : user,
       )
+
       setUsers(usersModifies)
       setSelectedUser({
         ...selectedUser,
@@ -304,6 +305,7 @@ function GestionUtilisateurs() {
         agence: nouvelleAgence,
         role: "Utilisateur",
       })
+
       setShowEditModal(false)
       afficherMessage(`Utilisateur ${nouveauNom} ${nouveauPrenom} modifié avec succès !`, "succes")
       await fetchUsers()
@@ -315,12 +317,22 @@ function GestionUtilisateurs() {
     }
   }
 
-  // Delete user
-  const supprimerUtilisateur = async (userId) => {
+  // Fonction pour ouvrir le modal de confirmation de suppression
+  const confirmerSuppression = (user) => {
+    setUserToDelete(user)
+    setShowDeleteConfirmModal(true)
+  }
+
+  // Delete user - fonction modifiée
+  const supprimerUtilisateur = async () => {
+    if (!userToDelete) return
+
     try {
-      await deleteUser(userId)
-      setUsers(users.filter((user) => user.id !== userId))
+      await deleteUser(userToDelete.id || userToDelete)
+      setUsers(users.filter((user) => user.id !== (userToDelete.id || userToDelete)))
       setShowModal(false)
+      setShowDeleteConfirmModal(false)
+      setUserToDelete(null)
       afficherMessage("Utilisateur supprimé avec succès !", "succes")
     } catch (err) {
       console.error("Erreur lors de la suppression de l'utilisateur :", err)
@@ -331,13 +343,18 @@ function GestionUtilisateurs() {
     }
   }
 
+  // Fonction pour annuler la suppression
+  const annulerSuppression = () => {
+    setShowDeleteConfirmModal(false)
+    setUserToDelete(null)
+  }
+
   // Send message
   const envoyerMessage = () => {
     if (!messageContact.trim()) {
       afficherMessage("Veuillez saisir un message", "erreur")
       return
     }
-
     console.log(`Message envoyé à ${selectedUser.nom}: ${messageContact}`)
     setMessageContact("")
     setShowContactModal(false)
@@ -372,6 +389,7 @@ function GestionUtilisateurs() {
     try {
       const userResponse = await getUserById(user.id)
       const userData = userResponse.data
+
       const agenceResponse = await getUserAgence(user.id).catch(() => ({
         data: { nom: "N/A", id: null },
       }))
@@ -411,14 +429,12 @@ function GestionUtilisateurs() {
       // Calcul amélioré du niveau de stock et statut critique
       let stockLevel = 0
       let stockCritique = false
-
       if (stockItems.length > 0) {
         // Calculer le pourcentage moyen de stock restant par rapport à la quantité initiale
         const stockPercentages = stockItems.map((item) => {
           const initialQty = item.quantiteInitiale || 1 // Éviter division par zéro
           return (item.quantiteRestante / initialQty) * 100
         })
-
         stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
         stockLevel = Math.min(100, Math.max(0, stockLevel)) // Limiter entre 0 et 100
 
@@ -492,7 +508,6 @@ function GestionUtilisateurs() {
   return (
     <div className="gestion-utilisateurs-container">
       <h1 className="page-title">Gestion des Utilisateurs</h1>
-
       <div className="search-filter-container">
         <div className="search-box">
           <svg
@@ -514,7 +529,6 @@ function GestionUtilisateurs() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
         <div className="filter-box">
           <svg
             className="filter-icon"
@@ -534,7 +548,6 @@ function GestionUtilisateurs() {
             <option>admin</option>
           </select>
         </div>
-
         <button className="btn-add-user" onClick={() => setShowAddUserModal(true)}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -543,6 +556,50 @@ function GestionUtilisateurs() {
           Ajouter un utilisateur
         </button>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteConfirmModal && userToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-contenu">
+            <div className="modal-header">
+              <h2>Confirmer la suppression</h2>
+              <button className="close-modal-btn" onClick={annulerSuppression}>
+                ×
+              </button>
+            </div>
+            <div className="formulaire-modal">
+              <div className="confirmation-content">
+                <div className="warning-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </div>
+                <p>
+                  Êtes-vous sûr de vouloir supprimer l'utilisateur{" "}
+                  <strong>{userToDelete.nom || `Utilisateur ${userToDelete}`}</strong> ?
+                </p>
+                <p className="warning-text">Cette action est irréversible.</p>
+              </div>
+              <div className="actions-modal">
+                <button className="bouton-annuler" onClick={annulerSuppression}>
+                  Annuler
+                </button>
+                <button className="bouton-supprimer" onClick={supprimerUtilisateur}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3,6 5,6 21,6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                  Supprimer définitivement
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Ajouter Utilisateur */}
       {showAddUserModal && (
@@ -945,7 +1002,6 @@ function GestionUtilisateurs() {
                     </button>
                   )}
                 </div>
-
                 <div className="user-details">
                   <div className="detail-item">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -954,11 +1010,7 @@ function GestionUtilisateurs() {
                     </svg>
                     <span>{user.email}</span>
                   </div>
-          
                 </div>
-
-               
-
                 <div className="user-actions">
                   <button className="view-details-btn" onClick={() => openUserDetails(user)}>
                     Voir détails
@@ -967,7 +1019,7 @@ function GestionUtilisateurs() {
                       <polyline points="12,5 19,12 12,19"></polyline>
                     </svg>
                   </button>
-                  <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(user.id)}>
+                  <button className="action-btn delete-user" onClick={() => confirmerSuppression(user)}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="3,6 5,6 21,6"></polyline>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1013,12 +1065,6 @@ function GestionUtilisateurs() {
                 </svg>
                 <span>{selectedUser.email}</span>
               </div>
-              {/* <div className="contact-item">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                </svg>
-                <span>{selectedUser.telephone}</span>
-              </div> */}
               <div className="contact-item">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -1029,7 +1075,6 @@ function GestionUtilisateurs() {
                 <span>Créé le {selectedUser.dateCreation}</span>
               </div>
             </div>
-
             <div className="user-stats">
               <div className="stat-box">
                 <div className="stat-icon">
@@ -1045,7 +1090,6 @@ function GestionUtilisateurs() {
                   <p>{selectedUser.stockItems.reduce((total, item) => total + item.quantite, 0)}</p>
                 </div>
               </div>
-
               <div className="stat-box">
                 <div className="stat-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1059,7 +1103,6 @@ function GestionUtilisateurs() {
                   <p>{selectedUser.stockItems.filter((item) => item.quantite < item.seuil).length}</p>
                 </div>
               </div>
-
               <div className="stat-box">
                 <div className="stat-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1079,7 +1122,6 @@ function GestionUtilisateurs() {
                 </div>
               </div>
             </div>
-
             <div className="stock-details">
               <h3>Détails du stock</h3>
               <div className="stock-tabs">
@@ -1121,7 +1163,6 @@ function GestionUtilisateurs() {
                 </table>
               </div>
             </div>
-
             <div className="user-actions-footer">
               <button className="action-btn send-stock" onClick={openDispatcheModal}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1143,7 +1184,7 @@ function GestionUtilisateurs() {
                 </svg>
                 Modifier l'utilisateur
               </button>
-              <button className="action-btn delete-user" onClick={() => supprimerUtilisateur(selectedUser.id)}>
+              <button className="action-btn delete-user" onClick={() => confirmerSuppression(selectedUser)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="3,6 5,6 21,6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
