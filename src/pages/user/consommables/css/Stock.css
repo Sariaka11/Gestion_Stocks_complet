@@ -129,7 +129,7 @@ html, body, #root {
 }
 
 .status-badge.disponible {
-  background-color: #2ecc71;
+  background-color: #219774;
   color: white;
 }
 
@@ -139,7 +139,7 @@ html, body, #root {
 }
 
 .actions-cell .btn-details {
-  background-color: #f39c12;
+  background-color: #043d53;
   color: white;
   padding: 0.4rem 1rem;
   border: none;
@@ -149,7 +149,7 @@ html, body, #root {
 }
 
 .actions-cell .btn-details:hover {
-  background-color: #d68910;
+  background-color: #1f6eaf;
 }
 
 .modal {
@@ -201,10 +201,9 @@ html, body, #root {
 
 .btn-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  width: 100px;
   border: none;
-  background: #ff4444;
+  background: #056094;
   color: white;
   padding: 5px 10px;
   border-radius: 3px;
@@ -212,9 +211,7 @@ html, body, #root {
   transition: background-color 0.3s;
 }
 
-.btn-close:hover {
-  background-color: #cc0000;
-}
+
 
 .loading-overlay,
 .error-message {

@@ -1,10 +1,9 @@
-"use client"
-
 import { useState, useEffect, useRef } from "react"
-import { Bell, User, Menu, LogOut } from "lucide-react" // Retiré UserPlus car plus nécessaire
+import { Bell, User, Menu, LogOut } from "lucide-react"
 import { useAuth } from "../Context/AuthContext"
-import { getNotifications } from "../services/notificationServices"
+import { getNotifications, markNotificationAsRead } from "../services/notificationServices"
 import "./DashboardHeader.css"
+import { useNavigate } from "react-router-dom"
 
 function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType = "admin" }) {
   const [showNotifications, setShowNotifications] = useState(false)
@@ -12,6 +11,7 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(false)
   const { logout } = useAuth()
+  const navigate = useNavigate()
 
   const notificationRef = useRef(null)
   const profileRef = useRef(null)
@@ -52,7 +52,7 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
 
   const handleLogout = () => {
     logout()
-    window.location.href = "/auth/login"
+    navigate("/auth/login")
   }
 
   const toggleNotifications = (e) => {
@@ -67,17 +67,47 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
     setShowNotifications(false)
   }
 
+  // Gestion du clic sur une notification
+  const handleNotificationClick = async (notification) => {
+    try {
+      // Marquer la notification comme vue
+      await markNotificationAsRead(notification.id)
+      // Mettre à jour l'état local
+      setNotifications(notifications.map(n =>
+        n.id === notification.id ? { ...n, statut: "Vue" } : n
+      ))
+      // Rediriger en fonction de bienId ou fournitureId
+      if (notification.bienId) {
+        navigate("../immobiliers/ImDispatche")
+      } else if (notification.fournitureId) {
+        navigate("../consommables/Dispatche")
+      }
+    } catch (error) {
+      console.error("Erreur lors du marquage de la notification comme vue:", error)
+    }
+  }
+
   // Calculer le temps écoulé
   const getTimeAgo = (date) => {
     const now = new Date()
-    const diffMs = now - new Date(date)
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    if (diffHours < 1) return "Il y a moins d'une heure"
-    return `Il y a ${diffHours} heure${diffHours > 1 ? "s" : ""}`
-  }
-  console.log("userType:", userType);
+    const past = new Date(date)
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length
+    // Décalage manuel si la date est en UTC mais tu veux la lire comme UTC+3
+    past.setHours(past.getHours() + 3)
+
+    const diffMs = now - past
+    const seconds = Math.floor(diffMs / 1000)
+    const minutes = Math.floor(diffMs / 1000 / 60)
+    const hours = Math.floor(diffMs / 1000 / 60 / 60)
+    const days = Math.floor(diffMs / 1000 / 60 / 60 / 24)
+
+    if (seconds < 60) return "Il y a un instant"
+    if (minutes < 60) return `Il y a ${minutes} minute${minutes > 1 ? "s" : ""}`
+    if (hours < 24) return `Il y a ${hours} heure${hours > 1 ? "s" : ""}`
+    return `Il y a ${days} jour${days > 1 ? "s" : ""}`
+  }
+
+  const unreadCount = notifications.filter((n) => n.statut === "Non vue").length
 
   return (
     <header className="dashboard-header">
@@ -97,7 +127,7 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
 
       {/* Section droite */}
       <div className="header-right">
-        {/* Notifications - Affichées uniquement pour admin, comme dans le sidebar */}
+        {/* Notifications - Affichées uniquement pour admin */}
         {userType === "admin" && (
           <div className="header-action" ref={notificationRef}>
             <button className="action-button notification-btn" onClick={toggleNotifications}>
@@ -118,7 +148,11 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
                     <div className="empty-state">Aucune notification</div>
                   ) : (
                     notifications.slice(0, 5).map((notif) => (
-                      <div key={notif.id} className={`notification-item ${!notif.isRead ? "unread" : ""}`}>
+                      <div
+                        key={notif.id}
+                        className={`notification-item ${notif.statut === "Non vue" ? "unread" : "read"}`}
+                        onClick={() => handleNotificationClick(notif)}
+                      >
                         <div className="notification-indicator"></div>
                         <div className="notification-content">
                           <h5 className="notification-title">{notif.titre}</h5>
@@ -148,7 +182,6 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
           {showProfile && (
             <div className="dropdown profile-dropdown">
               <div className="dropdown-body">
-                {/* Uniquement le bouton de déconnexion */}
                 <button className="dropdown-link logout-link" onClick={handleLogout}>
                   <LogOut size={16} />
                   <span>Déconnexion</span>

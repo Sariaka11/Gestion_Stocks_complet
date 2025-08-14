@@ -116,7 +116,7 @@ function Register() {
 
       setSuccess("Utilisateur créé avec succès!")
       setTimeout(() => {
-        navigate("/auth/login")
+        navigate("../GestionUtilisateurs")
       }, 1000)
     } catch (err) {
       setError(err.message)
@@ -126,7 +126,7 @@ function Register() {
   }
 
   const handleGoBack = () => {
-    navigate(-1)
+    navigate("../GestionUtilisateurs")
   }
 
   return (

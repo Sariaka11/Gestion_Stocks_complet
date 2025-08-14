@@ -17,6 +17,7 @@ import {
   getUserAgenceByUserId,
   checkEmail,
 } from "../../../services/userServices"
+import { getBienByAgence } from "../../../services/bienAgenceServices"
 import { afficherMessage } from "../../../components/utils"
 import { getFournitures } from "../../../services/fournituresServices"
 import "./css/gestion.css"
@@ -31,9 +32,9 @@ function GestionUtilisateurs() {
   const [showContactModal, setShowContactModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDispatcheModal, setShowDispatcheModal] = useState(false)
-  // Nouvel état pour le modal de confirmation de suppression
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
+  const [activeTab, setActiveTab] = useState("Consommables") // Nouvel état pour gérer l'onglet actif
 
   const [nouvelleAgence, setNouvelleAgence] = useState("")
   const [numeroAgence, setNumeroAgence] = useState("")
@@ -72,7 +73,6 @@ function GestionUtilisateurs() {
           let stockLevel = 0
           let stockCritique = false
           if (stockItems.length > 0) {
-            // Calculer le pourcentage moyen de stock restant
             const stockPercentages = stockItems.map((item) => {
               const initialQty = item.quantiteInitiale || item.quantite || 1
               const remainingQty = item.quantiteRestante || 0
@@ -183,7 +183,6 @@ function GestionUtilisateurs() {
       }))
 
       let stockItems = fournituresResponse.data
-      console.log(fournituresResponse.data)
       if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
         stockItems = stockItems.$values
       } else if (!Array.isArray(stockItems)) {
@@ -323,7 +322,7 @@ function GestionUtilisateurs() {
     setShowDeleteConfirmModal(true)
   }
 
-  // Delete user - fonction modifiée
+  // Delete user
   const supprimerUtilisateur = async () => {
     if (!userToDelete) return
 
@@ -384,7 +383,7 @@ function GestionUtilisateurs() {
     return matchesSearch && matchesFilter
   })
 
-  // Fonction corrigée pour openUserDetails avec calcul de stock amélioré
+  // Fonction modifiée pour openUserDetails
   const openUserDetails = async (user) => {
     try {
       const userResponse = await getUserById(user.id)
@@ -394,15 +393,14 @@ function GestionUtilisateurs() {
         data: { nom: "N/A", id: null },
       }))
 
+      // Récupérer les fournitures (consommables)
       const fournituresResponse = await getFournitures().catch(() => ({
         data: [],
       }))
 
       let stockItems = fournituresResponse.data
-      console.log("Données fournitures reçues:", stockItems, agenceResponse.data)
-
       if (!Array.isArray(stockItems)) {
-        console.warn(`stockItems non valide pour user ${user.agence} :`, stockItems)
+        console.warn(`stockItems non valide pour user ${user.id} :`, stockItems)
         stockItems = []
       } else {
         stockItems = stockItems.flatMap((item) => {
@@ -413,7 +411,6 @@ function GestionUtilisateurs() {
                   ...agencyData,
                   nom: item.nom,
                   prixUnitaire: item.prixUnitaire,
-                  // Utiliser qttRestant et qtt comme dans les discussions précédentes
                   quantiteRestante: agencyData.quantite || agencyData.quantiteRestante || 0,
                   quantiteInitiale: agencyData.qtt || agencyData.quantite || agencyData.quantiteInitiale || 0,
                   categorie: item.categorie,
@@ -423,22 +420,49 @@ function GestionUtilisateurs() {
               ]
             : []
         })
-        console.log("********************--********", stockItems)
       }
 
-      // Calcul amélioré du niveau de stock et statut critique
+      // Récupérer les données de BIEN_AGENCE (immobiliers)
+      const bienAgenceResponse = await getBienByAgence(agenceResponse.data.id).catch(() => ({
+        data: [],
+      }))
+
+      let immobilierItems = bienAgenceResponse.data
+      if (immobilierItems && immobilierItems.$values && Array.isArray(immobilierItems.$values)) {
+        immobilierItems = immobilierItems.$values
+      } else if (!Array.isArray(immobilierItems)) {
+        console.warn(`immobilierItems non valide pour agence ${agenceResponse.data.id} :`, immobilierItems)
+        immobilierItems = []
+      }
+
+      // Mapper les données de BIEN_AGENCE
+      immobilierItems = immobilierItems.map((item) => {
+        const quantiteRestante = item.quantite || 0
+        const quantiteConso = item.quantiteConso || 0
+        const seuilCritique = item.immobilisation?.seuilCritique || 10
+        const cmup = item.immobilisation?.prixUnitaire || item.cmup || 0
+
+        return {
+          id: item.idBien,
+          designation: item.immobilisation?.nomBien || "Inconnu",
+          quantite: quantiteRestante,
+          quantiteConso: quantiteConso,
+          quantiteInitiale: item.quantite || 0,
+          seuil: seuilCritique,
+          cmup: cmup,
+        }
+      })
+
+      // Calcul amélioré du niveau de stock et statut critique pour consommables
       let stockLevel = 0
       let stockCritique = false
       if (stockItems.length > 0) {
-        // Calculer le pourcentage moyen de stock restant par rapport à la quantité initiale
         const stockPercentages = stockItems.map((item) => {
-          const initialQty = item.quantiteInitiale || 1 // Éviter division par zéro
+          const initialQty = item.quantiteInitiale || 1
           return (item.quantiteRestante / initialQty) * 100
         })
         stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
-        stockLevel = Math.min(100, Math.max(0, stockLevel)) // Limiter entre 0 et 100
-
-        // Vérifier si des articles sont critiques
+        stockLevel = Math.min(100, Math.max(0, stockLevel))
         stockCritique = stockItems.some((item) => item.quantiteRestante < item.seuilCritique)
       }
 
@@ -460,6 +484,7 @@ function GestionUtilisateurs() {
           seuil: item.seuilCritique,
           cmup: item.cmup,
         })),
+        immobilierItems: immobilierItems, // Ajout des données immobilières
       }
 
       setSelectedUser(updatedUser)
@@ -1125,42 +1150,88 @@ function GestionUtilisateurs() {
             <div className="stock-details">
               <h3>Détails du stock</h3>
               <div className="stock-tabs">
-                <button className="tab-button active">Consommables</button>
-                <button className="tab-button">Immobiliers</button>
+                <button
+                  className={`tab-button ${activeTab === "Consommables" ? "active" : ""}`}
+                  onClick={() => setActiveTab("Consommables")}
+                >
+                  Consommables
+                </button>
+                <button
+                  className={`tab-button ${activeTab === "Immobiliers" ? "active" : ""}`}
+                  onClick={() => setActiveTab("Immobiliers")}
+                >
+                  Immobiliers
+                </button>
               </div>
               <div className="table-container">
-                <table className="stock-table">
-                  <thead>
-                    <tr>
-                      <th>Désignation</th>
-                      <th>Quantité</th>
-                      <th>CMUP</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedUser.stockItems.length > 0 ? (
-                      selectedUser.stockItems.map((item) => (
-                        <tr key={item.id} className={item.quantite < item.seuil ? "critical-row" : ""}>
-                          <td>{item.designation}</td>
-                          <td>{item.quantite}</td>
-                          <td>{item.cmup.toLocaleString()} Ar</td>
-                          <td>
-                            <span className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}>
-                              {item.quantite < item.seuil ? "Critique" : "Normal"}
-                            </span>
+                {activeTab === "Consommables" && (
+                  <table className="stock-table">
+                    <thead>
+                      <tr>
+                        <th>Désignation</th>
+                        <th>Quantité</th>
+                        <th>CMUP</th>
+                        <th>Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedUser.stockItems.length > 0 ? (
+                        selectedUser.stockItems.map((item) => (
+                          <tr key={item.id} className={item.quantite < item.seuil ? "critical-row" : ""}>
+                            <td>{item.designation}</td>
+                            <td>{item.quantite}</td>
+                            <td>{item.cmup.toLocaleString()} Ar</td>
+                            <td>
+                              <span className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}>
+                                {item.quantite < item.seuil ? "Critique" : "Normal"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="no-data">
+                            Aucun article en stock
                           </td>
                         </tr>
-                      ))
-                    ) : (
+                      )}
+                    </tbody>
+                  </table>
+                )}
+                {activeTab === "Immobiliers" && (
+                  <table className="stock-table">
+                    <thead>
                       <tr>
-                        <td colSpan="4" className="no-data">
-                          Aucun article en stock
-                        </td>
+                        <th>Désignation</th>
+                        <th>Quantité</th>
+                        <th>Quantité Consommée</th>
+                        <th>Statut</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {selectedUser.immobilierItems.length > 0 ? (
+                        selectedUser.immobilierItems.map((item) => (
+                          <tr key={item.id} className={item.quantite < item.seuil ? "critical-row" : ""}>
+                            <td>{item.designation}</td>
+                            <td>{item.quantite}</td>
+                            <td>{item.quantiteConso}</td>
+                            <td>
+                              <span className={`status-badge ${item.quantite < item.seuil ? "critical" : "normal"}`}>
+                                {item.quantite < item.seuil ? "Critique" : "Normal"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="no-data">
+                            Aucun bien immobilier en stock
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
             <div className="user-actions-footer">
@@ -1171,19 +1242,7 @@ function GestionUtilisateurs() {
                 </svg>
                 Envoyer du stock
               </button>
-              <button className="action-btn contact-user" onClick={openContactModal}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                Contacter l'utilisateur
-              </button>
-              <button className="action-btn edit-user" onClick={openEditModal}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                Modifier l'utilisateur
-              </button>
+             
               <button className="action-btn delete-user" onClick={() => confirmerSuppression(selectedUser)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="3,6 5,6 21,6"></polyline>

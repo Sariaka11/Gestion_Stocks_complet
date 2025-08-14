@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Plus, Search, Save, AlertCircle, RefreshCw, Trash2, Edit, X, CheckCircle, AlertTriangle } from "lucide-react"
 import "./css/ImStock.css"
 import { getImmobiliers, createImmobilier, deleteImmobilier, updateImmobilier } from "../../../services/immobilierServices"
-import { getCategories, createCategorie, updateCategorie, deleteCategorie } from "../../../services/categorieServices"
+import { getCategories, createSousCategorie, createCategorie, updateCategorie, deleteCategorie, getSousCategories } from "../../../services/categorieServices"
 
 function ImStock() {
   const [loading, setLoading] = useState(false)
@@ -13,7 +13,8 @@ function ImStock() {
   const [modalOuvert, setModalOuvert] = useState(false)
   const [immobilierEnEdition, setImmobilierEnEdition] = useState(null)
   const [toasts, setToasts] = useState([])
-  
+  const [sousCategories, setSousCategories] = useState([]) // Nouvel état pour les sous-catégories
+
   const objetVideImmobilier = {
     idBien: 0,
     codeArticle: "",
@@ -23,6 +24,7 @@ function ImStock() {
     quantite: 1,
     statut: "actif",
     idCategorie: "",
+    idSousCategorie: null, // Nouvelle propriété pour la sous-catégorie
     dateAcquisition: new Date().toISOString().split("T")[0],
   }
   const [nouvelImmobilier, setNouvelImmobilier] = useState(objetVideImmobilier)
@@ -36,6 +38,10 @@ function ImStock() {
   const [alerteCategorie, setAlerteCategorie] = useState(null)
 
   const [immobilierItems, setImmobilierItems] = useState([])
+  const [nouvelleSousCategorie, setNouvelleSousCategorie] = useState({
+    nom: "",
+    parentId: "",
+  })
 
   // Fonction pour vérifier la connexion à l'API
   const verifierConnexionApi = async () => {
@@ -58,6 +64,39 @@ function ImStock() {
   useEffect(() => {
     verifierConnexionApi()
   }, [])
+
+  // Fonction pour charger les sous-catégories
+  const chargerSousCategories = (idCategorie) => {
+    if (!idCategorie) {
+      setSousCategories([])
+      return
+    }
+    getSousCategories(idCategorie)
+      .then((res) => {
+        let sousCatRaw = res.data
+        if (res.data && typeof res.data === "object" && "$values" in res.data) {
+          sousCatRaw = res.data.$values
+        }
+        if (!Array.isArray(sousCatRaw)) {
+          console.warn("Les sous-catégories reçues ne sont pas un tableau:", sousCatRaw)
+          sousCatRaw = []
+        }
+        setSousCategories(sousCatRaw)
+      })
+      .catch((err) => {
+        console.error("Erreur chargement sous-catégories:", err)
+        afficherToast("Impossible de charger les sous-catégories", "erreur")
+      })
+  }
+
+  // Charger les sous-catégories lorsque idCategorie change
+  useEffect(() => {
+    if (nouvelImmobilier.idCategorie) {
+      chargerSousCategories(nouvelImmobilier.idCategorie)
+    } else {
+      setSousCategories([])
+    }
+  }, [nouvelImmobilier.idCategorie])
 
   // Fonction pour charger les immobiliers
   const chargerImmobiliers = () => {
@@ -90,6 +129,7 @@ function ImStock() {
           codeBarre: item.codeBarre || "0000000000000",
           quantite: item.quantite ?? 1,
           idCategorie: item.idCategorie,
+          idSousCategorie: item.idSousCategorie || null, // Nouvelle propriété
         }))
 
         console.log("Données immobiliers transformées:", items)
@@ -137,6 +177,40 @@ function ImStock() {
     chargerImmobiliers()
     chargerCategories()
   }, [])
+
+  const sauvegarderSousCategorie = () => {
+    const nom = nouvelleSousCategorie.nom?.trim()
+    const parentId = nouvelleSousCategorie.parentId
+
+    if (!nom || !parentId) {
+      afficherToast("Tous les champs sont obligatoires.", "erreur")
+      return
+    }
+
+    const categorieParente = categories.find(c => c.idCategorie === parentId)
+
+    if (!categorieParente || !categorieParente.dureeAmortissement) {
+      afficherToast("La catégorie parente sélectionnée est invalide ou n’a pas de durée d’amortissement.", "erreur")
+      return
+    }
+
+    const data = {
+      NomCategorie: nom,
+      ParentCategorieId: parentId,
+      DureeAmortissement: categorieParente.dureeAmortissement,
+    }
+
+    createSousCategorie(data)
+      .then(() => {
+        afficherToast("Sous-catégorie créée avec succès !", "succes")
+        setNouvelleSousCategorie({ nom: "", parentId: "" })
+        chargerCategories()
+      })
+      .catch((error) => {
+        console.error("Erreur lors de la création de la sous-catégorie:", error)
+        afficherToast(`Erreur lors de la création de la sous-catégorie: ${error.message}`, "erreur")
+      })
+  }
 
   const sauvegarderCategorie = () => {
     const nom = nouvelleCategorie.nomCategorie?.trim()
@@ -194,7 +268,6 @@ function ImStock() {
     })
   }
 
-  // Générer un code barre EAN-13
   const genererCodeBarre = () => {
     let code = "978"
     for (let i = 0; i < 9; i++) {
@@ -210,7 +283,6 @@ function ImStock() {
     return code + chiffreControle
   }
 
-  // Ouvrir le modal pour ajouter un nouvel immobilier
   const ouvrirModalAjout = () => {
     setImmobilierEnEdition(null)
     setNouvelImmobilier({
@@ -222,7 +294,6 @@ function ImStock() {
     setModalOuvert(true)
   }
 
-  // Ouvrir le modal pour éditer un immobilier existant
   const ouvrirModalEdition = (immobilier) => {
     setImmobilierEnEdition(immobilier)
     setNouvelImmobilier({
@@ -233,14 +304,15 @@ function ImStock() {
       dateAcquisition: immobilier.dateAcquisition,
       quantite: immobilier.quantite.toString(),
       idCategorie: immobilier.idCategorie,
+      idSousCategorie: immobilier.idSousCategorie || null,
       statut: immobilier.statut,
     })
     setModalOuvert(true)
   }
 
-  // Fermer le modal
   const fermerModal = () => {
     setModalOuvert(false)
+    setSousCategories([]) // Réinitialiser les sous-catégories
   }
 
   const sauvegarderImmobilier = () => {
@@ -261,6 +333,7 @@ function ImStock() {
       quantite: Number.parseInt(nouvelImmobilier.quantite, 10) || 1,
       statut: nouvelImmobilier.statut,
       idCategorie: Number.parseInt(nouvelImmobilier.idCategorie, 10),
+      idSousCategorie: nouvelImmobilier.idSousCategorie ? Number.parseInt(nouvelImmobilier.idSousCategorie, 10) : null,
       dateAcquisition: nouvelImmobilier.dateAcquisition,
       codeBarre: nouvelImmobilier.codeBarre,
     }
@@ -279,10 +352,12 @@ function ImStock() {
         setNouvelImmobilier(objetVideImmobilier)
         setImmobilierEnEdition(null)
         setModalOuvert(false)
+        setSousCategories([])
         setTimeout(() => chargerImmobiliers(), 500)
       })
       .catch((err) => {
         console.error("Erreur sauvegarde immobilier:", err)
+        afficherToast(`Erreur lors de la sauvegarde de l'immobilier: ${err.message}`, "erreur")
       })
       .finally(() => {
         setLoading(false)
@@ -311,7 +386,6 @@ function ImStock() {
     })
   }
 
-  // Fonction pour afficher une boîte de dialogue de confirmation moderne
   const afficherConfirmation = (message, onConfirm) => {
     const confirmationId = Date.now()
     const confirmation = {
@@ -326,7 +400,6 @@ function ImStock() {
     setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
   }
 
-  // Fonction pour afficher un toast
   const afficherToast = (message, type) => {
     const id = Date.now()
     const nouveauToast = {
@@ -342,12 +415,10 @@ function ImStock() {
     }, 5000)
   }
 
-  // Supprimer un toast spécifique
   const supprimerToast = (id) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
-  // Filtrer les immobiliers
   const immobiliersFiltres = immobilierItems.filter(
     (item) =>
       (item.nomBien || "").toLowerCase().includes(filtreDesignation.toLowerCase()) ||
@@ -374,13 +445,11 @@ function ImStock() {
         </div>
       )}
 
-    
-        <div className="imstock-actions">
-          <button className="btn-add" onClick={ouvrirModalAjout}>
-            <Plus size={16} /> Ajouter un bien
-          </button>          
-        </div>
-      
+      <div className="imstock-actions">
+        <button className="btn-add" onClick={ouvrirModalAjout}>
+          <Plus size={16} /> Ajouter un bien
+        </button>          
+      </div>
 
       <div className="section-categorie">
         <h2>Gestion des catégories</h2>
@@ -411,7 +480,9 @@ function ImStock() {
               }))
             }
           />
-          <button onClick={sauvegarderCategorie}>{categorieEnEdition ? "Modifier" : "Créer"}</button>
+          <button onClick={sauvegarderCategorie}>
+            {categorieEnEdition ? "Modifier" : "Créer"}
+          </button>
           {categorieEnEdition && (
             <button
               onClick={() => {
@@ -425,6 +496,36 @@ function ImStock() {
               Annuler
             </button>
           )}
+
+          <hr style={{ margin: "1rem 0" }} />
+          <input
+            type="text"
+            placeholder="Nom de la sous-catégorie"
+            value={nouvelleSousCategorie.nom}
+            onChange={(e) =>
+              setNouvelleSousCategorie((prev) => ({
+                ...prev,
+                nom: e.target.value,
+              }))
+            }
+          />
+          <select
+            value={nouvelleSousCategorie.parentId}
+            onChange={(e) =>
+              setNouvelleSousCategorie((prev) => ({
+                ...prev,
+                parentId: parseInt(e.target.value, 10),
+              }))
+            }
+          >
+            <option value="">Choisir une catégorie parent</option>
+            {categories.map((cat) => (
+              <option key={cat.idCategorie} value={cat.idCategorie}>
+                {cat.nomCategorie}
+              </option>
+            ))}
+          </select>
+          <button onClick={sauvegarderSousCategorie}>Créer</button>
         </div>
 
         <table className="table-categorie">
@@ -463,16 +564,17 @@ function ImStock() {
           </tbody>
         </table>
       </div>
-      
+
       <div className="search-bar">
-            <Search size={18} className="search-icon" />
-            <input
-              type="text"
-              placeholder="Rechercher un bien..."
-              value={filtreDesignation}
-              onChange={(e) => setFiltreDesignation(e.target.value)}
-            />
-          </div>
+        <Search size={18} className="search-icon" />
+        <input
+          type="text"
+          placeholder="Rechercher un bien..."
+          value={filtreDesignation}
+          onChange={(e) => setFiltreDesignation(e.target.value)}
+        />
+      </div>
+
       <div className="imstock-table-container">
         <h2 className="titre2">Gestion des biens</h2>
         <table className="imstock-table">
@@ -565,6 +667,7 @@ function ImStock() {
                   setNouvelImmobilier({
                     ...nouvelImmobilier,
                     idCategorie: Number.parseInt(e.target.value, 10) || null,
+                    idSousCategorie: null, // Réinitialiser la sous-catégorie
                   })
                 }
                 required
@@ -577,6 +680,29 @@ function ImStock() {
                 ))}
               </select>
             </div>
+
+            {nouvelImmobilier.idCategorie && (
+              <div className="groupe-champ">
+                <label htmlFor="sousCategorie">Sous-catégorie</label>
+                <select
+                  id="sousCategorie"
+                  value={nouvelImmobilier.idSousCategorie || ""}
+                  onChange={(e) =>
+                    setNouvelImmobilier({
+                      ...nouvelImmobilier,
+                      idSousCategorie: e.target.value ? Number.parseInt(e.target.value, 10) : null,
+                    })
+                  }
+                >
+                  <option value="">-- Aucune sous-catégorie --</option>
+                  {sousCategories.map((sousCat) => (
+                    <option key={sousCat.idCategorie} value={sousCat.idCategorie}>
+                      {sousCat.nomCategorie}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="groupe-champ">
               <label htmlFor="dateAcquisition">Date d'acquisition</label>
@@ -643,7 +769,6 @@ function ImStock() {
         </div>
       )}
 
-      {/* Système de toast notifications */}
       <div className="toast-container">
         {toasts.map((toast) =>
           toast.type === "confirmation" ? (

@@ -2,10 +2,19 @@ import axios from "axios"
 
 const API_URL = "http://localhost:5000/api"
 
-// Configuration pour CORS
+// Configuration globale
 axios.defaults.headers.common["Access-Control-Allow-Origin"] = "*"
 
-// Intercepteur pour gérer les erreurs et afficher les détails
+// Intercepteur pour les requêtes
+axios.interceptors.request.use(
+  (config) => {
+    console.log("Requête envoyée:", config.url, config.method)
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Intercepteur pour les réponses
 axios.interceptors.response.use(
   (response) => {
     console.log("Réponse API réussie:", response.config.url)
@@ -21,30 +30,30 @@ axios.interceptors.response.use(
       data: error.response?.data,
     })
 
-    // Vérifiez si c'est une erreur CORS
     if (error.message === "Network Error") {
       console.error(
-        "Possible erreur CORS ou serveur non disponible. Vérifiez que votre serveur backend est en cours d'exécution et configuré pour CORS.",
+        "Erreur CORS ou backend non joignable. Vérifie que ton serveur est lancé et que CORS est activé."
       )
     }
 
     return Promise.reject(error)
-  },
+  }
 )
 
-// Intercepteur pour les requêtes
-axios.interceptors.request.use(
-  (config) => {
-    console.log("Requête envoyée:", config.url, config.method)
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  },
-)
+// 🔽 Fonctions API
 
 export const getCategories = () => {
   return axios.get(`${API_URL}/Categories`)
+}
+
+// ✅ Obtenir toutes les catégories principales (ParentCategorieId == null)
+export const getCategoriesPrincipales = () => {
+  return axios.get(`${API_URL}/Categories/principales`)
+}
+
+// ✅ Obtenir les sous-catégories d’une catégorie donnée
+export const getSousCategories = (idCategorie) => {
+  return axios.get(`${API_URL}/Categories/${idCategorie}/sous-categories`)
 }
 
 export const getCategorieById = (id) => {
@@ -62,3 +71,8 @@ export const updateCategorie = (id, categorieData) => {
 export const deleteCategorie = (id) => {
   return axios.delete(`${API_URL}/Categories/${id}`)
 }
+
+export const createSousCategorie = async (data) => {
+  return await axios.post(`${API_URL}/Categories`, data)
+}
+

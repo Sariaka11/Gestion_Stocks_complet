@@ -233,7 +233,7 @@ function Inventaire() {
         excelData.push(header1);
         excelData.push(header2);
         currentRow += 2;
-
+        console.log("*-*-*-*-*", filtreMoisConsommation)
         const tableData = categoryFournitures.map((f) => {
           const consommation = agenceFournitures
             .filter((af) => {
@@ -286,6 +286,7 @@ function Inventaire() {
           currentRow++;
         }
 
+        console.log("excelData", excelData)
         // Fusions des en-têtes (corrigées)
         const hasData = tableData.length > 0;
         if (hasData) {
@@ -621,7 +622,8 @@ function Inventaire() {
                         if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
                         const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
                         if (moisIndex === -1) return false;
-                        return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex).padStart(2, "0")}`);
+                        // console.log('String(moisIndex).padStart(2, "0")', String(moisIndex - 1).padStart(2, "0"))
+                        return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex + 1).padStart(2, "0")}`);
                       })
                       .reduce((sum, af) => sum + (af.quantite || 0), 0);
 
@@ -630,7 +632,7 @@ function Inventaire() {
                     const stockAu = (f.quantite || 0) - consommation;
                     return (
                       <tr key={`cons-row-${f.id}-${index}`}>
-                        <td>{f.nom}</td>
+                        <td>{f.nom} </td>
                         <td>{consommation}</td>
                         <td>{cmupConsommation.toFixed(2)}</td>
                         <td>{montantConsommation.toFixed(2)}</td>

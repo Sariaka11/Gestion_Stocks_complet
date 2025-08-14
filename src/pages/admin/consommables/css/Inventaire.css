@@ -25,11 +25,11 @@
 }
 
 .header-actions .btn-exporter {
-  background: linear-gradient(45deg, #f36262, #ec1c1c);
+  background:#4ba076 ;
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 25px;
+  padding: 8px 12px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -37,21 +37,11 @@
   transition: transform 0.2s, box-shadow 0.3s;
 }
 
-.header-actions .btn-exporter:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(239, 154, 154, 0.3);
+.btn-exporter:hover {
+  background:#2e6348 ;
+  color: white;
 }
 
- .btn-exporter2{
- background-color: linear-gradient(45deg, #d35454, #ec1c1c);
- color: rgb(185, 28, 17); 
- margin-left: 60px;
- margin-top: 35px;
-}
-
-.btn-exporter2:hover{
-border: #ec1c1c;
-}
 
 .filters-container {
   display: flex;
@@ -194,9 +184,10 @@ border: #ec1c1c;
 }
 
 .data-table th {
-  background: #ffebee;
-  color: #c62828;
+  background:  #f8f9fa;
+  color:black;
   font-weight: 500;
+  font-size: medium;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -207,7 +198,7 @@ border: #ec1c1c;
 }
 
 .data-table tr:hover {
-  background-color: #fff3f3;
+  background-color: #f9fbfc;
 }
 
 .data-table tfoot td {
@@ -231,7 +222,7 @@ border: #ec1c1c;
 
 .spinner {
   animation: spin 1s linear infinite;
-  color: #ef9a9a;
+  color:  #fff3f3;
 }
 
 @keyframes spin {

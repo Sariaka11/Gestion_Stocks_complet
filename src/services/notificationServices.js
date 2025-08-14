@@ -19,3 +19,8 @@ export const getNotifications = (userId, isAdmin = false) => {
     params: { userId, isAdmin }
   });
 };
+
+export const markNotificationAsRead = (notificationId) => {
+  console.log("Envoi de la requête PUT à:", `${API_URL}/Notifications/${notificationId}/mark-as-read`);
+  return axios.put(`${API_URL}/Notifications/${notificationId}/mark-as-read`);
+};

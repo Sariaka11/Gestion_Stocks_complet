@@ -168,7 +168,7 @@ export function MockDataProvider({ children }) {
   useEffect(() => {
     const checkApiAvailability = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/Categories", {
+        const response = await fetch("http://localhost/api/Categories", {
           method: "GET",
           mode: "cors",
           headers: {

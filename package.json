@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "build:dev": "vite build --mode development",
+    "build:prod": "vite build --mode production",
+    "preview": "vite preview",
+    "preview:prod": "vite preview --mode production",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -40,6 +43,7 @@
     "globals": "^16.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
+    "terser": "^5.43.1",
     "vite": "^6.3.5"
   }
 }
