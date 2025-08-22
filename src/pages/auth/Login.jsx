@@ -71,10 +71,10 @@ function Login() {
 
       // Rediriger immédiatement
       hasRedirected.current = true
-      if (userData.fonction === "admin") {
+      if (userData.Fonction === "admin") {
         console.log("Redirection vers admin/suivi-stock")
         navigate("/admin/suivi-stock", { replace: true })
-      } else if (userData.fonction === "utilisateur" ) {
+      } else if (userData.Fonction === "utilisateur" ) {
         console.log("Redirection vers user/consommables/stock")
         navigate("/user/consommables/stock", { replace: true })
       } else {

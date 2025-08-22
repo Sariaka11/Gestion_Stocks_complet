@@ -73,9 +73,9 @@ function Dispatche() {
 
         // Construire le tableau dispatches avec agences déballées
         const lignes = fournituresRaw.map((f) => ({
-          id: f.id,
-          designation: f.nom,
-          quantite: f.quantiteRestante,
+          id: f.Id,
+          designation: f.Nom,
+          quantite: f.QuantiteRestante,
           date: f.date?.split("T")[0],
           consommations: agencesRaw.map((a) => ({ agenceId: a.id, quantite: 0 })),
         }));
@@ -91,8 +91,9 @@ function Dispatche() {
 
   const ajouterAgenceTableau = () => {
     if (!filtreAgenceTableau) return;
-    const agence = agences.find((a) => a.id === parseInt(filtreAgenceTableau));
-    if (agence && !agencesAffichees.find((a) => a.id === agence.id)) {
+    const agence = agences.find((a) => a.Id == parseInt(filtreAgenceTableau));
+    console.log("*-*-*-*", filtreAgenceTableau,agence)
+    if (agence && !agencesAffichees.find((a) => a.id === agence.Id)) {
       setAgencesAffichees((prev) => [...prev, agence]);
     }
     setFiltreAgenceTableau("");
@@ -100,13 +101,13 @@ function Dispatche() {
 
 const supprimerAgence = (id) => {
   // Supprimer l'agence uniquement de agencesAffichees (front-end)
-  setAgencesAffichees((prev) => prev.filter((a) => a.id !== id));
+  setAgencesAffichees((prev) => prev.filter((a) => a.Id !== id));
   
   // Mettre à jour dispatches pour retirer la consommation associée à l'agence supprimée
   setDispatches((prev) =>
     prev.map((d) => ({
       ...d,
-      consommations: d.consommations.filter((c) => c.agenceId !== id),
+      consommations: d.consommations.filter((c) => c.AgenceId !== id),
     }))
   );
   
@@ -137,9 +138,9 @@ const supprimerAgence = (id) => {
         .filter((c) => c.quantite > 0)
         .map((c) =>
           createAgenceFourniture({
-            agenceId: c.agenceId,
-            fournitureId: ligne.id,
-            quantite: c.quantite,
+            agenceId: c.AgenceId,
+            fournitureId: ligne.Id,
+            quantite: c.Quantite,
             dateAssociation: new Date().toISOString(),
           })
         );
@@ -148,11 +149,11 @@ const supprimerAgence = (id) => {
         .then(() => {
           const newRestante = ligne.quantite - totalQuantiteDeduite;
           updateFourniture(ligne.id, {
-            id: ligne.id,
-            nom: ligne.designation,
-            quantite: ligne.quantite,
-            prixUnitaire: fournitures.find((f) => f.id === ligne.id)?.prixUnitaire || 0,
-            categorie: fournitures.find((f) => f.id === ligne.id)?.categorie || "",
+            id: ligne.Id,
+            nom: ligne.Nom,
+            quantite: ligne.Quantite,
+            prixUnitaire: fournitures.find((f) => f.id === ligne.id)?.PrixUnitaire || 0,
+            categorie: fournitures.find((f) => f.id === ligne.id)?.Categorie || "",
             quantiteRestante: newRestante,
             date: new Date().toISOString(),
           }).then(() => {
@@ -193,9 +194,9 @@ const supprimerAgence = (id) => {
   const mettreAJourConsommation = (dispatchId, agenceId, qtt) => {
     setDispatches((prev) =>
       prev.map((d) => {
-        if (d.id === dispatchId) {
+        if (d.Id === dispatchId) {
           const majCons = d.consommations.map((c) =>
-            c.agenceId === agenceId ? { ...c, quantite: parseInt(qtt, 10) || 0 } : c
+            c.AgenceId === agenceId ? { ...c, quantite: parseInt(qtt, 10) || 0 } : c
           );
           return { ...d, consommations: majCons };
         }
@@ -209,12 +210,7 @@ const supprimerAgence = (id) => {
     afficherToast("Dispatch supprimé avec succès", "succes");
   };
 
-  const ouvrirModal = () => {
-    setNouveauDispatch({ fournitureId: "", agenceId: "", quantite: "", date: "" });
-    setFiltreFourniture("");
-    setFiltreAgence("");
-    setModalOuvert(true);
-  };
+
 
   const fermerModal = () => {
     setModalOuvert(false);
@@ -271,7 +267,7 @@ const supprimerAgence = (id) => {
                     ...d,
                     quantite: quantiteRestante,
                     consommations: d.consommations.map((c) =>
-                      c.agenceId === parseInt(agenceId)
+                      c.AgenceId === parseInt(agenceId)
                         ? { ...c, quantite: c.quantite + quantiteInt }
                         : c
                     ),
@@ -336,8 +332,8 @@ const supprimerAgence = (id) => {
               >
                 <option value="">Sélectionner une agence</option>
                 {agences.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nom}
+                  <option key={a.Id} value={a.Id}>
+                    {a.Nom}
                   </option>
                 ))}
               </select>
@@ -345,9 +341,7 @@ const supprimerAgence = (id) => {
             <button className="bouton-ajouter" onClick={ajouterAgenceTableau}>
               <Plus size={16} /> Ajouter
             </button>
-            <button className="bouton-ajouter" onClick={ouvrirModal}>
-              <Plus size={16} /> Créer un envoi
-            </button>
+      
           </div>
         </div>
 
@@ -359,7 +353,7 @@ const supprimerAgence = (id) => {
                   <th>Désignation</th>
                   <th>Quantité</th>
                   {agencesAffichees.length > 0 && <th colSpan={agencesAffichees.length}>Consommations des agences</th>}
-                  <th>Date</th>
+                  {/* <th>Date</th> */}
                   <th>Actions</th>
                 </tr>
                 {agencesAffichees.length > 0 && (
@@ -367,11 +361,11 @@ const supprimerAgence = (id) => {
                     <th></th>
                     <th></th>
                     {agencesAffichees.map((agence) => (
-                      <th key={agence.id} className="th-agence">
-                        {agence.nom}
+                      <th key={agence.Id} className="th-agence">
+                        {agence.Nom}
                         <button
                           className="bouton-supprimer-agence"
-                          onClick={() => supprimerAgence(agence.id)}
+                          onClick={() => supprimerAgence(agence.Id)}
                         >
                           <Trash size={14} />
                         </button>
@@ -389,7 +383,7 @@ const supprimerAgence = (id) => {
                       <td>{dispatch.designation}</td>
                       <td>{dispatch.quantite}</td>
                       {agencesAffichees.map((agence) => {
-                        const consommation = dispatch.consommations?.find((c) => c.agenceId === agence.id);
+                        const consommation = dispatch.consommations?.find((c) => c.AgenceId === agence.id);
                         return (
                           <td key={`${dispatch.id}-${agence.id}`}>
                             <input
@@ -406,7 +400,7 @@ const supprimerAgence = (id) => {
                           </td>
                         );
                       })}
-                      <td>{dispatch.date}</td>
+                      {/* <td>{dispatch.date}</td> */}
                       <td className="actions-cellule">
                         <button
                           className={`bouton-modifier ${dispatchEnEdition === dispatch.id ? "actif" : ""}`}
@@ -483,18 +477,18 @@ const supprimerAgence = (id) => {
                 />
                 <select
                   name="agenceId"
-                  value={nouveauDispatch.agenceId}
+                  value={nouveauDispatch.AgenceId}
                   onChange={handleChange}
                   required
                 >
                   <option value="">-- Sélectionner --</option>
                   {agences
                     .filter((a) =>
-                      a.nom.toLowerCase().includes(filtreAgence.toLowerCase())
+                      a.Nom.toLowerCase().includes(filtreAgence.toLowerCase())
                     )
                     .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.nom}
+                      <option key={a.Id} value={a.Id}>
+                        {a.Nom}
                       </option>
                     ))}
                 </select>
@@ -511,7 +505,7 @@ const supprimerAgence = (id) => {
                   required
                 />
               </div>
-              <div className="groupe-champ">
+              {/* <div className="groupe-champ">
                 <label htmlFor="date">Date</label>
                 <input
                   type="date"
@@ -520,7 +514,7 @@ const supprimerAgence = (id) => {
                   onChange={handleChange}
                   required
                 />
-              </div>
+              </div> */}
               <div className="actions-modal">
                 <button className="bouton-annuler" onClick={fermerModal}>
                   Annuler

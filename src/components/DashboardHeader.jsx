@@ -71,15 +71,15 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
   const handleNotificationClick = async (notification) => {
     try {
       // Marquer la notification comme vue
-      await markNotificationAsRead(notification.id)
+      await markNotificationAsRead(notification.Id)
       // Mettre à jour l'état local
       setNotifications(notifications.map(n =>
-        n.id === notification.id ? { ...n, statut: "Vue" } : n
+        n.id === notification.Id ? { ...n, statut: "Vue" } : n
       ))
       // Rediriger en fonction de bienId ou fournitureId
-      if (notification.bienId) {
-        navigate("../immobiliers/ImDispatche")
-      } else if (notification.fournitureId) {
+      if (notification.BienId) {
+        navigate("../immobiliers/Dispatche")
+      } else if (notification.FournitureId) {
         navigate("../consommables/Dispatche")
       }
     } catch (error) {
@@ -107,7 +107,7 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
     return `Il y a ${days} jour${days > 1 ? "s" : ""}`
   }
 
-  const unreadCount = notifications.filter((n) => n.statut === "Non vue").length
+  const unreadCount = notifications.filter((n) => n.Statut === "Non vue").length
 
   return (
     <header className="dashboard-header">
@@ -149,15 +149,15 @@ function DashboardHeader({ onToggleSidebar, title = "Tableau de bord", userType 
                   ) : (
                     notifications.slice(0, 5).map((notif) => (
                       <div
-                        key={notif.id}
+                        key={notif.Id}
                         className={`notification-item ${notif.statut === "Non vue" ? "unread" : "read"}`}
                         onClick={() => handleNotificationClick(notif)}
                       >
                         <div className="notification-indicator"></div>
                         <div className="notification-content">
-                          <h5 className="notification-title">{notif.titre}</h5>
-                          <p className="notification-message">{notif.corps}</p>
-                          <small className="notification-time">{getTimeAgo(notif.dateDemande)}</small>
+                          <h5 className="notification-title">{notif.Titre}</h5>
+                          <p className="notification-message">{notif.Corps}</p>
+                          <small className="notification-time">{getTimeAgo(notif.DateDemande)}</small>
                         </div>
                       </div>
                     ))

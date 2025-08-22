@@ -10,19 +10,18 @@ export const AuthProvider = ({ children }) => {
   const [userAgenceId, setUserAgenceId] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      setIsAuthLoading(true);
-      const storedUser = localStorage.getItem("user");
-      console.log("Données brutes du localStorage :", storedUser);
-
+  const initializeAuth = async () => {
+    setIsAuthLoading(true);
+    const storedUser = localStorage.getItem("user");
+    console.log("Données brutes du localStorage :", storedUser);
+    
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
           console.log("Données parsées du localStorage :", userData);
           setUser(userData);
-
-          const userId = userData.id;
+          
+          const userId = userData.Id;
           console.log("UserId extrait :", userId);
 
           if (userId) {
@@ -52,9 +51,11 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setUserAgenceId(null);
       }
-
+      
       setIsAuthLoading(false);
     };
+
+  useEffect(() => {
 
     initializeAuth();
   }, []);
@@ -83,6 +84,7 @@ export const AuthProvider = ({ children }) => {
           const agenceResponse = await getAgenceIdByUserId(userId);
           console.log("Réponse de getAgenceIdByUserId dans login :", agenceResponse);
           agenceId = agenceResponse?.data?.agenceId ?? null;
+          localStorage.setItem("user", JSON.stringify(updatedUserData));
           console.log("AgenceId récupéré dans login :", agenceId);
         } catch (error) {
           console.error("Erreur lors de la récupération de l'agence dans login :", error);
@@ -94,6 +96,7 @@ export const AuthProvider = ({ children }) => {
 
       const updatedUserData = { ...userData, agenceId };
       localStorage.setItem("user", JSON.stringify(updatedUserData));
+      initializeAuth();
       console.log("Données utilisateur stockées dans localStorage :", updatedUserData);
     } catch (error) {
       console.error("Erreur lors de la connexion :", error);

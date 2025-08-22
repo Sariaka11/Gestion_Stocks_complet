@@ -93,23 +93,23 @@ function Stock() {
 
         const mapped = array.map((item) => {
           const latestEntree =
-            item.entreesFournitures && item.entreesFournitures.length > 0
-              ? item.entreesFournitures[item.entreesFournitures.length - 1]
+            item.EntreesFournitures && item.EntreesFournitures.length > 0
+              ? item.EntreesFournitures[item.EntreesFournitures.length - 1]
               : null
           return {
             id: item.id,
-            designation: item.nom || "Inconnu",
-            categorie: item.categorie || "Sans catégorie",
+            designation: item.Nom || "Inconnu",
+            categorie: item.Categorie || "Sans catégorie",
             stockAvant: {
-              quantite: item.quantiteRestante || 0,
-              montant: (item.quantiteRestante || 0) * (item.prixUnitaire || 0),
-              cmup: item.cmup ?? 0,
+              quantite: item.QuantiteRestante || 0,
+              montant: (item.QuantiteRestante || 0) * (item.PrixUnitaire || 0),
+              cmup: item.CMUP ?? 0,
             },
             stockActuel: {
-              date: latestEntree ? latestEntree.dateEntree : null,
-              quantite: latestEntree ? latestEntree.quantiteEntree : 0,
-              prixUnitaire: item.prixUnitaire || 0,
-              montant: latestEntree ? latestEntree.montant : 0,
+              date: latestEntree ? latestEntree.DateEntree : null,
+              quantite: latestEntree ? latestEntree.QuantiteEntree : 0,
+              prixUnitaire: item.PrixUnitaire || 0,
+              montant: latestEntree ? latestEntree.Montant : 0,
             },
             dateEntree: latestEntree ? latestEntree.dateEntree : null,
             entrees: item.entreesFournitures || [],
@@ -130,9 +130,9 @@ function Stock() {
 
   const sauvegarderArticle = () => {
     const quantite = Number.parseInt(nouvelArticle.quantite, 10)
-    const prixUnitaire = Number.parseFloat(nouvelArticle.prixUnitaire)
+    const prixUnitaire = Number.parseFloat(nouvelArticle.PrixUnitaire)
 
-    if (!nouvelArticle.designation || !nouvelArticle.categorie || !quantite || !prixUnitaire) {
+    if (!nouvelArticle.designation || !nouvelArticle.categorie || !quantite || !PrixUnitaire) {
       afficherToast("Tous les champs sont obligatoires", "erreur")
       return
     }
@@ -140,7 +140,7 @@ function Stock() {
     const data = {
       nom: nouvelArticle.designation,
       categorie: nouvelArticle.categorie,
-      prixUnitaire,
+      PrixUnitaire,
       quantite,
     }
 
@@ -154,25 +154,25 @@ function Stock() {
           const array = Array.isArray(rawData) ? rawData : rawData["$values"] || []
           const mapped = array.map((item) => {
             const latestEntree =
-              item.entreesFournitures && item.entreesFournitures.length > 0
-                ? item.entreesFournitures[item.entreesFournitures.length - 1]
+              item.EntreesFournitures && item.EntreesFournitures.length > 0
+                ? item.EntreesFournitures[item.EntreesFournitures.length - 1]
                 : null
             return {
               id: item.id,
-              designation: item.nom || "Inconnu",
-              categorie: item.categorie || "Sans catégorie",
+              designation: item.Nom || "Inconnu",
+              categorie: item.Categorie || "Sans catégorie",
               stockAvant: {
-                quantite: item.quantiteRestante || 0,
-                montant: (item.quantiteRestante || 0) * (item.prixUnitaire || 0),
-                cmup: item.cmup ?? 0,
+                quantite: item.QuantiteRestante || 0,
+                montant: (item.QuantiteRestante || 0) * (item.PrixUnitaire || 0),
+                cmup: item.CMUP ?? 0,
               },
               stockActuel: {
-                date: latestEntree ? latestEntree.dateEntree : null,
-                quantite: latestEntree ? latestEntree.quantiteEntree : 0,
-                prixUnitaire: item.prixUnitaire || 0,
-                montant: latestEntree ? latestEntree.montant : 0,
+                date: latestEntree ? latestEntree.DateEntree : null,
+                quantite: latestEntree ? latestEntree.QuantiteEntree : 0,
+                PrixUnitaire: item.PrixUnitaire || 0,
+                montant: latestEntree ? latestEntree.Montant : 0,
               },
-              dateEntree: latestEntree ? latestEntree.dateEntree : null,
+              dateEntree: latestEntree ? latestEntree.DateEntree : null,
               entrees: item.entreesFournitures || [],
             }
           })
@@ -195,20 +195,20 @@ function Stock() {
               : null
           const nouvelArticleMapped = {
             id: newItem.id,
-            designation: newItem.nom,
-            categorie: newItem.categorie,
+            designation: newItem.Nom,
+            categorie: newItem.Categorie,
             stockAvant: {
-              quantite: newItem.quantiteRestante,
-              montant: newItem.quantiteRestante * newItem.prixUnitaire,
+              quantite: newItem.QuantiteRestante,
+              montant: newItem.QuantiteRestante * newItem.PrixUnitaire,
               cmup: newItem.cmup ?? 0,
             },
             stockActuel: {
-              date: latestEntree ? latestEntree.dateEntree : null,
-              quantite: latestEntree ? latestEntree.quantiteEntree : 0,
-              prixUnitaire: newItem.prixUnitaire,
-              montant: latestEntree ? latestEntree.montant : 0,
+              date: latestEntree ? latestEntree.DateEntree : null,
+              quantite: latestEntree ? latestEntree.QuantiteEntree : 0,
+              PrixUnitaire: newItem.PrixUnitaire,
+              montant: latestEntree ? latestEntree.Montant : 0,
             },
-            dateEntree: latestEntree ? latestEntree.dateEntree : null,
+            dateEntree: latestEntree ? latestEntree.DateEntree : null,
             entrees: newItem.entreesFournitures || [],
           }
           setArticles((prev) => [...prev, nouvelArticleMapped])
@@ -228,7 +228,7 @@ function Stock() {
       designation: article.designation,
       categorie: article.categorie,
       quantite: "",
-      prixUnitaire: "",
+      PrixUnitaire: "",
       date: new Date().toISOString().split("T")[0],
     })
     setModalOuvert(true)
@@ -238,17 +238,17 @@ function Stock() {
     if (!nouvelleEntree) return
 
     const quantite = Number.parseInt(nouvelArticle.quantite, 10)
-    const prixUnitaire = Number.parseFloat(nouvelArticle.prixUnitaire)
+    const PrixUnitaire = Number.parseFloat(nouvelArticle.PrixUnitaire)
 
-    if (!quantite || !prixUnitaire || !nouvelArticle.date) {
-      afficherToast("Quantité, prix unitaire et date sont obligatoires", "erreur")
+    if (!quantite || !PrixUnitaire || !nouvelArticle.date) {
+      afficherToast("Quantité, Prix unitaire et date sont obligatoires", "erreur")
       return
     }
 
     const data = {
       fournitureId: nouvelleEntree.id,
       quantiteEntree: quantite,
-      prixUnitaire: prixUnitaire,
+      PrixUnitaire: PrixUnitaire,
       dateEntree: nouvelArticle.date,
     }
 
@@ -260,17 +260,17 @@ function Stock() {
           ...nouvelleEntree,
           stockAvant: {
             quantite: updatedItem.quantiteRestante,
-            montant: updatedItem.quantiteRestante * updatedItem.prixUnitaire,
+            montant: updatedItem.quantiteRestante * updatedItem.PrixUnitaire,
             cmup: updatedItem.cmup ?? 0,
           },
           stockActuel: {
-            date: latestEntree.dateEntree,
-            quantite: latestEntree.quantiteEntree,
-            prixUnitaire: latestEntree.prixUnitaire,
-            montant: latestEntree.montant,
+            date: latestEntree.DateEntree,
+            quantite: latestEntree.QuantiteEntree,
+            PrixUnitaire: latestEntree.PrixUnitaire,
+            montant: latestEntree.Montant,
           },
-          dateEntree: latestEntree.dateEntree,
-          entrees: updatedItem.entreesFournitures || [],
+          dateEntree: latestEntree.DateEntree,
+          entrees: updatedItem.EntreesFournitures || [],
         }
         setArticles((prev) => prev.map((a) => (a.id === nouvelleEntree.id ? articleMisAJour : a)))
         afficherToast("Nouvelle entrée ajoutée avec succès!", "succes")
@@ -388,7 +388,7 @@ function Stock() {
               designation: "",
               categorie: "",
               quantite: "",
-              prixUnitaire: "",
+              PrixUnitaire: "",
               date: new Date().toISOString().split("T")[0],
             })
             setModalOuvert(true)

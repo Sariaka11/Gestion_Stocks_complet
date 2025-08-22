@@ -27,46 +27,47 @@ function Profile() {
     const fetchUserData = async () => {
       try {
         const storedUser = JSON.parse(localStorage.getItem("user"))
-        if (!storedUser || !storedUser.id) {
+        console.log("================", storedUser)
+        if (!storedUser) {
           setError("Utilisateur non connecté")
           setLoading(false)
           return
         }
 
         // Récupérer les informations de l'utilisateur
-        const userResponse = await getUserById(storedUser.id)
+        const userResponse = await getUserById(storedUser.Id)
         const userData = userResponse.data
 
         // Récupérer l'agence de l'utilisateur
-        const agenceResponse = await getUserAgence(storedUser.id)
+        const agenceResponse = await getUserAgence(storedUser.Id)
         const agenceData = agenceResponse.data
 
         // Récupérer l'historique des fournitures/activités
-        const fournituresResponse = await getUserFournitures(storedUser.id)
-        const fournituresData = fournituresResponse.data
+        // const fournituresResponse = await getUserFournitures(storedUser.Id)
+        // const fournituresData = fournituresResponse.data
 
         // Mapper les données utilisateur
         setUser({
-          nom: `${userData.prenom} ${userData.nom}`,
-          email: userData.email,
-          fonction: userData.fonction,
+          nom: `${userData.Prenom} ${userData.Nom}`,
+          email: userData.Email,
+          fonction: userData.Fonction,
           departement: agenceData.departement || "Non spécifié", // Supposons que l'API retourne un département
-          agence: agenceData.nom || "Non spécifié", // Supposons que l'API retourne un nom d'agence
-          dateInscription: userData.dateAssociation
+          agence: agenceData.Nom || "Non spécifié", // Supposons que l'API retourne un nom d'agence
+          dateInscription: userData.DateAssociation
             ? new Date(userData.dateAssociation).toLocaleDateString("fr-FR")
             : "Non spécifié",
         })
 
         // Mapper les données des fournitures pour l'historique des activités
-        setActivities(
-          fournituresData.map((item, index) => ({
-            id: index + 1,
-            action: item.typeAction || "Action inconnue", // Ajuster selon la structure de l'API
-            item: item.nom || "Article inconnu",
-            date: item.dateAction || new Date().toISOString(),
-            details: item.details || "Aucun détail",
-          }))
-        )
+        // setActivities(
+        //   fournituresData.map((item, index) => ({
+        //     id: index + 1,
+        //     action: item.typeAction || "Action inconnue", // Ajuster selon la structure de l'API
+        //     item: item.nom || "Article inconnu",
+        //     date: item.dateAction || new Date().toISOString(),
+        //     details: item.details || "Aucun détail",
+        //   }))
+        // )
 
         setLoading(false)
       } catch (err) {

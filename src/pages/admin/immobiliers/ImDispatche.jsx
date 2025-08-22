@@ -98,9 +98,9 @@ function ImDispatche() {
         console.log("Affectations brutes :", affectationsRaw)
 
         const lignes = immobiliersRaw.map((immobilier) => ({
-          id: immobilier.idBien,
-          designation: immobilier.nomBien,
-          quantite: immobilier.quantite,
+          id: immobilier.IdBien,
+          designation: immobilier.NomBien,
+          quantite: immobilier.Quantite,
           affectations: agencesRaw.flatMap((a) =>
             fonctions.map((f) => {
               const aff = affectationsRaw.find(
@@ -130,10 +130,10 @@ function ImDispatche() {
       afficherToast("Veuillez sélectionner une agence et une fonction.", "erreur")
       return
     }
-    const agence = agences.find((a) => a.id === parseInt(filtreAgenceTableau))
-    if (agence && !agencesAffichees.find((a) => a.id === agence.id && a.fonction === filtreFonctionTableau)) {
+    const agence = agences.find((a) => a.Id === parseInt(filtreAgenceTableau))
+    if (agence && !agencesAffichees.find((a) => a.Id === agence.id && a.Fonction === filtreFonctionTableau)) {
       setAgencesAffichees((prev) => [...prev, { ...agence, fonction: filtreFonctionTableau }])
-      console.log(`Agence ajoutée au tableau : ${agence.nom} - ${filtreFonctionTableau}`)
+      console.log(`Agence ajoutée au tableau : ${agence.Nom} - ${filtreFonctionTableau}`)
     }
     setFiltreAgenceTableau("")
     setFiltreFonctionTableau("")
@@ -151,12 +151,12 @@ function ImDispatche() {
         }
       })
 
-      if (totalQuantiteAffectee > ligne.quantite) {
+      if (totalQuantiteAffectee > ligne.Quantite) {
         afficherToast("La quantité totale dépasse le stock disponible", "erreur")
         return
       }
 
-      const premiereAffectation = ligne.affectations.find((a) => a.quantite > 0)
+      const premiereAffectation = ligne.affectations.find((a) => a.Quantite > 0)
       if (premiereAffectation) {
         const fonction = premiereAffectation.fonction || "Non spécifiée"
         console.log(`Envoi pour idBien: ${ligne.id}, idAgence: ${premiereAffectation.agenceId}, quantite: ${premiereAffectation.quantite}, fonction: ${fonction}`)
@@ -164,8 +164,8 @@ function ImDispatche() {
         const dateAffectation = new Date().toISOString().split("T")[0] // Format YYYY-MM-DD
         createBienAgence({
           idBien: ligne.id,
-          idAgence: premiereAffectation.agenceId,
-          quantite: premiereAffectation.quantite,
+          idAgence: premiereAffectation.AgenceId,
+          quantite: premiereAffectation.Quantite,
           dateAffectation: dateAffectation,
           fonction: fonction,
           quantiteConso: 0
@@ -198,7 +198,7 @@ function ImDispatche() {
       prev.map((a) => {
         if (a.id === immobilierId) {
           const majAff = a.affectations.map((aff) =>
-            aff.agenceId === agenceId && aff.fonction === fonction
+            aff.AgenceId === agenceId && aff.fonction === fonction
               ? { ...aff, quantite: parseInt(qtt, 10) || 0 }
               : aff
           )
@@ -381,8 +381,8 @@ function ImDispatche() {
               >
                 <option value="">Sélectionner une agence</option>
                 {agences.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nom}
+                  <option key={a.Id} value={a.Id}>
+                    {a.Nom}
                   </option>
                 ))}
               </select>
@@ -426,7 +426,7 @@ function ImDispatche() {
                     <th></th>
                     {agencesAffichees.map((agence) => (
                       <th key={`${agence.id}-${agence.fonction}`} className="th-agence">
-                        {`${agence.nom} - ${agence.fonction}`}
+                        {`${agence.Nom} - ${agence.fonction}`}
                       </th>
                     ))}
                     <th></th>

@@ -69,26 +69,26 @@ function Amortissements() {
         }
 
         return {
-          id: item.idBien,
-          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-          designation: item.nomBien || "",
-          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
-          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
+          id: item.IdBien,
+          codeArticle: `IMM-${String(item.IdBien).padStart(3, "0")}`,
+          designation: item.NomBien || "",
+          typeImmobilier: item.Categorie?.NomCategorie || "Non catégorisé",
+          dateAcquisition: item.DateAcquisition?.split("T")[0] || "",
           dateFinAmortissement: item.dateFinAmortissement?.split("T")[0] || "",
-          prixAchat: item.valeurAcquisition || 0,
-          dureeAmortissement: item.categorie?.dureeAmortissement || 5,
+          prixAchat: item.ValeurAcquisition || 0,
+          dureeAmortissement: item.Categorie?.DureeAmortissement || 5,
           statut: isNewThisYear || valeurNetteComptable > 0 ? "Actif" : "Amorti",
           valeurNetteComptable,
           amortissementCumule,
-          amortissements: item.amortissements
-            ? item.amortissements.map((amort) => ({
-                annee: amort.annee,
-                baseAmortissable: item.valeurAcquisition,
-                dotation: amort.montant,
-                valeurNetteComptable: amort.valeurResiduelle,
-                amortissementCumule: item.amortissements
-                  .slice(0, item.amortissements.findIndex((a) => a.annee === amort.annee) + 1)
-                  .reduce((sum, a) => sum + a.montant, 0),
+          amortissements: item.Amortissements
+            ? item.Amortissements.map((amort) => ({
+                annee: amort.Annee,
+                baseAmortissable: item.ValeurAcquisition,
+                dotation: amort.Montant,
+                valeurNetteComptable: amort.ValeurResiduelle,
+                amortissementCumule: item.Amortissements
+                  .slice(0, item.Amortissements.findIndex((a) => a.Annee === amort.Annee) + 1)
+                  .reduce((sum, a) => sum + a.Montant, 0),
               }))
             : [],
         };

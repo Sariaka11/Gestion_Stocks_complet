@@ -101,15 +101,15 @@ function ImInventaire() {
         const affectationsBien = affectationsData.filter((a) => a.idBien === item.idBien)
 
         return {
-          id: item.idBien,
+          id: item.IdBien,
           codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-          designation: item.nomBien || "Inconnu",
-          codeBarre: item.codeBarre || "0000000000000",
-          prixAchat: item.valeurAcquisition || 0,
-          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
-          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-          quantite: item.quantite || 1,
-          statut: item.statut,
+          designation: item.NomBien || "Inconnu",
+          codeBarre: item.CodeBarre || "0000000000000",
+          prixAchat: item.ValeurAcquisition || 0,
+          typeImmobilier: item.Categorie?.NomCategorie || "Non catégorisé",
+          dateAcquisition: item.DateAcquisition?.split("T")[0] || "",
+          quantite: item.Quantite || 1,
+          statut: item.Statut,
           affectations: affectationsBien,
         }
       })

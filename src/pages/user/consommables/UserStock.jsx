@@ -30,25 +30,23 @@ function UserStock() {
           : response.data?.["$values"] || [];
 
         const groupedData = rawData.reduce((acc, item) => {
-          const key = item.fournitureNom;
+          const key = item.FournitureNom;
           if (!acc[key]) {
             acc[key] = {
-              id: item.id,
+              id: item.Id,
               nom: key,
               quantite: 0,
               quantiteConso: 0,
-              categorie: item.categorie || "Non catégorisé",
-              disponible: false,
+              categorie: item.Categorie || "Non catégorisé",
               details: [],
             };
           }
-          acc[key].quantite += item.quantite;
-          acc[key].quantiteConso += item.consoMm || 0;
-          acc[key].disponible = acc[key].quantite > 0;
+          acc[key].quantite += item.Quantite;
+          acc[key].quantiteConso += item.ConsoMm || 0;
           acc[key].details.push({
-            quantite: item.quantite,
-            date: item.dateAssociation,
-            quantiteConso: item.consoMm || 0,
+            quantite: item.Quantite,
+            date: item.DateAssociation,
+            quantiteConso: item.ConsoMm || 0,
           });
           return acc;
         }, {});
@@ -82,18 +80,18 @@ function UserStock() {
   const filteredStockItems =
     selectedCategory === "Tous"
       ? stockItems
-      : stockItems.filter((item) => item.categorie === selectedCategory);
+      : stockItems.filter((item) => item.Categorie === selectedCategory);
 
   const exportToPDF = () => {
     const doc = new jsPDF();
     autoTable(doc, {
       head: [["ID", "Nom", "Quantité", "Quantité Consommée", "Catégorie", "Disponibilité"]],
       body: filteredStockItems.map((item) => [
-        item.id,
-        item.nom,
-        item.quantite,
-        item.quantiteConso || 0,
-        item.categorie,
+        item.Id,
+        item.Nom,
+        item.Quantite,
+        item.QuantiteConso || 0,
+        item.Categorie,
         item.disponible ? "Disponible" : "Indisponible",
       ]),
       styles: { fontSize: 10 },
@@ -176,12 +174,8 @@ function UserStock() {
                 <td>{item.quantiteConso || 0}</td>
                 <td>{item.categorie}</td>
                 <td>
-                  <span
-                    className={`status-badge ${
-                      item.disponible ? "disponible" : "indisponible"
-                    }`}
-                  >
-                    {item.disponible ? "Disponible" : "Indisponible"}
+                  <span className={`status-badge ${item.quantite > 0 ? "disponible" : "indisponible"}`}>
+                    {item.quantite > 0 ? "Disponible" : "Indisponible"}
                   </span>
                 </td>
                 <td className="actions-cell">

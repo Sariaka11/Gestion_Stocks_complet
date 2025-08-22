@@ -120,16 +120,16 @@ function ImStock() {
 
         const items = immRaw.map((item) => ({
           id: item.idBien,
-          nomBien: item.nomBien || "",
-          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-          valeurAcquisition: item.valeurAcquisition ?? 0,
-          statut: item.statut || "actif",
-          categorie: item.categorie?.nomCategorie || `Catégorie #${item.idCategorie}`,
-          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-          codeBarre: item.codeBarre || "0000000000000",
-          quantite: item.quantite ?? 1,
-          idCategorie: item.idCategorie,
-          idSousCategorie: item.idSousCategorie || null, // Nouvelle propriété
+          nomBien: item.NomBien || "",
+          dateAcquisition: item.DateAcquisition?.split("T")[0] || "",
+          valeurAcquisition: item.ValeurAcquisition ?? 0,
+          statut: item.Statut || "actif",
+          categorie: item.Categorie?.NomCategorie || `Catégorie #${item.idCategorie}`,
+          codeArticle: `IMM-${String(item.IdBien).padStart(3, "0")}`,
+          codeBarre: item.CodeBarre || "0000000000000",
+          quantite: item.Quantite ?? 1,
+          idCategorie: item.IdCategorie,
+          idSousCategorie: item.IdSousCategorie || null, // Nouvelle propriété
         }))
 
         console.log("Données immobiliers transformées:", items)
@@ -197,7 +197,7 @@ function ImStock() {
     const data = {
       NomCategorie: nom,
       ParentCategorieId: parentId,
-      DureeAmortissement: categorieParente.dureeAmortissement,
+      DureeAmortissement: categorieParente.DureeAmortissement,
     }
 
     createSousCategorie(data)
@@ -213,8 +213,8 @@ function ImStock() {
   }
 
   const sauvegarderCategorie = () => {
-    const nom = nouvelleCategorie.nomCategorie?.trim()
-    const duree = nouvelleCategorie.dureeAmortissement
+    const nom = nouvelleCategorie.NomCategorie?.trim()
+    const duree = nouvelleCategorie.DureeAmortissement
 
     if (!nom || !duree) {
       afficherToast("Tous les champs sont obligatoires.", "erreur")
@@ -222,7 +222,7 @@ function ImStock() {
     }
 
     const data = {
-      nomCategorie: nouvelleCategorie.nomCategorie.trim(),
+      nomCategorie: nouvelleCategorie.NomCategorie.trim(),
       dureeAmortissement: Number.parseInt(nouvelleCategorie.dureeAmortissement, 10),
     }
 
@@ -263,8 +263,8 @@ function ImStock() {
   const lancerEditionCategorie = (cat) => {
     setCategorieEnEdition(cat)
     setNouvelleCategorie({
-      nomCategorie: cat.nomCategorie || "",
-      dureeAmortissement: cat.dureeAmortissement || "",
+      nomCategorie: cat.NomCategorie || "",
+      dureeAmortissement: cat.DureeAmortissement || "",
     })
   }
 
@@ -460,7 +460,7 @@ function ImStock() {
           <input
             type="text"
             placeholder="Nom de la catégorie"
-            value={nouvelleCategorie.nomCategorie}
+            value={nouvelleCategorie.NomCategorie}
             onChange={(e) =>
               setNouvelleCategorie((prev) => ({
                 ...prev,
@@ -472,7 +472,7 @@ function ImStock() {
             type="number"
             placeholder="Durée d'amortissement"
             min="1"
-            value={nouvelleCategorie.dureeAmortissement}
+            value={nouvelleCategorie.DureeAmortissement}
             onChange={(e) =>
               setNouvelleCategorie((prev) => ({
                 ...prev,
@@ -520,8 +520,8 @@ function ImStock() {
           >
             <option value="">Choisir une catégorie parent</option>
             {categories.map((cat) => (
-              <option key={cat.idCategorie} value={cat.idCategorie}>
-                {cat.nomCategorie}
+              <option key={cat.IdCategorie} value={cat.IdCategorie}>
+                {cat.NomCategorie}
               </option>
             ))}
           </select>
@@ -542,8 +542,8 @@ function ImStock() {
               categories.map((cat, index) => (
                 <tr key={cat.idCategorie}>
                   <td>{index + 1}</td>
-                  <td>{cat.nomCategorie}</td>
-                  <td>{cat.dureeAmortissement} ans</td>
+                  <td>{cat.NomCategorie}</td>
+                  <td>{cat.DureeAmortissement} ans</td>
                   <td>
                     <button onClick={() => lancerEditionCategorie(cat)} className="btn-icon">
                       <Edit size={16} />
@@ -674,8 +674,8 @@ function ImStock() {
               >
                 <option value="">-- Sélectionner une catégorie --</option>
                 {categories.map((cat) => (
-                  <option key={cat.idCategorie} value={cat.idCategorie}>
-                    {cat.nomCategorie}
+                  <option key={cat.IdCategorie} value={cat.IdCategorie}>
+                    {cat.NomCategorie}
                   </option>
                 ))}
               </select>
@@ -697,7 +697,7 @@ function ImStock() {
                   <option value="">-- Aucune sous-catégorie --</option>
                   {sousCategories.map((sousCat) => (
                     <option key={sousCat.idCategorie} value={sousCat.idCategorie}>
-                      {sousCat.nomCategorie}
+                      {sousCat.NomCategorie}
                     </option>
                   ))}
                 </select>

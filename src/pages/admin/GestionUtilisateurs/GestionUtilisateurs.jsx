@@ -55,17 +55,17 @@ function GestionUtilisateurs() {
       const data = response.data
       const usersWithDetails = await Promise.all(
         data.map(async (user) => {
-          const agenceResponse = await getUserAgence(user.id).catch(() => ({
+          const agenceResponse = await getUserAgence(user.Id).catch(() => ({
             data: { nom: "N/A" },
           }))
-          const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
+          const fournituresResponse = await getUserFournitures(user.Id).catch(() => ({
             data: [],
           }))
           let stockItems = fournituresResponse.data
           if (stockItems && stockItems.$values && Array.isArray(stockItems.$values)) {
             stockItems = stockItems.$values
           } else if (!Array.isArray(stockItems)) {
-            console.warn(`stockItems non valide pour user ${user.id} :`, stockItems)
+            console.warn(`stockItems non valide pour user ${user.Id} :`, stockItems)
             stockItems = []
           }
 
@@ -84,24 +84,25 @@ function GestionUtilisateurs() {
           }
 
           const agence = agenceResponse.data
+          console.log("*-*-*-*-*-*-*", agence)
           return {
-            id: user.id,
-            nom: `${user.nom} ${user.prenom}`,
-            role: user.fonction,
-            agence: agence.nom,
-            email: user.email,
+            id: user.Id,
+            nom: `${user.Nom} ${user.Prenom}`,
+            role: user.Fonction,
+            agence: agence.Nom,
+            email: user.Email,
             telephone: "+261 34 00 000 00",
             dateCreation: new Date().toLocaleDateString(),
             stockCritique: stockCritique,
             stockLevel: stockLevel,
             stockItems: Array.isArray(stockItems)
               ? stockItems.map((item) => ({
-                  id: item.id,
-                  designation: item.nom,
-                  quantite: item.quantite || 0,
-                  quantiteInitiale: item.quantiteInitiale || item.quantite || 0,
+                  id: item.Id,
+                  designation: item.Nom,
+                  quantite: item.Quantite || 0,
+                  quantiteInitiale: item.QuantiteInitiale || item.Quantite || 0,
                   seuil: item.seuilCritique || 10,
-                  cmup: item.cmup || 0,
+                  cmup: item.CMUP || 0,
                 }))
               : [],
           }
@@ -171,11 +172,11 @@ function GestionUtilisateurs() {
         dateAssociation: new Date(),
       })
 
-      const newUserResponse = await getUserById(user.id)
+      const newUserResponse = await getUserById(user.Id)
       const newUserData = newUserResponse.data
 
-      const agenceDetails = await getUserAgence(user.id).catch(() => ({
-        data: { nom: agence.nom },
+      const agenceDetails = await getUserAgence(user.Id).catch(() => ({
+        data: { nom: agence.Nom },
       }))
 
       const fournituresResponse = await getUserFournitures(user.id).catch(() => ({
@@ -404,17 +405,17 @@ function GestionUtilisateurs() {
         stockItems = []
       } else {
         stockItems = stockItems.flatMap((item) => {
-          const agencyData = item.agenceFournitures?.find((el) => el.agenceId == agenceResponse.data.id)
+          const agencyData = item.AgenceFournitures?.find((el) => el.AgenceId == agenceResponse.data.id)
           return agencyData
             ? [
                 {
                   ...agencyData,
-                  nom: item.nom,
-                  prixUnitaire: item.prixUnitaire,
-                  quantiteRestante: agencyData.quantite || agencyData.quantiteRestante || 0,
-                  quantiteInitiale: agencyData.qtt || agencyData.quantite || agencyData.quantiteInitiale || 0,
-                  categorie: item.categorie,
-                  cmup: item.cmup || item.prixUnitaire || 0,
+                  nom: item.Nom,
+                  prixUnitaire: item.PrixUnitaire,
+                  quantiteRestante: agencyData.Quantite || agencyData.QuantiteRestante || 0,
+                  quantiteInitiale: agencyData.qtt || agencyData.Quantite || agencyData.quantiteInitiale || 0,
+                  categorie: item.Categorie,
+                  cmup: item.cmup || item.PrixUnitaire || 0,
                   seuilCritique: agencyData.seuilCritique || item.seuilCritique || 10,
                 },
               ]
@@ -437,17 +438,17 @@ function GestionUtilisateurs() {
 
       // Mapper les données de BIEN_AGENCE
       immobilierItems = immobilierItems.map((item) => {
-        const quantiteRestante = item.quantite || 0
-        const quantiteConso = item.quantiteConso || 0
+        const quantiteRestante = item.Quantite || 0
+        const quantiteConso = item.QuantiteConso || 0
         const seuilCritique = item.immobilisation?.seuilCritique || 10
-        const cmup = item.immobilisation?.prixUnitaire || item.cmup || 0
+        const cmup = item.immobilisation?.PrixUnitaire || item.cmup || 0
 
         return {
-          id: item.idBien,
-          designation: item.immobilisation?.nomBien || "Inconnu",
+          id: item.IdBien,
+          designation: item.immobilisation?.NomBien || "Inconnu",
           quantite: quantiteRestante,
           quantiteConso: quantiteConso,
-          quantiteInitiale: item.quantite || 0,
+          quantiteInitiale: item.Quantite || 0,
           seuil: seuilCritique,
           cmup: cmup,
         }
@@ -458,12 +459,12 @@ function GestionUtilisateurs() {
       let stockCritique = false
       if (stockItems.length > 0) {
         const stockPercentages = stockItems.map((item) => {
-          const initialQty = item.quantiteInitiale || 1
-          return (item.quantiteRestante / initialQty) * 100
+          const initialQty = item.QuantiteInitiale || 1
+          return (item.QuantiteRestante / initialQty) * 100
         })
         stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
         stockLevel = Math.min(100, Math.max(0, stockLevel))
-        stockCritique = stockItems.some((item) => item.quantiteRestante < item.seuilCritique)
+        stockCritique = stockItems.some((item) => item.QuantiteRestante < item.seuilCritique)
       }
 
       const updatedUser = {

@@ -108,57 +108,57 @@ export default function DashboardGraphs() {
 
       // Mapper les fournitures
       const mappedFournitures = rawFournitures.map((f, index) => {
-        const entrees = f.entreesFournitures || []
-        const totalMontant = entrees.reduce((sum, e) => sum + e.quantiteEntree * e.prixUnitaire, 0)
-        const totalQuantite = entrees.reduce((sum, e) => sum + e.quantiteEntree, 0)
+        const entrees = f.EntreesFournitures || []
+        const totalMontant = entrees.reduce((sum, e) => sum + e.QuantiteEntree * e.PrixUnitaire, 0)
+        const totalQuantite = entrees.reduce((sum, e) => sum + e.QuantiteEntree, 0)
         const cmup = totalQuantite > 0 ? totalMontant / totalQuantite : 0
 
         return {
-          id: f.id || `fourniture-${index}`,
-          nom: f.nom ? f.nom.trim() : `fourniture-${index}`,
-          categorie: f.categorie || "Non catégorisé",
-          quantite: f.quantiteRestante || 0,
-          prixUnitaire: f.prixUnitaire || 0,
-          prixTotal: f.prixTotal || 0,
-          cmup: cmup || f.cmup || 0,
-          date: f.dateEntree || null,
-          entreesFournitures: f.entreesFournitures || [],
+          id: f.Id || `fourniture-${index}`,
+          nom: f.Nom ? f.Nom.trim() : `fourniture-${index}`,
+          categorie: f.Categorie || "Non catégorisé",
+          quantite: f.QuantiteRestante || 0,
+          prixUnitaire: f.PrixUnitaire || 0,
+          prixTotal: f.PrixTotal || 0,
+          cmup: cmup || f.CMUP || 0,
+          date: f.DateEntree || null,
+          entreesFournitures: f.EntreesFournitures || [],
         }
       })
 
       // Mapper les agence-fournitures
       const mappedAgenceFournitures = rawAgenceFournitures.map((af) => ({
         ...af,
-        fournitureNom: af.fournitureNom ? af.fournitureNom.trim() : "",
-        agenceNom: af.agenceNom ? af.agenceNom.trim() : "",
-        quantite: af.quantite || 0,
-        prixUnitaire: af.prixUnitaire || 0,
-        montant: (af.quantite || 0) * (af.prixUnitaire || 0),
-        dateAssociation: af.dateAssociation || null,
+        fournitureNom: af.FournitureNom ? af.FournitureNom.trim() : "",
+        agenceNom: af.AgenceNom ? af.AgenceNom.trim() : "",
+        quantite: af.Quantite || 0,
+        prixUnitaire: af.PrixUnitaire || 0,
+        montant: (af.Quantite || 0) * (af.PrixUnitaire || 0),
+        dateAssociation: af.DateAssociation || null,
       }))
 
       // Mapper les agences
       const mappedAgences = rawAgences.map((agence) => ({
-        id: agence.id || agence.idAgence,
-        nom: agence.nom || agence.nomAgence || "Agence sans nom",
+        id: agence.Id || agence.IdAgence,
+        nom: agence.Nom || agence.NomAgence || "Agence sans nom",
         adresse: agence.adresse || "",
         telephone: agence.telephone || "",
       }))
 
       // Mapper les immobiliers
       const mappedImmobiliers = rawImmobiliers.map((item) => {
-        const amortissementsBien = rawAmortissements.filter((a) => a.idBien === item.idBien)
-        const affectationsBien = rawAffectations.filter((a) => a.idBien === item.idBien)
+        const amortissementsBien = rawAmortissements.filter((a) => a.idBien === item.IdBien)
+        const affectationsBien = rawAffectations.filter((a) => a.idBien === item.IdBien)
 
         return {
-          id: item.idBien,
+          id: item.IdBien,
           codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
-          designation: item.nomBien || "",
-          codeBarre: item.codeBarre || "0000000000000",
-          prixAchat: item.valeurAcquisition || 0,
-          typeImmobilier: item.categorie?.nomCategorie || "Non catégorisé",
-          dateAcquisition: item.dateAcquisition?.split("T")[0] || "",
-          quantite: item.quantite || 1,
+          designation: item.NomBien || "",
+          codeBarre: item.CodeBarre || "0000000000000",
+          prixAchat: item.ValeurAcquisition || 0,
+          typeImmobilier: item.Categorie?.NomCategorie || "Non catégorisé",
+          dateAcquisition: item.DateAcquisition?.split("T")[0] || "",
+          quantite: item.Quantite || 1,
           statut: item.statut,
           affectations: affectationsBien,
           amortissements: amortissementsBien,

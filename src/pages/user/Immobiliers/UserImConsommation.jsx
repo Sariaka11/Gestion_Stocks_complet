@@ -41,22 +41,22 @@ function UserBienConsommation() {
         const rawData = Array.isArray(response.data) ? response.data : response.data?.["$values"] || []
 
         const groupedData = rawData.reduce((acc, item) => {
-          const key = item.nomBien || item.immobilisation?.nomBien
+          const key = item.NomBien || item.Immobilisation?.NomBien
           if (!acc[key]) {
             acc[key] = {
-              id: `${item.idBien}-${item.idAgence}`,
-              bienId: item.idBien,
-              nomBien: item.nomBien || item.immobilisation?.nomBien || "Inconnu",
-              quantite: item.quantite,
-              quantiteConso: item.quantiteConso || 0,
-              categorie: item.categorie || item.immobilisation?.categorie?.nomCategorie || "Non catégorisé",
+              id: `${item.IdBien}-${item.IdAgence}`,
+              bienId: item.IdBien,
+              nomBien: item.NomBien || item.immobilisation?.nomBien || "Inconnu",
+              quantite: item.Quantite,
+              quantiteConso: item.QuantiteConso || 0,
+              categorie: item.Categorie || item.Immobilisation?.categorie?.nomCategorie || "Non catégorisé",
               details: [],
-              immobilisation: item.immobilisation,
+              immobilisation: item.Immobilisation,
             }
           }
           acc[key].details.push({
-            quantiteConso: item.quantiteConso || 0,
-            date: item.dateAffectation,
+            quantiteConso: item.QuantiteConso || 0,
+            date: item.DateAffectation,
           })
           return acc
         }, {})
@@ -82,10 +82,10 @@ function UserBienConsommation() {
   }, [searchQuery, consommations])
 
   const calculateAmortissement = (item) => {
-    const immobilisation = item.immobilisation
-    if (!immobilisation?.categorie?.dureeAmortissement || !immobilisation?.valeurAcquisition) return "N/A"
-    const duree = immobilisation.categorie.dureeAmortissement
-    const valeurAcquisition = immobilisation.valeurAcquisition
+    const immobilisation = item.Immobilisation
+    if (!immobilisation?.Categorie?.DureeAmortissement || !immobilisation?.ValeurAcquisition) return "N/A"
+    const duree = immobilisation.Categorie.DureeAmortissement
+    const valeurAcquisition = immobilisation.ValeurAcquisition
     return (valeurAcquisition / duree).toFixed(2)
   }
 
@@ -233,23 +233,24 @@ function UserBienConsommation() {
 
   const handleDemande = async (bienId, nomBien) => {
     try {
-      if (!user || !user.id) {
+      console.log("============",nomBien)
+      if (!user || !user.Id) {
         console.error("Utilisateur non connecté:", { user, userAgenceId })
         setError("Vous devez être connecté pour envoyer une demande.")
-        navigate("/auth/login")
+        //navigate("/auth/login")
         return
       }
 
       console.log("Envoi de la demande de notification pour:", {
         bienId,
         nomBien,
-        userId: user.id,
+        userId: user.Id,
         agenceId: userAgenceId,
       })
       const response = await createNotification({
-        userId: user.id,
-        userName: user.name || "Utilisateur",
-        agenceId: userAgenceId,
+        userId: parseInt(user.Id),
+        userName: user.Name || "Utilisateur",
+        agenceId: parseInt(userAgenceId),
         bienId,
       })
       console.log("Notification envoyée avec succès:", response.data)
@@ -337,7 +338,7 @@ function UserBienConsommation() {
               <th>Désignation</th>
               <th>Quantité</th>
               <th>Consommation</th>
-              <th>Amortissement</th>
+              {/* <th>Amortissement</th> */}
               <th>Catégorie</th>
               <th>Actions</th>
             </tr>
@@ -348,7 +349,7 @@ function UserBienConsommation() {
                 <td>{item.nomBien}</td>
                 <td>{item.quantite}</td>
                 <td>{item.quantiteConso ?? "N/A"}</td>
-                <td>{calculateAmortissement(item)}</td>
+                {/* <td>{calculateAmortissement(item)}</td> */}
                 <td>{item.categorie}</td>
                 <td className="actions-cell">
                   <button className="btn-add-cons" onClick={() => handleAddConsommation(item.bienId, item.nomBien)}>

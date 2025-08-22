@@ -41,21 +41,21 @@ function UserConsommation() {
         const rawData = Array.isArray(response.data) ? response.data : response.data?.["$values"] || []
 
         const groupedData = rawData.reduce((acc, item) => {
-          const key = item.fournitureNom
+          const key = item.FournitureNom
           if (!acc[key]) {
             acc[key] = {
-              id: item.id,
-              fournitureId: item.fournitureId,
-              fournitureNom: item.fournitureNom || "Inconnu",
-              quantite: item.quantite,
-              consoMm: item.consoMm || 0,
-              categorie: item.categorie || "Non catégorisé",
+              id: item.Id,
+              fournitureId: item.FournitureId,
+              fournitureNom: item.FournitureNom || "Inconnu",
+              quantite: item.Quantite,
+              consoMm: item.ConsoMm || 0,
+              categorie: item.Categorie || "Non catégorisé",
               details: [],
             }
           }
           acc[key].details.push({
-            consoMm: item.consoMm || 0,
-            date: item.dateAssociation,
+            consoMm: item.ConsoMm || 0,
+            date: item.DateAssociation,
           })
           return acc
         }, {})
@@ -159,7 +159,7 @@ function UserConsommation() {
 
       const response = await addConsommation({
         agenceId: userAgenceId,
-        fournitureId: addFormData.fournitureId,
+        fournitureId: addFormData.FournitureId,
         consoMm: parsedConsoMm,
       })
 
@@ -218,7 +218,7 @@ function UserConsommation() {
 
   const handleDemande = async (fournitureId, fournitureNom) => {
     try {
-      if (!user || !user.id) {
+      if (!user || !user.Id) {
         console.error("Utilisateur non connecté:", { user, userAgenceId })
         setError("Vous devez être connecté pour envoyer une demande.")
         navigate("/auth/login")
@@ -228,12 +228,12 @@ function UserConsommation() {
       console.log("Envoi de la demande de notification pour:", {
         fournitureId,
         fournitureNom,
-        userId: user.id,
+        userId: user.Id,
         agenceId: userAgenceId,
       })
       const response = await createNotification({
-        userId: user.id,
-        userName: user.name || "Utilisateur",
+        userId: user.Id,
+        userName: user.Name || "Utilisateur",
         agenceId: userAgenceId,
         fournitureId,
       })

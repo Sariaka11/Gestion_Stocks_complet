@@ -37,35 +37,35 @@ function Inventaire() {
         console.log("Raw Agences:", rawAgences)
 
         const mappedFournitures = rawFournitures.map((f, index) => {
-          const entrees = f.entreesFournitures || [];
-          const totalMontant = entrees.reduce((sum, e) => sum + (e.quantiteEntree * e.prixUnitaire), 0);
-          const totalQuantite = entrees.reduce((sum, e) => sum + e.quantiteEntree, 0);
+          const entrees = f.EntreesFournitures || [];
+          const totalMontant = entrees.reduce((sum, e) => sum + (e.QuantiteEntree * e.PrixUnitaire), 0);
+          const totalQuantite = entrees.reduce((sum, e) => sum + e.QuantiteEntree, 0);
           const cmup = totalQuantite > 0 ? totalMontant / totalQuantite : 0;
 
           return {
-            id: f.id || `fourniture-${index}`,
-            nom: f.nom ? f.nom.trim().toLowerCase() : `fourniture-${index}`,
-            categorie: f.categorie || "Non catégorisé",
-            quantite: f.quantiteRestante || 0,
-            prixUnitaire: f.prixUnitaire || 0,
-            prixTotal: f.prixTotal || 0,
-            cmup: cmup || f.cmup || 0,
-            date: f.dateEntree || null,
-            entreesFournitures: f.entreesFournitures || [],
+            id: f.Id || `fourniture-${index}`,
+            nom: f.Nom ? f.Nom.trim().toLowerCase() : `fourniture-${index}`,
+            categorie: f.Categorie || "Non catégorisé",
+            quantite: f.QuantiteRestante || 0,
+            prixUnitaire: f.PrixUnitaire || 0,
+            prixTotal: f.PrixTotal || 0,
+            cmup: cmup || f.CMUP || 0,
+            date: f.DateEntree || null,
+            entreesFournitures: f.EntreesFournitures || [],
           };
         });
 
         const mappedAgenceFournitures = rawAgenceFournitures.map((af) => ({
           ...af,
-          fournitureNom: af.fournitureNom ? af.fournitureNom.trim().toLowerCase() : "",
-          agenceNom: af.agenceNom ? af.agenceNom.trim() : "",
-          quantite: af.quantite || 0,
-          prixUnitaire: af.prixUnitaire || 0,
-          montant: (af.quantite || 0) * (af.prixUnitaire || 0),
-          dateAssociation: af.dateAssociation || null,
+          fournitureNom: af.FournitureNom ? af.FournitureNom.trim().toLowerCase() : "",
+          agenceNom: af.AgenceNom ? af.AgenceNom.trim() : "",
+          quantite: af.Quantite || 0,
+          prixUnitaire: af.PrixUnitaire || 0,
+          montant: (af.Quantite || 0) * (af.PrixUnitaire || 0),
+          dateAssociation: af.DateAssociation || null,
         }));
 
-        const uniqueAgences = [...new Set(rawAgenceFournitures.map(af => af.agenceNom))].map(nom => ({ nom }));
+        const uniqueAgences = [...new Set(rawAgenceFournitures.map(af => af.AgenceNom))].map(nom => ({ nom }));
 
         setFournitures(mappedFournitures);
         setAgenceFournitures(mappedAgenceFournitures);
@@ -125,8 +125,8 @@ function Inventaire() {
           });
         })
         .map((f) => {
-          const entreesFiltrees = f.entreesFournitures.filter((e) => 
-            !filtreMoisEntree || !filtreAnneeEntree || e.dateEntree.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)
+          const entreesFiltrees = f.EntreesFournitures.filter((e) => 
+            !filtreMoisEntree || !filtreAnneeEntree || e.DateEntree.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)
           );
           const totalQuantiteEntree = entreesFiltrees.reduce((sum, e) => sum + (e.quantiteEntree || 0), 0);
           const totalMontantEntree = entreesFiltrees.reduce((sum, e) => sum + ((e.quantiteEntree || 0) * (e.prixUnitaire || 0)), 0);
@@ -134,21 +134,21 @@ function Inventaire() {
 
           const row = [
             f.nom,
-            f.quantite || 0,
+            f.Quantite || 0,
             f.cmup?.toFixed(2) || 0,
             f.prixTotal?.toFixed(2) || 0,
             totalQuantiteEntree,
             puMoyenEntree?.toFixed(2) || 0,
             totalMontantEntree?.toFixed(2) || 0,
-            (f.quantite || 0) + totalQuantiteEntree,
+            (f.Quantite || 0) + totalQuantiteEntree,
           ]
 
           agences.forEach((agence) => {
             const af = agenceFournitures.find(
-              (af) => af.fournitureNom === f.nom && af.agenceNom === agence.nom && 
-              (!filtreMoisEntree || !filtreAnneeEntree || af.dateAssociation.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`))
+              (af) => af.FournitureNom === f.Nom && af.AgenceNom === agence.nom && 
+              (!filtreMoisEntree || !filtreAnneeEntree || af.DateAssociation.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`))
             )
-            row.push(af ? af.quantite : 0)
+            row.push(af ? af.Quantite : 0)
           })
           return row
         })
@@ -243,11 +243,11 @@ function Inventaire() {
               if (moisIndex === -1) return false;
               return af.fournitureNom === f.nom && af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex + 1).padStart(2, "0")}`);
             })
-            .reduce((sum, af) => sum + (af.quantite || 0), 0);
+            .reduce((sum, af) => sum + (af.Quantite || 0), 0);
 
           const cmupConsommation = consommation > 0 ? (f.cmup || 0) : 0;
           const montantConsommation = consommation * cmupConsommation;
-          const stockAu = (f.quantite || 0) - consommation;
+          const stockAu = (f.Quantite || 0) - consommation;
 
           return [
             f.nom,
@@ -347,25 +347,25 @@ function Inventaire() {
     data.forEach((fourniture) => {
       const entrees = fourniture.entreesFournitures || [];
       const filteredEntrees = entrees.filter((e) => 
-        !mois || !annee || e.dateEntree.startsWith(`${annee}-${String(moisOptions.indexOf(mois)).padStart(2, "0")}`)
+        !mois || !annee || e.DateEntree.startsWith(`${annee}-${String(moisOptions.indexOf(mois)).padStart(2, "0")}`)
       );
       total += filteredEntrees.reduce((sum, e) => sum + (e[field] || 0), 0);
     });
     return total;
   }
 
-  const totalQuantiteStock = fournitures.reduce((sum, f) => sum + (f.quantite || 0), 0);
+  const totalQuantiteStock = fournitures.reduce((sum, f) => sum + (f.Quantite || 0), 0);
   const totalMontantStock = fournitures
     .filter((f) => {
       if (!filtreMoisStock || !filtreAnneeStock) return true;
       const moisIndex = moisOptions.indexOf(filtreMoisStock);
       const dateFinFiltre = new Date(filtreAnneeStock, moisIndex, 0);
-      return f.entreesFournitures.some((e) => {
-        const dateEntree = new Date(e.dateEntree);
+      return f.EntreesFournitures.some((e) => {
+        const dateEntree = new Date(e.DateEntree);
         return dateEntree <= dateFinFiltre;
       });
     })
-    .reduce((sum, f) => sum + (f.prixTotal || 0), 0)
+    .reduce((sum, f) => sum + (f.PrixTotal || 0), 0)
     .toFixed(2);
 
   const totalQuantiteEntree = getTotalByMonth("quantiteEntree", fournitures, filtreMoisEntree, filtreAnneeEntree);
@@ -375,21 +375,21 @@ function Inventaire() {
 
   const getTotalByAgence = (agenceNom) => {
     return agenceFournitures
-      .filter((af) => af.agenceNom === agenceNom && (!filtreMoisEntree || !filtreAnneeEntree || af.dateAssociation.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)))
-      .reduce((sum, af) => sum + (af.quantite || 0), 0)
+      .filter((af) => af.AgenceNom === agenceNom && (!filtreMoisEntree || !filtreAnneeEntree || af.dateAssociation.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)))
+      .reduce((sum, af) => sum + (af.Quantite || 0), 0)
   }
 
   const totalQuantiteConsommation = agenceFournitures
     .filter((af) => {
-      if (!af.dateAssociation) return false;
+      if (!af.DateAssociation) return false;
       if (!filtreMoisConsommation || !filtreAnneeConsommation) return true;
       const moisIndex = moisOptions.indexOf(filtreMoisConsommation);
       if (moisIndex === -1) return false;
       return af.dateAssociation.startsWith(`${filtreAnneeConsommation}-${String(moisIndex).padStart(2, "0")}`);
     })
-    .reduce((sum, af) => sum + (af.quantite || 0), 0);
+    .reduce((sum, af) => sum + (af.Quantite || 0), 0);
 
-  const cmupConsommation = totalQuantiteConsommation > 0 ? fournitures.reduce((sum, f) => sum + ((f.cmup || 0) * (f.quantite || 0)), 0) / totalQuantiteStock : 0;
+  const cmupConsommation = totalQuantiteConsommation > 0 ? fournitures.reduce((sum, f) => sum + ((f.cmup || 0) * (f.Quantite || 0)), 0) / totalQuantiteStock : 0;
   const totalMontantConsommation = totalQuantiteConsommation * cmupConsommation;
   const totalStockAu = totalQuantiteStock - totalQuantiteConsommation;
 
@@ -509,7 +509,7 @@ function Inventaire() {
                     })
                     .map((f, index) => {
                       const entreesFiltrees = f.entreesFournitures.filter((e) => 
-                        !filtreMoisEntree || !filtreAnneeEntree || e.dateEntree.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)
+                        !filtreMoisEntree || !filtreAnneeEntree || e.DateEntree.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`)
                       );
                       const totalQuantiteEntree = entreesFiltrees.reduce((sum, e) => sum + (e.quantiteEntree || 0), 0);
                       const totalMontantEntree = entreesFiltrees.reduce((sum, e) => sum + ((e.quantiteEntree || 0) * (e.prixUnitaire || 0)), 0);
@@ -527,7 +527,7 @@ function Inventaire() {
                           <td>{(f.quantite || 0) + (totalQuantiteEntree || 0)}</td>
                           {agences.map((agence, agenceIndex) => {
                             const af = agenceFournitures.find(
-                              (af) => af.fournitureNom === f.nom && af.agenceNom === agence.nom && 
+                              (af) => af.fournitureNom === f.nom && af.AgenceNom === agence.nom && 
                               (!filtreMoisEntree || !filtreAnneeEntree || af.dateAssociation.startsWith(`${filtreAnneeEntree}-${String(moisOptions.indexOf(filtreMoisEntree)).padStart(2, "0")}`))
                             )
                             return <td key={`cell-${agence.nom}-${index}-${agenceIndex}`}>{af ? af.quantite : 0}</td>

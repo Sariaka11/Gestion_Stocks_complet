@@ -35,20 +35,20 @@ function UserStock() {
 
         // Regrouper les données par idBien, categorie et fonction
         const groupedStockData = stockData.reduce((acc, item) => {
-          const key = `${item.idBien}-${item.categorie}-${item.fonction || "N/A"}`;
+          const key = `${item.IdBien}-${item.Categorie}-${item.Fonction || "N/A"}`;
           if (!acc[key]) {
             acc[key] = {
-              idBien: item.idBien,
-              nomBien: item.nomBien || "N/A",
-              categorie: item.categorie || "N/A",
-              fonction: item.fonction || "N/A",
+              idBien: item.IdBien,
+              nomBien: item.NomBien || "N/A",
+              categorie: item.Categorie || "N/A",
+              fonction: item.Fonction || "N/A",
               quantite: 0,
               quantiteConso: 0,
-              nomAgence: item.nomAgence || "N/A",
+              nomAgence: item.NomAgence || "N/A",
             };
           }
-          acc[key].quantite += Number(item.quantite) || 0;
-          acc[key].quantiteConso += Number(item.quantiteConso) || 0;
+          acc[key].quantite += Number(item.Quantite) || 0;
+          acc[key].quantiteConso += Number(item.QuantiteConso) || 0;
           return acc;
         }, {});
 
@@ -101,12 +101,12 @@ function UserStock() {
     autoTable(doc, {
       head: [["Nom du Bien", "Catégorie", "Fonction", "Quantité", "Quantité Consommée", "Disponibilité"]],
       body: filteredItems.map(item => [
-        item.nomBien || "N/A",
-        item.categorie || "N/A",
-        item.fonction || "N/A",
-        item.quantite || 0,
-        item.quantiteConso || 0,
-        item.quantite > 0 ? "Disponible" : "Indisponible",
+        item.NomBien || "N/A",
+        item.Categorie || "N/A",
+        item.Fonction || "N/A",
+        item.Quantite || 0,
+        item.QuantiteConso || 0,
+        item.Quantite > 0 ? "Disponible" : "Indisponible",
       ]),
       startY: 30,
       styles: {
