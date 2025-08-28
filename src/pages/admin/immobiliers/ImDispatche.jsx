@@ -52,28 +52,26 @@ function ImDispatche() {
   }
 
   const triggerRefresh = () => {
-    getBienAgences().then((res) => {
-      console.log("Réponse brute de getBienAgences :", res.data)
-      let data = res.data
-      if (res.data && res.data.values && Array.isArray(res.data.values)) {
-        data = res.data.values
-      }
-      if (Array.isArray(data)) {
-        console.log("Données après extraction :", data)
-        const dataValide = data.filter((a) => a && a.nomBien)
-        console.log("Données valides après filtrage :", dataValide)
-        setAffectations(dataValide)
-      } else {
-        console.warn("Réponse inattendue :", res.data)
-        setAffectations([])
-      }
-    }).catch((err) => {
-      console.error("Erreur lors du refresh :", err)
-      setAffectations([])
-    })
-  }
+    // getBienAgences().then((res) => {
+    //   console.log("Réponse brute de getBienAgences :", res.data)
+    //   let data = res.data
+    //   if (res.data && res.data.values && Array.isArray(res.data.values)) {
+    //     data = res.data.values
+    //   }
+    //   if (Array.isArray(data)) {
+    //     console.log("Données après extraction :", data)
+    //     const dataValide = data.filter((a) => a && a.nomBien)
+    //     console.log("Données valides après filtrage :", dataValide)
+    //     setAffectations(dataValide)
+    //   } else {
+    //     console.warn("Réponse inattendue :", res.data)
+    //     setAffectations([])
+    //   }
+    // }).catch((err) => {
+    //   console.error("Erreur lors du refresh :", err)
+    //   setAffectations([])
+    // })
 
-  useEffect(() => {
     setLoading(true)
     Promise.all([getImmobiliers(), getAgences(), getBienAgences()])
       .then(([resImmobiliers, resAgences, resAffectations]) => {
@@ -107,7 +105,7 @@ function ImDispatche() {
                 (aff) => aff.idBien === immobilier.idBien && aff.idAgence === a.id && aff.fonction === f
               )
               return {
-                agenceId: a.id,
+                agenceId: a.Id,
                 quantite: aff ? aff.quantite || 0 : 0,
                 fonction: f,
                 dateAffectation: aff ? aff.dateAffectation : null
@@ -123,6 +121,10 @@ function ImDispatche() {
         afficherToast("Erreur lors du chargement des données", "erreur")
       })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    triggerRefresh()
   }, [])
 
   const ajouterAgenceTableau = () => {
@@ -142,6 +144,7 @@ function ImDispatche() {
   const toggleEditionAffectation = (id) => {
     console.log(`toggleEditionAffectation appelé avec id: ${id}, affectationEnEdition actuel: ${affectationEnEdition}`)
     if (affectationEnEdition === id) {
+      // console.log("affectation", affectations)
       const ligne = affectations.find((a) => a.id === id)
       let totalQuantiteAffectee = 0
 
@@ -156,7 +159,8 @@ function ImDispatche() {
         return
       }
 
-      const premiereAffectation = ligne.affectations.find((a) => a.Quantite > 0)
+      const premiereAffectation = ligne.affectations.find((a) => a.quantite > 0)
+      console.log("*-*-*-*-*-",premiereAffectation,"/",ligne)
       if (premiereAffectation) {
         const fonction = premiereAffectation.fonction || "Non spécifiée"
         console.log(`Envoi pour idBien: ${ligne.id}, idAgence: ${premiereAffectation.agenceId}, quantite: ${premiereAffectation.quantite}, fonction: ${fonction}`)
@@ -164,8 +168,8 @@ function ImDispatche() {
         const dateAffectation = new Date().toISOString().split("T")[0] // Format YYYY-MM-DD
         createBienAgence({
           idBien: ligne.id,
-          idAgence: premiereAffectation.AgenceId,
-          quantite: premiereAffectation.Quantite,
+          idAgence: premiereAffectation.agenceId,
+          quantite: premiereAffectation.quantite,
           dateAffectation: dateAffectation,
           fonction: fonction,
           quantiteConso: 0
@@ -316,7 +320,7 @@ function ImDispatche() {
         quantiteConso: 0
       }
 
-      console.log("Données envoyées à createBienAgence :", payload)
+      console.log("Données envoyées à createBienAgence :", payload, nouvelleAffectation)
 
       // Envoyer la requête POST
       await createBienAgence(payload)
@@ -441,10 +445,10 @@ function ImDispatche() {
                       <td>{affectation.quantite}</td>
                       {agencesAffichees.map((agence) => {
                         const aff = affectation.affectations.find(
-                          (a) => a.agenceId === agence.id && a.fonction === agence.fonction
+                          (a) => a.agenceId === agence.Id && a.fonction === agence.fonction
                         )
                         console.log(
-                          `Rendu input pour idBien=${affectation.id}, agenceId=${agence.id}, fonction=${agence.fonction}, quantite=${aff?.quantite || 0}, disabled=${affectationEnEdition !== affectation.id}`
+                          `Rendu input pour idBien=${affectation.id}, agenceId=${agence.Id}, fonction=${agence.fonction}, quantite=${aff?.quantite || 0}, disabled=${affectationEnEdition !== affectation.id}`
                         )
                         return (
                           <td key={`${affectation.id}-${agence.id}-${agence.fonction}`}>

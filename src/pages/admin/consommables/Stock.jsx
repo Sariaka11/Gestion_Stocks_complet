@@ -80,30 +80,30 @@ function Stock() {
     }
     setToasts((prev) => [...prev, { ...confirmation, type: "confirmation" }])
   }
-
-  useEffect(() => {
-    setLoading(true)
-    console.log("Début du chargement des données...")
-    getFournitures()
+ const getDataFourniture = () =>{
+  setLoading(true)
+  console.log("Début du chargement des données...")
+  getFournitures()
       .then((res) => {
         console.log("Réponse API:", res)
         const rawData = res.data
         const array = Array.isArray(rawData) ? rawData : rawData["$values"] || []
         console.log("Données mappées:", array)
-
+        
         const mapped = array.map((item) => {
+          console.log("item", item)
           const latestEntree =
-            item.EntreesFournitures && item.EntreesFournitures.length > 0
-              ? item.EntreesFournitures[item.EntreesFournitures.length - 1]
+          item.EntreesFournitures && item.EntreesFournitures.length > 0
+          ? item.EntreesFournitures[item.EntreesFournitures.length - 1]
               : null
-          return {
-            id: item.id,
-            designation: item.Nom || "Inconnu",
-            categorie: item.Categorie || "Sans catégorie",
-            stockAvant: {
-              quantite: item.QuantiteRestante || 0,
-              montant: (item.QuantiteRestante || 0) * (item.PrixUnitaire || 0),
-              cmup: item.CMUP ?? 0,
+              return {
+                id: item.Id,
+                designation: item.Nom || "Inconnu",
+                categorie: item.Categorie || "Sans catégorie",
+                stockAvant: {
+                  quantite: item.QuantiteRestante || 0,
+                  montant: (item.QuantiteRestante || 0) * (item.PrixUnitaire || 0),
+                  cmup: item.CMUP ?? 0,
             },
             stockActuel: {
               date: latestEntree ? latestEntree.DateEntree : null,
@@ -126,13 +126,16 @@ function Stock() {
         console.log("Chargement terminé")
         setLoading(false)
       })
+  }
+  useEffect(() => {
+    getDataFourniture()
   }, [])
-
+  
   const sauvegarderArticle = () => {
     const quantite = Number.parseInt(nouvelArticle.quantite, 10)
-    const prixUnitaire = Number.parseFloat(nouvelArticle.PrixUnitaire)
-
-    if (!nouvelArticle.designation || !nouvelArticle.categorie || !quantite || !PrixUnitaire) {
+    const prixUnitaire = Number.parseFloat(nouvelArticle.prixUnitaire)
+    // console.log(nouvelArticle.designation , nouvelArticle.categorie , quantite , prixUnitaire)
+    if (!nouvelArticle.designation || !nouvelArticle.categorie || !quantite || !prixUnitaire) {
       afficherToast("Tous les champs sont obligatoires", "erreur")
       return
     }
@@ -140,7 +143,7 @@ function Stock() {
     const data = {
       nom: nouvelArticle.designation,
       categorie: nouvelArticle.categorie,
-      PrixUnitaire,
+      prixUnitaire,
       quantite,
     }
 
@@ -220,9 +223,13 @@ function Stock() {
           afficherToast("Erreur lors de la création", "erreur")
         })
     }
+    setTimeout(() => {
+      getDataFourniture()
+    }, 3000);
   }
 
   const ajouterEntree = (article) => {
+    console.log("article", article)
     setNouvelleEntree(article)
     setNouvelArticle({
       designation: article.designation,
@@ -236,15 +243,15 @@ function Stock() {
 
   const sauvegarderEntree = () => {
     if (!nouvelleEntree) return
-
+    console.log(nouvelleEntree)
     const quantite = Number.parseInt(nouvelArticle.quantite, 10)
-    const PrixUnitaire = Number.parseFloat(nouvelArticle.PrixUnitaire)
+    const PrixUnitaire = Number.parseFloat(nouvelArticle.prixUnitaire)
 
     if (!quantite || !PrixUnitaire || !nouvelArticle.date) {
       afficherToast("Quantité, Prix unitaire et date sont obligatoires", "erreur")
       return
     }
-
+    console.log("*-*----",nouvelleEntree)
     const data = {
       fournitureId: nouvelleEntree.id,
       quantiteEntree: quantite,
@@ -255,13 +262,13 @@ function Stock() {
     createEntreeFourniture(nouvelleEntree.id, data)
       .then((res) => {
         const updatedItem = res.data
-        const latestEntree = updatedItem.entreesFournitures[updatedItem.entreesFournitures.length - 1]
+        const latestEntree = updatedItem.EntreesFournitures[updatedItem.EntreesFournitures.length - 1]
         const articleMisAJour = {
           ...nouvelleEntree,
           stockAvant: {
-            quantite: updatedItem.quantiteRestante,
-            montant: updatedItem.quantiteRestante * updatedItem.PrixUnitaire,
-            cmup: updatedItem.cmup ?? 0,
+            quantite: updatedItem.QuantiteRestante,
+            montant: updatedItem.QuantiteRestante * updatedItem.PrixUnitaire,
+            cmup: updatedItem.CMUP ?? 0,
           },
           stockActuel: {
             date: latestEntree.DateEntree,
@@ -276,6 +283,7 @@ function Stock() {
         afficherToast("Nouvelle entrée ajoutée avec succès!", "succes")
         setModalOuvert(false)
         setNouvelleEntree(null)
+        getDataFourniture()
       })
       .catch((err) => {
         console.error("Erreur lors de l'ajout de l'entrée:", err)
@@ -436,7 +444,7 @@ function Stock() {
                 <td>{article.stockAvant.cmup.toFixed(2)}</td>
                 <td>{article.stockActuel.date?.split("T")[0] || "N/A"}</td>
                 <td>{article.stockActuel.quantite}</td>
-                <td>{article.stockActuel.prixUnitaire.toFixed(2)}</td>
+                <td>{article.stockActuel.prixUnitaire}</td>
                 <td>{article.stockActuel.montant.toFixed(2)}</td>
                 <td className="actions-cellule">
                   <button

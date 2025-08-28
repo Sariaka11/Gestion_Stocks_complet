@@ -156,10 +156,10 @@ function UserConsommation() {
         )
         return
       }
-
+      console.log(addFormData)
       const response = await addConsommation({
         agenceId: userAgenceId,
-        fournitureId: addFormData.FournitureId,
+        fournitureId: addFormData.fournitureId,
         consoMm: parsedConsoMm,
       })
 

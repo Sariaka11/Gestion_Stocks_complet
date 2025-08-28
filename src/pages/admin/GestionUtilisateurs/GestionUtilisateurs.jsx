@@ -74,13 +74,13 @@ function GestionUtilisateurs() {
           let stockCritique = false
           if (stockItems.length > 0) {
             const stockPercentages = stockItems.map((item) => {
-              const initialQty = item.quantiteInitiale || item.quantite || 1
-              const remainingQty = item.quantiteRestante || 0
+              const initialQty = item.QuantiteInitiale || item.Quantite || 1
+              const remainingQty = item.QuantiteRestante || 0
               return (remainingQty / initialQty) * 100
             })
             stockLevel = Math.round(stockPercentages.reduce((sum, pct) => sum + pct, 0) / stockPercentages.length)
             stockLevel = Math.min(100, Math.max(0, stockLevel))
-            stockCritique = stockItems.some((item) => (item.quantite || 0) < (item.seuilCritique || 10))
+            stockCritique = stockItems.some((item) => (item.Quantite || 0) < (item.SeuilCritique || 10))
           }
 
           const agence = agenceResponse.data
@@ -387,9 +387,10 @@ function GestionUtilisateurs() {
   // Fonction modifiée pour openUserDetails
   const openUserDetails = async (user) => {
     try {
+ 
       const userResponse = await getUserById(user.id)
       const userData = userResponse.data
-
+      console.log("*-*-*-**",selectedUser)
       const agenceResponse = await getUserAgence(user.id).catch(() => ({
         data: { nom: "N/A", id: null },
       }))
@@ -401,11 +402,12 @@ function GestionUtilisateurs() {
 
       let stockItems = fournituresResponse.data
       if (!Array.isArray(stockItems)) {
-        console.warn(`stockItems non valide pour user ${user.id} :`, stockItems)
+        console.warn(`stockItems non valide pour user ${user.Id} :`, stockItems)
         stockItems = []
       } else {
         stockItems = stockItems.flatMap((item) => {
-          const agencyData = item.AgenceFournitures?.find((el) => el.AgenceId == agenceResponse.data.id)
+          const agencyData = item.AgenceFournitures?.find((el) => el.AgenceId == agenceResponse.data.Id)
+          console.log("****",agenceResponse)
           return agencyData
             ? [
                 {
@@ -468,11 +470,11 @@ function GestionUtilisateurs() {
       }
 
       const updatedUser = {
-        id: userData.id,
-        nom: `${userData.nom} ${userData.prenom}`,
-        role: userData.fonction,
+        id: userData.Id,
+        nom: `${userData.Nom} ${userData.Prenom}`,
+        role: userData.Fonction,
         agence: agenceResponse.data.nom,
-        email: userData.email,
+        email: userData.Email,
         telephone: "+261 34 00 000 00",
         dateCreation: new Date().toLocaleDateString(),
         stockCritique: stockCritique,
@@ -790,7 +792,7 @@ function GestionUtilisateurs() {
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                     <polyline points="22,6 12,13 2,6"></polyline>
                   </svg>
-                  <span>{selectedUser.email}</span>
+                  <span>{selectedUser.Email}</span>
                 </div>
                 <div className="contact-item">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

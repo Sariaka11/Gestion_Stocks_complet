@@ -59,13 +59,13 @@ function Amortissements() {
         const isNewThisYear = dateAcquisition.getFullYear() === today.getFullYear();
 
         // Calculer la VNC et l'amortissement cumulé
-        let amortissementCumule = item.amortissementCumule || 0;
-        let valeurNetteComptable = item.valeurNetteComptable || item.valeurAcquisition || 0;
+        let amortissementCumule = item.AmortissementCumule || 0;
+        let valeurNetteComptable = item.ValeurNetteComptable || item.ValeurAcquisition || 0;
 
         // Si le bien est acquis cette année, pas d'amortissement pour l'année en cours
         if (isNewThisYear) {
           amortissementCumule = 0;
-          valeurNetteComptable = item.valeurAcquisition || 0;
+          valeurNetteComptable = item.ValeurAcquisition || 0;
         }
 
         return {

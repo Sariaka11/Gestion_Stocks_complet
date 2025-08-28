@@ -43,6 +43,7 @@ function ImInventaire() {
     try {
       const agencesRes = await getAgences()
       let agencesData = agencesRes.data
+      console.log("*-*-*", agencesData)
       if (agencesData && typeof agencesData === "object" && "$values" in agencesData) {
         agencesData = agencesData.$values
       }
@@ -87,7 +88,8 @@ function ImInventaire() {
         affectationsData = []
       }
       affectationsData = affectationsData.filter((aff) => {
-        const isValid = aff.idBien && aff.idAgence && aff.fonction && aff.fonction.trim() !== "" && aff.quantite !== undefined
+        // console.log("'''*-*-*-*-*''''",aff)
+        const isValid = aff.IdBien && aff.IdAgence && aff.Fonction && aff.Fonction.trim() !== "" && aff.Quantite !== undefined
         if (!isValid) {
           console.warn(`Affectation invalide ignorée:`, aff)
         }
@@ -97,12 +99,12 @@ function ImInventaire() {
       setAffectations(affectationsData)
 
       const inventaireItems = immobiliersData.map((item) => {
-        const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.idBien)
-        const affectationsBien = affectationsData.filter((a) => a.idBien === item.idBien)
+        const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.IdBien)
+        const affectationsBien = affectationsData.filter((a) => a.idBien === item.IdBien)
 
         return {
           id: item.IdBien,
-          codeArticle: `IMM-${String(item.idBien).padStart(3, "0")}`,
+          codeArticle: `IMM-${String(item.IdBien).padStart(3, "0")}`,
           designation: item.NomBien || "Inconnu",
           codeBarre: item.CodeBarre || "0000000000000",
           prixAchat: item.ValeurAcquisition || 0,
@@ -152,7 +154,7 @@ function ImInventaire() {
 
       let matchAgence = true
       if (filtreAgence !== "") {
-        const affectationsBien = item.affectations || []
+        const affectationsBien = item.Affectations || []
         matchAgence = affectationsBien.some((aff) => aff.idAgence.toString() === filtreAgence)
       }
 
@@ -160,7 +162,13 @@ function ImInventaire() {
     })
   }, [inventaireData, filtreDesignation, filtreStatut, filtreMois, filtreAnnee, filtreAgence])
 
+
+
+
+
+
   const combinaisonsAgenceFonction = useMemo(() => {
+    // console.log("///////", affectations)
     if (affectations.length === 0) {
       console.warn("Aucune affectation valide pour générer les combinaisons agence/fonction")
       return []
@@ -170,14 +178,14 @@ function ImInventaire() {
     const seen = new Set()
 
     affectations.forEach((aff) => {
-      const fonction = (aff.fonction || "").trim()
+      const fonction = (aff.Fonction || "").trim()
       if (fonction !== "") {
-        const key = `${aff.idAgence}-${fonction.toLowerCase()}`
+        const key = `${aff.IdAgence}-${fonction.toLowerCase()}`
         if (!seen.has(key)) {
           seen.add(key)
           combinaisons.push({
-            idAgence: aff.idAgence,
-            nomAgence: getNomAgence(aff.idAgence),
+            idAgence: aff.IdAgence,
+            nomAgence: getNomAgence(aff.IdAgence),
             fonction,
           })
         }
@@ -197,9 +205,16 @@ function ImInventaire() {
     return sortedCombinaisons
   }, [affectations, agences])
 
+
+
+
+
+
+
+
   const donneesAffectations = useMemo(() => {
     const result = []
-    const uniqueIds = [...new Set(affectations.map((aff) => aff.idBien))]
+    const uniqueIds = [...new Set(affectations.map((aff) => aff.IdBien))]
 
     // Générer l'ordre des combinaisons basé sur l'en-tête
     const orderedCombinations = [];
@@ -209,15 +224,16 @@ function ImInventaire() {
     });
 
     uniqueIds.forEach((idBien) => {
-      const affectationsBien = affectations.filter((aff) => aff.idBien === idBien)
+      const affectationsBien = affectations.filter((aff) => aff.IdBien === idBien)
       const quantitesParCombinaison = orderedCombinations.map((comb, index) => {
+        console.log("comb-",comb)
         const totalQuantite = affectationsBien
           .filter((aff) => {
             return (
-              aff.idAgence === comb.idAgence &&
-              aff.fonction &&
-              aff.fonction.trim().toLowerCase() === comb.fonction.toLowerCase() &&
-              aff.quantite !== undefined
+              aff.IdAgence === comb.idAgence &&
+              aff.Fonction &&
+              aff.Fonction.trim().toLowerCase() === comb.fonction.toLowerCase() &&
+              aff.Quantite !== undefined
             )
           })
           .reduce((sum, aff) => sum + (Number(aff.quantite) || 0), 0)
@@ -233,7 +249,7 @@ function ImInventaire() {
       })
     })
 
-    console.log("Données affectations:", result)
+    console.log("Données affectations:", result, "/", combinaisonsAgenceFonction)
     return result
   }, [affectations, combinaisonsAgenceFonction, inventaireData, agences])
 

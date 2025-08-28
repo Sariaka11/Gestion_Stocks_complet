@@ -181,7 +181,7 @@ function ImStock() {
   const sauvegarderSousCategorie = () => {
     const nom = nouvelleSousCategorie.nom?.trim()
     const parentId = nouvelleSousCategorie.parentId
-
+    console.log(nouvelleSousCategorie)
     if (!nom || !parentId) {
       afficherToast("Tous les champs sont obligatoires.", "erreur")
       return
@@ -213,16 +213,16 @@ function ImStock() {
   }
 
   const sauvegarderCategorie = () => {
-    const nom = nouvelleCategorie.NomCategorie?.trim()
-    const duree = nouvelleCategorie.DureeAmortissement
-
+    const nom = nouvelleCategorie.nomCategorie?.trim()
+    const duree = nouvelleCategorie.dureeAmortissement
+    console.log(nouvelleCategorie)
     if (!nom || !duree) {
       afficherToast("Tous les champs sont obligatoires.", "erreur")
       return
     }
 
     const data = {
-      nomCategorie: nouvelleCategorie.NomCategorie.trim(),
+      nomCategorie: nouvelleCategorie.nomCategorie.trim(),
       dureeAmortissement: Number.parseInt(nouvelleCategorie.dureeAmortissement, 10),
     }
 
@@ -460,7 +460,7 @@ function ImStock() {
           <input
             type="text"
             placeholder="Nom de la catégorie"
-            value={nouvelleCategorie.NomCategorie}
+            value={nouvelleCategorie.nomCategorie}
             onChange={(e) =>
               setNouvelleCategorie((prev) => ({
                 ...prev,
@@ -472,7 +472,7 @@ function ImStock() {
             type="number"
             placeholder="Durée d'amortissement"
             min="1"
-            value={nouvelleCategorie.DureeAmortissement}
+            value={nouvelleCategorie.dureeAmortissement}
             onChange={(e) =>
               setNouvelleCategorie((prev) => ({
                 ...prev,

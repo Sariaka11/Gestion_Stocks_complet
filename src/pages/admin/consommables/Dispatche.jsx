@@ -77,9 +77,9 @@ function Dispatche() {
           designation: f.Nom,
           quantite: f.QuantiteRestante,
           date: f.date?.split("T")[0],
-          consommations: agencesRaw.map((a) => ({ agenceId: a.id, quantite: 0 })),
+          consommations: agencesRaw.map((a) => ({ agenceId: a.Id, quantite: 0 })),
         }));
-
+        // console.log("stDispatch", lignes)
         setDispatches(lignes);
       })
       .catch((err) => {
@@ -92,7 +92,7 @@ function Dispatche() {
   const ajouterAgenceTableau = () => {
     if (!filtreAgenceTableau) return;
     const agence = agences.find((a) => a.Id == parseInt(filtreAgenceTableau));
-    console.log("*-*-*-*", filtreAgenceTableau,agence)
+    // console.log("*-*-*-*", filtreAgenceTableau,agence)
     if (agence && !agencesAffichees.find((a) => a.id === agence.Id)) {
       setAgencesAffichees((prev) => [...prev, agence]);
     }
@@ -138,9 +138,9 @@ const supprimerAgence = (id) => {
         .filter((c) => c.quantite > 0)
         .map((c) =>
           createAgenceFourniture({
-            agenceId: c.AgenceId,
-            fournitureId: ligne.Id,
-            quantite: c.Quantite,
+            agenceId: c.agenceId,
+            fournitureId: ligne.id,
+            quantite: c.quantite,
             dateAssociation: new Date().toISOString(),
           })
         );
@@ -149,11 +149,11 @@ const supprimerAgence = (id) => {
         .then(() => {
           const newRestante = ligne.quantite - totalQuantiteDeduite;
           updateFourniture(ligne.id, {
-            id: ligne.Id,
-            nom: ligne.Nom,
-            quantite: ligne.Quantite,
+            id: ligne.id,
+            nom: ligne.designation,
+            quantite: ligne.quantite,
             prixUnitaire: fournitures.find((f) => f.id === ligne.id)?.PrixUnitaire || 0,
-            categorie: fournitures.find((f) => f.id === ligne.id)?.Categorie || "",
+            categorie: fournitures.find((f) => f.Id === ligne.id)?.Categorie || "",
             quantiteRestante: newRestante,
             date: new Date().toISOString(),
           }).then(() => {
@@ -192,12 +192,15 @@ const supprimerAgence = (id) => {
   };
 
   const mettreAJourConsommation = (dispatchId, agenceId, qtt) => {
+    // console.log(dispatchId, agenceId, qtt)
     setDispatches((prev) =>
       prev.map((d) => {
-        if (d.Id === dispatchId) {
+        if (d.id === dispatchId) {
+          // console.log(d.id === dispatchId, d)
           const majCons = d.consommations.map((c) =>
-            c.AgenceId === agenceId ? { ...c, quantite: parseInt(qtt, 10) || 0 } : c
+            c.agenceId === agenceId ? { ...c, quantite: parseInt(qtt, 10) || 0 } : c
           );
+          // console.log("=====",{ ...d, consommations: majCons })
           return { ...d, consommations: majCons };
         }
         return d;
@@ -379,11 +382,14 @@ const supprimerAgence = (id) => {
               <tbody>
                 {dispatchesFiltres.length > 0 ? (
                   dispatchesFiltres.map((dispatch) => (
+                    
                     <tr key={dispatch.id}>
                       <td>{dispatch.designation}</td>
                       <td>{dispatch.quantite}</td>
                       {agencesAffichees.map((agence) => {
-                        const consommation = dispatch.consommations?.find((c) => c.AgenceId === agence.id);
+                        // console.log("dispacth", dispatch)
+                        const consommation = dispatch.consommations?.find((c) => c.agenceId === agence.Id);
+                        // console.log("*-*-*-*-*-*-*", dispatch.consommations,agence )
                         return (
                           <td key={`${dispatch.id}-${agence.id}`}>
                             <input
@@ -392,7 +398,7 @@ const supprimerAgence = (id) => {
                               max={dispatch.quantite}
                               value={consommation?.quantite || 0}
                               onChange={(e) =>
-                                mettreAJourConsommation(dispatch.id, agence.id, e.target.value)
+                                mettreAJourConsommation(dispatch.id, agence.Id, e.target.value)
                               }
                               className="input-consommation"
                               disabled={dispatchEnEdition !== dispatch.id}
