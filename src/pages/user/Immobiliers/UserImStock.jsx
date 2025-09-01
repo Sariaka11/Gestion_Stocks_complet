@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getBienByAgence } from "../../../services/bienAgenceServices";
 import { useAuth } from "../../../Context/AuthContext";
 import jsPDF from "jspdf";
@@ -17,68 +17,55 @@ function UserStock() {
   const [selectedItem, setSelectedItem] = useState(null);
   const { user, userAgenceId, isAuthLoading } = useAuth();
 
-  console.log("Rendu de UserStock, user:", user, "userAgenceId:", userAgenceId, "isAuthLoading:", isAuthLoading);
+  const fetchStock = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getBienByAgence(userAgenceId);
+      const stockData = response.data;
+      console.log("Les datas recus : "+stockData)
+
+      if (!Array.isArray(stockData)) {
+        throw new Error("Les données reçues ne sont pas un tableau.");
+      }
+
+      const groupedStockData = stockData.reduce((acc, item) => {
+        const key = `${item.IdBien}-${item.Categorie}-${item.Fonction || "N/A"}`;
+        if (!acc[key]) {
+          acc[key] = {
+            idBien: item.IdBien,
+            nomBien: item.NomBien || "N/A",
+            categorie: item.Categorie || "N/A",
+            fonction: item.Fonction || "N/A",
+            quantite: 0,
+            quantiteConso: 0,
+            nomAgence: item.NomAgence || "N/A",
+          };
+        }
+        acc[key].quantite += Number(item.Quantite) || 0;
+        acc[key].quantiteConso += Number(item.QuantiteConso) || 0;
+        return acc;
+      }, {});
+
+      const uniqueStockData = Object.values(groupedStockData);
+      setStockItems(uniqueStockData);
+      setFilteredItems(uniqueStockData);
+      const uniqueCategories = ["Toutes", ...new Set(uniqueStockData.map(item => item.categorie))];
+      setCategories(uniqueCategories);
+    } catch (err) {
+      setError("Erreur lors de la récupération des données : " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [userAgenceId]);
 
   useEffect(() => {
-    const fetchStock = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        console.log("Appel de fetchStock avec userAgenceId:", userAgenceId);
-        const response = await getBienByAgence(userAgenceId);
-        console.log("Données brutes reçues :", response);
-        const stockData = response.data;
-
-        if (!Array.isArray(stockData)) {
-          throw new Error("Les données reçues ne sont pas un tableau.");
-        }
-
-        // Regrouper les données par idBien, categorie et fonction
-        const groupedStockData = stockData.reduce((acc, item) => {
-          const key = `${item.IdBien}-${item.Categorie}-${item.Fonction || "N/A"}`;
-          if (!acc[key]) {
-            acc[key] = {
-              idBien: item.IdBien,
-              nomBien: item.NomBien || "N/A",
-              categorie: item.Categorie || "N/A",
-              fonction: item.Fonction || "N/A",
-              quantite: 0,
-              quantiteConso: 0,
-              nomAgence: item.NomAgence || "N/A",
-            };
-          }
-          acc[key].quantite += Number(item.Quantite) || 0;
-          acc[key].quantiteConso += Number(item.QuantiteConso) || 0;
-          return acc;
-        }, {});
-
-        // Convertir l'objet regroupé en tableau
-        const uniqueStockData = Object.values(groupedStockData);
-        console.log("Données regroupées par idBien, categorie, fonction :", uniqueStockData);
-
-        setStockItems(uniqueStockData);
-        setFilteredItems(uniqueStockData);
-        const uniqueCategories = ["Toutes", ...new Set(uniqueStockData.map(item => item.categorie))];
-        setCategories(uniqueCategories);
-      } catch (err) {
-        console.error("Erreur dans fetchStock :", err);
-        setError("Erreur lors de la récupération des données : " + err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthLoading) {
-      console.log("Authentification en cours, en attente...");
-    } else if (!userAgenceId) {
-      console.log("Aucun userAgenceId disponible:", { user, userAgenceId });
-      setError("Aucune agence associée à votre compte. Veuillez contacter l'administrateur.");
-      setLoading(false);
-    } else {
-      console.log("Authentification terminée, lancement de fetchStock...");
+    if (!isAuthLoading && userAgenceId) {
       fetchStock();
+    } else if (!isAuthLoading && !userAgenceId) {
+      setError("Aucune agence associée à votre compte. Veuillez contacter l'administrateur.");
     }
-  }, [isAuthLoading, userAgenceId]);
+  }, [isAuthLoading, userAgenceId, fetchStock]);
 
   useEffect(() => {
     if (selectedCategory === "Toutes") {
@@ -87,6 +74,10 @@ function UserStock() {
       setFilteredItems(stockItems.filter(item => item.categorie === selectedCategory));
     }
   }, [selectedCategory, stockItems]);
+
+  const handleRefresh = () => {
+    fetchStock();
+  };
 
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
@@ -101,12 +92,12 @@ function UserStock() {
     autoTable(doc, {
       head: [["Nom du Bien", "Catégorie", "Fonction", "Quantité", "Quantité Consommée", "Disponibilité"]],
       body: filteredItems.map(item => [
-        item.NomBien || "N/A",
-        item.Categorie || "N/A",
-        item.Fonction || "N/A",
-        item.Quantite || 0,
-        item.QuantiteConso || 0,
-        item.Quantite > 0 ? "Disponible" : "Indisponible",
+        item.nomBien,
+        item.categorie,
+        item.fonction,
+        item.quantite,
+        item.quantiteConso,
+        item.quantite > 0 ? "Disponible" : "Indisponible",
       ]),
       startY: 30,
       styles: {
@@ -153,10 +144,6 @@ function UserStock() {
     return <div className="error-message">{error}</div>;
   }
 
-  if (loading) {
-    return <div className="loading-overlay">Chargement des données...</div>;
-  }
-
   return (
     <div className="user-imstock-container">
       <div className="user-imstock-header">
@@ -177,11 +164,19 @@ function UserStock() {
               </select>
             </div>
           </div>
-          <button className="btn-export" onClick={exportToPDF}>
-            Exporter en PDF
-          </button>
+          <div>
+            <button className="btn-refresh" onClick={handleRefresh}>
+              Rafraîchir
+            </button>
+            <button className="btn-export" onClick={exportToPDF}>
+              Exporter en PDF
+            </button>
+          </div>
         </div>
       </div>
+      
+      {loading && <div className="loading-overlay">Chargement des données...</div>}
+      
       <div className="user-imstock-table-container">
         <table className="user-imstock-table">
           <thead>

@@ -34,7 +34,7 @@ function GestionUtilisateurs() {
   const [showDispatcheModal, setShowDispatcheModal] = useState(false)
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
-  const [activeTab, setActiveTab] = useState("Consommables") // Nouvel état pour gérer l'onglet actif
+  const [activeTab, setActiveTab] = useState("Consommables")
 
   const [nouvelleAgence, setNouvelleAgence] = useState("")
   const [numeroAgence, setNumeroAgence] = useState("")
@@ -47,7 +47,6 @@ function GestionUtilisateurs() {
   const [users, setUsers] = useState([])
   const API_URL = "http://localhost:5000/api"
 
-  // Fetch users
   const fetchUsers = async () => {
     setLoading(true)
     try {
@@ -69,7 +68,6 @@ function GestionUtilisateurs() {
             stockItems = []
           }
 
-          // Calcul amélioré du niveau de stock
           let stockLevel = 0
           let stockCritique = false
           if (stockItems.length > 0) {
@@ -84,7 +82,6 @@ function GestionUtilisateurs() {
           }
 
           const agence = agenceResponse.data
-          console.log("*-*-*-*-*-*-*", agence)
           return {
             id: user.Id,
             nom: `${user.Nom} ${user.Prenom}`,
@@ -122,7 +119,6 @@ function GestionUtilisateurs() {
     fetchUsers()
   }, [])
 
-  // Add user
   const ajouterUtilisateur = async () => {
     if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail || !nouveauMotDePasse) {
       afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
@@ -226,7 +222,6 @@ function GestionUtilisateurs() {
     }
   }
 
-  // Edit user
   const modifierUtilisateur = async () => {
     if (!nouveauNom || !nouveauPrenom || !nouvelleAgence || !numeroAgence || !nouveauEmail) {
       afficherMessage("Veuillez remplir tous les champs obligatoires", "erreur")
@@ -317,13 +312,11 @@ function GestionUtilisateurs() {
     }
   }
 
-  // Fonction pour ouvrir le modal de confirmation de suppression
   const confirmerSuppression = (user) => {
     setUserToDelete(user)
     setShowDeleteConfirmModal(true)
   }
 
-  // Delete user
   const supprimerUtilisateur = async () => {
     if (!userToDelete) return
 
@@ -343,13 +336,11 @@ function GestionUtilisateurs() {
     }
   }
 
-  // Fonction pour annuler la suppression
   const annulerSuppression = () => {
     setShowDeleteConfirmModal(false)
     setUserToDelete(null)
   }
 
-  // Send message
   const envoyerMessage = () => {
     if (!messageContact.trim()) {
       afficherMessage("Veuillez saisir un message", "erreur")
@@ -361,7 +352,6 @@ function GestionUtilisateurs() {
     afficherMessage(`Message envoyé à ${selectedUser.nom}`, "succes")
   }
 
-  // Redirect to dispatch page
   const envoyerStock = (type) => {
     setShowDispatcheModal(false)
     if (type === "consommables") {
@@ -371,7 +361,6 @@ function GestionUtilisateurs() {
     }
   }
 
-  // Filter users
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -384,15 +373,13 @@ function GestionUtilisateurs() {
     return matchesSearch && matchesFilter
   })
 
-  // Fonction modifiée pour openUserDetails
   const openUserDetails = async (user) => {
     try {
- 
       const userResponse = await getUserById(user.id)
       const userData = userResponse.data
-      console.log("*-*-*-**",selectedUser)
+
       const agenceResponse = await getUserAgence(user.id).catch(() => ({
-        data: { nom: "N/A", id: null },
+        data: { nom: "N/A", Id: null },
       }))
 
       // Récupérer les fournitures (consommables)
@@ -407,7 +394,6 @@ function GestionUtilisateurs() {
       } else {
         stockItems = stockItems.flatMap((item) => {
           const agencyData = item.AgenceFournitures?.find((el) => el.AgenceId == agenceResponse.data.Id)
-          console.log("****",agenceResponse)
           return agencyData
             ? [
                 {
@@ -426,7 +412,7 @@ function GestionUtilisateurs() {
       }
 
       // Récupérer les données de BIEN_AGENCE (immobiliers)
-      const bienAgenceResponse = await getBienByAgence(agenceResponse.data.id).catch(() => ({
+      const bienAgenceResponse = await getBienByAgence(agenceResponse.data.Id).catch(() => ({
         data: [],
       }))
 
@@ -434,25 +420,26 @@ function GestionUtilisateurs() {
       if (immobilierItems && immobilierItems.$values && Array.isArray(immobilierItems.$values)) {
         immobilierItems = immobilierItems.$values
       } else if (!Array.isArray(immobilierItems)) {
-        console.warn(`immobilierItems non valide pour agence ${agenceResponse.data.id} :`, immobilierItems)
+        console.warn(`immobilierItems non valide pour agence ${agenceResponse.data.Id} :`, immobilierItems)
         immobilierItems = []
       }
 
-      // Mapper les données de BIEN_AGENCE
+      // Mapper les données de BIEN_AGENCE - CORRECTION APPLIQUÉE ICI
       immobilierItems = immobilierItems.map((item) => {
-        const quantiteRestante = item.Quantite || 0
-        const quantiteConso = item.QuantiteConso || 0
-        const seuilCritique = item.immobilisation?.seuilCritique || 10
-        const cmup = item.immobilisation?.PrixUnitaire || item.cmup || 0
+        // Utiliser les bonnes propriétés de l'API
+        const quantiteRestante = item.Quantite || item.quantite || 0
+        const quantiteConso = item.QuantiteConso || item.quantiteConso || 0
+        const seuilCritique = item.Immobilisation?.SeuilCritique || item.seuilCritique || 10
+        const designation = item.Immobilisation?.NomBien || item.NomBien || "Inconnu"
 
         return {
-          id: item.IdBien,
-          designation: item.immobilisation?.NomBien || "Inconnu",
+          id: item.IdBien || item.id,
+          designation: designation,
           quantite: quantiteRestante,
           quantiteConso: quantiteConso,
-          quantiteInitiale: item.Quantite || 0,
+          quantiteInitiale: item.QuantiteInitiale || item.Quantite || quantiteRestante,
           seuil: seuilCritique,
-          cmup: cmup,
+          cmup: item.Immobilisation?.PrixUnitaire || item.CMUP || 0,
         }
       })
 
@@ -487,7 +474,7 @@ function GestionUtilisateurs() {
           seuil: item.seuilCritique,
           cmup: item.cmup,
         })),
-        immobilierItems: immobilierItems, // Ajout des données immobilières
+        immobilierItems: immobilierItems,
       }
 
       setSelectedUser(updatedUser)
@@ -498,14 +485,12 @@ function GestionUtilisateurs() {
     }
   }
 
-  // Open contact modal
   const openContactModal = () => {
     setMessageContact("")
     setShowContactModal(true)
     setShowModal(false)
   }
 
-  // Open edit modal
   const openEditModal = () => {
     setNouveauNom(selectedUser.nom.split(" ")[0])
     setNouveauPrenom(selectedUser.nom.split(" ").slice(1).join(" "))
@@ -517,13 +502,11 @@ function GestionUtilisateurs() {
     setShowModal(false)
   }
 
-  // Open dispatch modal
   const openDispatcheModal = () => {
     setShowDispatcheModal(true)
     setShowModal(false)
   }
 
-  // Get initials for avatar
   const getInitials = (name) => {
     return name
       .split(" ")
@@ -585,7 +568,6 @@ function GestionUtilisateurs() {
         </button>
       </div>
 
-      {/* Modal de confirmation de suppression */}
       {showDeleteConfirmModal && userToDelete && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -629,7 +611,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal Ajouter Utilisateur */}
       {showAddUserModal && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -775,7 +756,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal Contact */}
       {showContactModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -829,7 +809,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal Modifier */}
       {showEditModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -962,7 +941,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal Dispatche */}
       {showDispatcheModal && selectedUser && (
         <div className="modal-overlay">
           <div className="modal-contenu">
@@ -997,7 +975,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Loading */}
       {loading ? (
         <div className="loading-container">
           <div className="spinner"></div>
@@ -1081,7 +1058,6 @@ function GestionUtilisateurs() {
         </div>
       )}
 
-      {/* Modal Détails Utilisateur */}
       {showModal && selectedUser && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content-only" onClick={(e) => e.stopPropagation()}>

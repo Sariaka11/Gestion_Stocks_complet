@@ -52,26 +52,6 @@ function ImDispatche() {
   }
 
   const triggerRefresh = () => {
-    // getBienAgences().then((res) => {
-    //   console.log("Réponse brute de getBienAgences :", res.data)
-    //   let data = res.data
-    //   if (res.data && res.data.values && Array.isArray(res.data.values)) {
-    //     data = res.data.values
-    //   }
-    //   if (Array.isArray(data)) {
-    //     console.log("Données après extraction :", data)
-    //     const dataValide = data.filter((a) => a && a.nomBien)
-    //     console.log("Données valides après filtrage :", dataValide)
-    //     setAffectations(dataValide)
-    //   } else {
-    //     console.warn("Réponse inattendue :", res.data)
-    //     setAffectations([])
-    //   }
-    // }).catch((err) => {
-    //   console.error("Erreur lors du refresh :", err)
-    //   setAffectations([])
-    // })
-
     setLoading(true)
     Promise.all([getImmobiliers(), getAgences(), getBienAgences()])
       .then(([resImmobiliers, resAgences, resAffectations]) => {
@@ -102,7 +82,7 @@ function ImDispatche() {
           affectations: agencesRaw.flatMap((a) =>
             fonctions.map((f) => {
               const aff = affectationsRaw.find(
-                (aff) => aff.idBien === immobilier.idBien && aff.idAgence === a.id && aff.fonction === f
+                (aff) => aff.idBien === immobilier.IdBien && aff.idAgence === a.Id && aff.fonction === f
               )
               return {
                 agenceId: a.Id,
@@ -133,7 +113,7 @@ function ImDispatche() {
       return
     }
     const agence = agences.find((a) => a.Id === parseInt(filtreAgenceTableau))
-    if (agence && !agencesAffichees.find((a) => a.Id === agence.id && a.Fonction === filtreFonctionTableau)) {
+    if (agence && !agencesAffichees.find((a) => a.Id === agence.Id && a.fonction === filtreFonctionTableau)) {
       setAgencesAffichees((prev) => [...prev, { ...agence, fonction: filtreFonctionTableau }])
       console.log(`Agence ajoutée au tableau : ${agence.Nom} - ${filtreFonctionTableau}`)
     }
@@ -144,7 +124,6 @@ function ImDispatche() {
   const toggleEditionAffectation = (id) => {
     console.log(`toggleEditionAffectation appelé avec id: ${id}, affectationEnEdition actuel: ${affectationEnEdition}`)
     if (affectationEnEdition === id) {
-      // console.log("affectation", affectations)
       const ligne = affectations.find((a) => a.id === id)
       let totalQuantiteAffectee = 0
 
@@ -159,37 +138,45 @@ function ImDispatche() {
         return
       }
 
-      const premiereAffectation = ligne.affectations.find((a) => a.quantite > 0)
-      console.log("*-*-*-*-*-",premiereAffectation,"/",ligne)
-      if (premiereAffectation) {
-        const fonction = premiereAffectation.fonction || "Non spécifiée"
-        console.log(`Envoi pour idBien: ${ligne.id}, idAgence: ${premiereAffectation.agenceId}, quantite: ${premiereAffectation.quantite}, fonction: ${fonction}`)
+      // Envoyer toutes les affectations modifiées
+      const dateAffectation = new Date().toISOString().split("T")[0] // Format YYYY-MM-DD
+      const promises = []
+      
+      ligne.affectations.forEach((aff) => {
+        if (aff.quantite > 0) {
+          console.log(`Envoi pour idBien: ${ligne.id}, idAgence: ${aff.agenceId}, quantite: ${aff.quantite}, fonction: ${aff.fonction}`)
+          promises.push(
+            createBienAgence({
+              idBien: ligne.id,
+              idAgence: aff.agenceId,
+              quantite: aff.quantite,
+              dateAffectation: dateAffectation,
+              fonction: aff.fonction || "Non spécifiée",
+              quantiteConso: 0
+            })
+          )
+        }
+      })
 
-        const dateAffectation = new Date().toISOString().split("T")[0] // Format YYYY-MM-DD
-        createBienAgence({
-          idBien: ligne.id,
-          idAgence: premiereAffectation.agenceId,
-          quantite: premiereAffectation.quantite,
-          dateAffectation: dateAffectation,
-          fonction: fonction,
-          quantiteConso: 0
-        })
-          .then(() => {
-            afficherToast("Affectation mise à jour avec succès", "succes")
-            triggerRefresh()
-            setAffectationEnEdition(null)
-            console.log("Mode édition désactivé")
-          })
-          .catch((error) => {
-            console.error("Erreur lors de la mise à jour de l'affectation:", error)
-            let errorMessage = error.response?.data || "Erreur lors de la mise à jour de l'affectation"
-            afficherToast(errorMessage, "erreur")
-          })
-      } else {
+      if (promises.length === 0) {
         afficherToast("Aucune affectation à mettre à jour", "info")
         setAffectationEnEdition(null)
         console.log("Mode édition désactivé - aucune affectation")
+        return
       }
+
+      Promise.all(promises)
+        .then(() => {
+          afficherToast("Affectations mises à jour avec succès", "succes")
+          triggerRefresh()
+          setAffectationEnEdition(null)
+          console.log("Mode édition désactivé")
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la mise à jour de l'affectation:", error)
+          let errorMessage = error.response?.data || "Erreur lors de la mise à jour de l'affectation"
+          afficherToast(errorMessage, "erreur")
+        })
     } else {
       setAffectationEnEdition(id)
       console.log(`Mode édition activé pour id: ${id}`)
@@ -202,7 +189,7 @@ function ImDispatche() {
       prev.map((a) => {
         if (a.id === immobilierId) {
           const majAff = a.affectations.map((aff) =>
-            aff.AgenceId === agenceId && aff.fonction === fonction
+            aff.agenceId === agenceId && aff.fonction === fonction
               ? { ...aff, quantite: parseInt(qtt, 10) || 0 }
               : aff
           )
@@ -260,7 +247,7 @@ function ImDispatche() {
         afficherToast("L'ID de l'immobilier n'est pas valide.", "erreur")
         return
       }
-      const immobilier = immobiliers.find((i) => i.idBien === parsedIdBien)
+      const immobilier = immobiliers.find((i) => i.IdBien === parsedIdBien)
       if (!immobilier) {
         console.log("Erreur : Aucun immobilier trouvé pour idBien =", parsedIdBien)
         afficherToast("Aucun immobilier trouvé pour l'ID spécifié.", "erreur")
@@ -429,7 +416,7 @@ function ImDispatche() {
                     <th></th>
                     <th></th>
                     {agencesAffichees.map((agence) => (
-                      <th key={`${agence.id}-${agence.fonction}`} className="th-agence">
+                      <th key={`${agence.Id}-${agence.fonction}`} className="th-agence">
                         {`${agence.Nom} - ${agence.fonction}`}
                       </th>
                     ))}
@@ -451,14 +438,14 @@ function ImDispatche() {
                           `Rendu input pour idBien=${affectation.id}, agenceId=${agence.Id}, fonction=${agence.fonction}, quantite=${aff?.quantite || 0}, disabled=${affectationEnEdition !== affectation.id}`
                         )
                         return (
-                          <td key={`${affectation.id}-${agence.id}-${agence.fonction}`}>
+                          <td key={`${affectation.id}-${agence.Id}-${agence.fonction}`}>
                             <input
                               type="number"
                               min="0"
                               max={affectation.quantite}
                               value={aff?.quantite || 0}
                               onChange={(e) =>
-                                mettreAJourAffectation(affectation.id, agence.id, e.target.value, agence.fonction)
+                                mettreAJourAffectation(affectation.id, agence.Id, e.target.value, agence.fonction)
                               }
                               className="input-consommation"
                               disabled={affectationEnEdition !== affectation.id}
@@ -519,11 +506,11 @@ function ImDispatche() {
                   <option value="">-- Sélectionner --</option>
                   {immobiliers
                     .filter((i) =>
-                      i.nomBien.toLowerCase().includes(filtreDesignation.toLowerCase())
+                      i.NomBien.toLowerCase().includes(filtreDesignation.toLowerCase())
                     )
                     .map((i) => (
-                      <option key={i.idBien} value={i.idBien}>
-                        {i.nomBien}
+                      <option key={i.IdBien} value={i.IdBien}>
+                        {i.NomBien}
                       </option>
                     ))}
                 </select>
@@ -546,11 +533,11 @@ function ImDispatche() {
                   <option value="">-- Sélectionner --</option>
                   {agences
                     .filter((a) =>
-                      a.nom.toLowerCase().includes(filtreAgence.toLowerCase())
+                      a.Nom.toLowerCase().includes(filtreAgence.toLowerCase())
                     )
                     .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.nom}
+                      <option key={a.Id} value={a.Id}>
+                        {a.Nom}
                       </option>
                     ))}
                 </select>

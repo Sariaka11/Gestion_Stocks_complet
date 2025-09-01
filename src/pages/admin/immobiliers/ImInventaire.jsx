@@ -43,7 +43,6 @@ function ImInventaire() {
     try {
       const agencesRes = await getAgences()
       let agencesData = agencesRes.data
-      console.log("*-*-*", agencesData)
       if (agencesData && typeof agencesData === "object" && "$values" in agencesData) {
         agencesData = agencesData.$values
       }
@@ -74,7 +73,6 @@ function ImInventaire() {
       }
 
       const affectationsRes = await getBienAgences()
-      console.log("RAW AFFECTATIONS ===>", affectationsRes.data)
       let affectationsData = affectationsRes.data
       if (affectationsRes.data && typeof affectationsRes.data === "object") {
         if ("$values" in affectationsRes.data) {
@@ -87,20 +85,22 @@ function ImInventaire() {
         console.warn("Les données affectations reçues ne sont pas un tableau:", affectationsData)
         affectationsData = []
       }
+      
+      // Correction: Utilisation des bonnes propriétés (avec majuscules)
       affectationsData = affectationsData.filter((aff) => {
-        // console.log("'''*-*-*-*-*''''",aff)
         const isValid = aff.IdBien && aff.IdAgence && aff.Fonction && aff.Fonction.trim() !== "" && aff.Quantite !== undefined
         if (!isValid) {
           console.warn(`Affectation invalide ignorée:`, aff)
         }
         return isValid
       })
+      
       console.log("Affectations filtrées:", affectationsData)
       setAffectations(affectationsData)
 
       const inventaireItems = immobiliersData.map((item) => {
         const amortissementsBien = amortissementsData.filter((a) => a.idBien === item.IdBien)
-        const affectationsBien = affectationsData.filter((a) => a.idBien === item.IdBien)
+        const affectationsBien = affectationsData.filter((a) => a.IdBien === item.IdBien)
 
         return {
           id: item.IdBien,
@@ -131,8 +131,8 @@ function ImInventaire() {
   }
 
   const getNomAgence = (idAgence) => {
-    const agence = agences.find((item) => item.id === idAgence)
-    return agence ? agence.nom : "Inconnue"
+    const agence = agences.find((item) => item.Id === idAgence)
+    return agence ? agence.Nom : "Inconnue"
   }
 
   const filteredInventaire = useMemo(() => {
@@ -154,21 +154,15 @@ function ImInventaire() {
 
       let matchAgence = true
       if (filtreAgence !== "") {
-        const affectationsBien = item.Affectations || []
-        matchAgence = affectationsBien.some((aff) => aff.idAgence.toString() === filtreAgence)
+        const affectationsBien = item.affectations || []
+        matchAgence = affectationsBien.some((aff) => aff.IdAgence.toString() === filtreAgence)
       }
 
       return matchDesignation && matchStatut && matchMois && matchAnnee && matchAgence
     })
   }, [inventaireData, filtreDesignation, filtreStatut, filtreMois, filtreAnnee, filtreAgence])
 
-
-
-
-
-
   const combinaisonsAgenceFonction = useMemo(() => {
-    // console.log("///////", affectations)
     if (affectations.length === 0) {
       console.warn("Aucune affectation valide pour générer les combinaisons agence/fonction")
       return []
@@ -190,7 +184,7 @@ function ImInventaire() {
           })
         }
       } else {
-        console.warn(`Affectation ignorée en raison de fonction vide: idBien=${aff.idBien}, idAgence=${aff.idAgence}, quantite=${aff.quantite}`)
+        console.warn(`Affectation ignorée en raison de fonction vide: IdBien=${aff.IdBien}, IdAgence=${aff.IdAgence}, Quantite=${aff.Quantite}`)
       }
     })
 
@@ -201,32 +195,17 @@ function ImInventaire() {
       return a.nomAgence.localeCompare(b.nomAgence)
     })
 
-    console.log("COMBINAISONS AGENCE + FONCTION avec index:", sortedCombinaisons.map((c, i) => `${i}: ${c.nomAgence} - ${c.fonction}`).join(", "))
+    console.log("COMBINAISONS AGENCE + FONCTION:", sortedCombinaisons)
     return sortedCombinaisons
   }, [affectations, agences])
-
-
-
-
-
-
-
 
   const donneesAffectations = useMemo(() => {
     const result = []
     const uniqueIds = [...new Set(affectations.map((aff) => aff.IdBien))]
 
-    // Générer l'ordre des combinaisons basé sur l'en-tête
-    const orderedCombinations = [];
-    agences.forEach((agence) => {
-      const fonctions = combinaisonsAgenceFonction.filter(c => c.idAgence === agence.id);
-      orderedCombinations.push(...fonctions);
-    });
-
     uniqueIds.forEach((idBien) => {
       const affectationsBien = affectations.filter((aff) => aff.IdBien === idBien)
-      const quantitesParCombinaison = orderedCombinations.map((comb, index) => {
-        console.log("comb-",comb)
+      const quantitesParCombinaison = combinaisonsAgenceFonction.map((comb) => {
         const totalQuantite = affectationsBien
           .filter((aff) => {
             return (
@@ -236,12 +215,10 @@ function ImInventaire() {
               aff.Quantite !== undefined
             )
           })
-          .reduce((sum, aff) => sum + (Number(aff.quantite) || 0), 0)
-        console.log(`idBien=${idBien}, index=${index}, comb=${comb.nomAgence}-${comb.fonction}, total=${totalQuantite}`)
+          .reduce((sum, aff) => sum + (Number(aff.Quantite) || 0), 0)
         return totalQuantite
       })
 
-      console.log(`Quantités pour idBien=${idBien} (${getNomBien(idBien)}):`, quantitesParCombinaison)
       result.push({
         idBien: idBien,
         designation: getNomBien(idBien),
@@ -249,9 +226,9 @@ function ImInventaire() {
       })
     })
 
-    console.log("Données affectations:", result, "/", combinaisonsAgenceFonction)
+    console.log("Données affectations:", result)
     return result
-  }, [affectations, combinaisonsAgenceFonction, inventaireData, agences])
+  }, [affectations, combinaisonsAgenceFonction, inventaireData])
 
   const exporterEnPDF = () => {
     try {
@@ -300,22 +277,30 @@ function ImInventaire() {
     try {
       const doc = new jsPDF("landscape")
 
-      const headRow1 = [{ content: "Désignation", rowSpan: 2 }]
-      const headRow2 = []
-
-      agences.forEach((agence) => {
-        const fonctions = combinaisonsAgenceFonction.filter((c) => c.idAgence === agence.id)
-        if (fonctions.length > 0) {
-          headRow1.push({ content: agence.nom, colSpan: fonctions.length })
-          fonctions.forEach((f) => {
-            headRow2.push({ content: f.fonction })
-          })
+      // Préparer les en-têtes
+      const headRow1 = ["Désignation"]
+      const headRow2 = [""] // Première cellule vide pour l'alignement avec la colonne Désignation
+      
+      // Grouper par agence
+      const agencesAvecFonctions = {}
+      combinaisonsAgenceFonction.forEach(comb => {
+        if (!agencesAvecFonctions[comb.nomAgence]) {
+          agencesAvecFonctions[comb.nomAgence] = []
         }
+        agencesAvecFonctions[comb.nomAgence].push(comb.fonction)
       })
 
-      const body = donneesAffectations.map((item) => [
+      // Construire les en-têtes
+      Object.keys(agencesAvecFonctions).forEach(agence => {
+        const fonctions = agencesAvecFonctions[agence]
+        headRow1.push(...Array(fonctions.length).fill(agence))
+        headRow2.push(...fonctions)
+      })
+
+      // Préparer les données du corps
+      const body = donneesAffectations.map(item => [
         item.designation,
-        ...item.affectations.map((q) => (q > 0 ? q : "0")),
+        ...item.affectations.map(q => (q > 0 ? q : "0"))
       ])
 
       autoTable(doc, {
@@ -324,6 +309,7 @@ function ImInventaire() {
         startY: 20,
         styles: { fontSize: 8, cellPadding: 3 },
         headStyles: { fillColor: [41, 128, 185], halign: "center" },
+        margin: { top: 20 }
       })
 
       doc.save("Affectations.pdf")
@@ -457,8 +443,8 @@ function ImInventaire() {
             >
               <option value="">Toutes</option>
               {agences.map((agence) => (
-                <option key={agence.id} value={agence.id}>
-                  {agence.nom}
+                <option key={agence.Id} value={agence.Id}>
+                  {agence.Nom}
                 </option>
               ))}
             </select>
@@ -512,71 +498,64 @@ function ImInventaire() {
         </table>
       </div>
 
-    <div className="tableau-container">
-  <h3>Inventaire des Affectations</h3>
-  {combinaisonsAgenceFonction.length === 0 ? (
-    <div className="no-data">
-      Aucune affectation valide trouvée. Vérifiez les données dans la base ou ajoutez des affectations.
-    </div>
-  ) : (
-    <div className="table-responsive">
-      <table className="tableau-inventaire">
-        <thead>
-          <tr>
-            <th rowSpan="2">Désignation</th>
-            {agences.map((agence) => {
-              const fonctionsAgence = combinaisonsAgenceFonction.filter(
-                (c) => c.idAgence === agence.id
-              );
-              return fonctionsAgence.length > 0 ? (
-                <th key={agence.id} colSpan={fonctionsAgence.length}>
-                  {agence.nom}
-                </th>
-              ) : null;
-            })}
-          </tr>
-          <tr>
-            {agences.map((agence) => {
-              const fonctionsAgence = combinaisonsAgenceFonction.filter(
-                (c) => c.idAgence === agence.id
-              );
-              return fonctionsAgence.map((comb) => (
-                <th key={`${comb.idAgence}-${comb.fonction}`}>
-                  {comb.fonction}
-                </th>
-              ));
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {donneesAffectations.length > 0 ? (
-            donneesAffectations.map((item, index) => (
-              <tr key={`${item.idBien}-${index}`}>
-                <td>{item.designation}</td>
-                {item.affectations.map((quantite, qIndex) => (
-                  <td
-                    key={`${item.idBien}-${combinaisonsAgenceFonction[qIndex].idAgence}-${combinaisonsAgenceFonction[qIndex].fonction}-${index}`}
-                  >
-                    {quantite > 0 ? quantite : "0"}
-                  </td>
-                ))}
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td
-                colSpan={combinaisonsAgenceFonction.length + 1}
-                className="no-data"
-              >
-                Aucune affectation trouvée pour les biens filtrés.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  )}
-</div>
+      <div className="tableau-container">
+        <h3>Inventaire des Affectations</h3>
+        {combinaisonsAgenceFonction.length === 0 ? (
+          <div className="no-data">
+            Aucune affectation valide trouvée. Vérifiez les données dans la base ou ajoutez des affectations.
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="tableau-inventaire">
+              <thead>
+                <tr>
+                  <th rowSpan="2">Désignation</th>
+                  {Object.entries(
+                    combinaisonsAgenceFonction.reduce((acc, comb) => {
+                      if (!acc[comb.nomAgence]) {
+                        acc[comb.nomAgence] = []
+                      }
+                      acc[comb.nomAgence].push(comb)
+                      return acc
+                    }, {})
+                  ).map(([agence, combinaisons]) => (
+                    <th key={agence} colSpan={combinaisons.length}>
+                      {agence}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  {combinaisonsAgenceFonction.map((comb) => (
+                    <th key={`${comb.idAgence}-${comb.fonction}`}>
+                      {comb.fonction}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {donneesAffectations.length > 0 ? (
+                  donneesAffectations.map((item) => (
+                    <tr key={item.idBien}>
+                      <td>{item.designation}</td>
+                      {item.affectations.map((quantite, index) => (
+                        <td key={index}>
+                          {quantite > 0 ? quantite : "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={combinaisonsAgenceFonction.length + 1} className="no-data">
+                      Aucune affectation trouvée pour les biens filtrés.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <div className="toast-container">
         {toasts.map((toast) => (
